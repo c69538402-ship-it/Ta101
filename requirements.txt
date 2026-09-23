@@ -1,1 +1,4 @@
-
+streamlit
+requests
+pythainlp
+ephem
