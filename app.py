@@ -38,7 +38,7 @@ with tab1:
     else:
         filtered_df = df
         
-    st.write(- พบข้อมูลทั้งหมด: {len(filtered_df)} งวด)
+    st.write(f"• พบข้อมูลทั้งหมด: {len(filtered_df)} งวด")
     
     for idx, row in filtered_df.iterrows():
         with st.container():
