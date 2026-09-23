@@ -12,14 +12,14 @@ st.markdown("ค้นหาข้อมูลย้อนหลัง พร้
 def load_data():
     try:
         # อ่านไฟล์ lottery_data.csv ที่คุณสร้างเพิ่มขึ้นมา
-        df = pd.read_csv("lottery_data.csv")
+        df = pd.read_csv("lottery_data.csv", dtype=str) # บังคับอ่านทุกคอลัมน์เป็น String เพื่อป้องกัน Error
         return df
     except FileNotFoundError:
         # ข้อมูลสำรองกรณีที่ยังไม่ได้สร้างไฟล์ CSV
         data = [
-            {"date": "16 กันยายน 2569", "day_month": "วันพุธ เดือนกันยายน", "moon": "แรม 10 ค่ำ เดือน 10", "zodiac_astrology": "ปีจอ / ราศีพฤษภ", "p1": "730640", "front3": "060, 521", "back3": "266, 041", "back2": 64},
-            {"date": "1 กันยายน 2569", "day_month": "วันอังคาร เดือนกันยายน", "moon": "แรม 10 ค่ำ เดือน 9 (หลัง)", "zodiac_astrology": "ปีจอ / ราศีสิงห์", "p1": "417212", "front3": "257, 346", "back3": "136, 740", "back2": 4},
-            {"date": "16 สิงหาคม 2569", "day_month": "วันอาทิตย์ เดือนสิงหาคม", "moon": "แรม 9 ค่ำ เดือน 9", "zodiac_astrology": "ปีจอ / ราศีสิงห์", "p1": "004615", "front3": "731, 429", "back3": "937, 094", "back2": 53},
+            {"date": "16 กันยายน 2569", "day_month": "วันพุธ เดือนกันยายน", "moon": "แรม 10 ค่ำ เดือน 10", "zodiac_astrology": "ปีจอ / ราศีพฤษภ", "p1": "730640", "front3": "060, 521", "back3": "266, 041", "back2": "64"},
+            {"date": "1 กันยายน 2569", "day_month": "วันอังคาร เดือนกันยายน", "moon": "แรม 10 ค่ำ เดือน 9 (หลัง)", "zodiac_astrology": "ปีจอ / ราศีสิงห์", "p1": "417212", "front3": "257, 346", "back3": "136, 740", "back2": "04"},
+            {"date": "16 สิงหาคม 2569", "day_month": "วันอาทิตย์ เดือนสิงหาคม", "moon": "แรม 9 ค่ำ เดือน 9", "zodiac_astrology": "ปีจอ / ราศีสิงห์", "p1": "004615", "front3": "731, 429", "back3": "937, 094", "back2": "53"},
         ]
         return pd.DataFrame(data)
 
@@ -33,8 +33,11 @@ with tab1:
     search_query = st.text_input("พิมพ์ค้นหา (เช่น วัน, เดือน, ปี หรือเลขท้าย):", "")
     
     if search_query:
-        # กรองข้อมูลตามคำค้นหา
-        filtered_df = df[df.astype(str).agg(' '.join, axis=1).str.contains(search_query, case=False, na=False)]
+        # วิธีการค้นหาแบบปลอดภัย: รวมข้อความทุกคอลัมน์เข้าด้วยกันทีละแถว
+        def search_row(row):
+            return search_query.lower() in " ".join(row.astype(str).values).lower()
+        
+        filtered_df = df[df.apply(search_row, axis=1)]
     else:
         filtered_df = df
         
