@@ -2,118 +2,91 @@ import streamlit as st
 import pandas as pd
 
 # ตั้งค่าหน้าเว็บ
-st.set_page_config(page_title="บันทึกผลสลากกินแบ่งรัฐบาลย้อนหลัง", page_icon="🔢", layout="wide")
+st.set_page_config(page_title="ระบบสถิติและเปรียบเทียบผลสลากกินแบ่งรัฐบาล", page_icon="📊", layout="wide")
 
-# ข้อมูลตัวอย่างสถิติหวยย้อนหลัง (คุณสามารถเพิ่มข้อมูลลงใน List นี้ได้เรื่อยๆ)
-# รูปแบบ: วันเดือนปี, วัน, เดือน, ข้างขึ้นข้างแรม, ปีนักษัตร, ราศี, รางวัลที่1, หน้า3ตัว, ท้าย3ตัว, ท้าย2ตัว
-lottery_data = [
-    {
-        "date": "16 กันยายน 2569",
-        "day_month": "วันพุธ เดือนกันยายน",
-        "moon": "แรม 10 ค่ำ เดือน 10",
-        "zodiac_astrology": "ปีจอ / ราศีพฤษภ",
-        "p1": "730640", "front3": "060, 521", "back3": "266, 041", "back2": "64"
-    },
-    {
-        "date": "1 กันยายน 2569",
-        "day_month": "วันอังคาร เดือนกันยายน",
-        "moon": "แรม 10 ค่ำ เดือน 9 (หลัง)",
-        "zodiac_astrology": "ปีจอ / ราศีสิงห์",
-        "p1": "417212", "front3": "257, 346", "back3": "136, 740", "back2": "04"
-    },
-    {
-        "date": "16 สิงหาคม 2569",
-        "day_month": "วันอาทิตย์ เดือนสิงหาคม",
-        "moon": "แรม 9 ค่ำ เดือน 9",
-        "zodiac_astrology": "ปีจอ / ราศีสิงห์",
-        "p1": "004615", "front3": "731, 429", "back3": "937, 094", "back2": "53"
-    },
-    {
-        "date": "1 สิงหาคม 2569",
-        "day_month": "วันเสาร์ เดือนสิงหาคม",
-        "moon": "แรม 13 ค่ำ เดือน 8",
-        "zodiac_astrology": "ปีจอ / ราศีกรกฎ",
-        "p1": "932479", "front3": "413, 672", "back3": "154, 039", "back2": "69"
-    },
-    {
-        "date": "16 กรกฎาคม 2569",
-        "day_month": "วันพฤหัสบดี เดือนกรกฎาคม",
-        "moon": "แรม 2 ค่ำ เดือน 8",
-        "zodiac_astrology": "ปีจอ / ราศีเมถุน",
-        "p1": "639214", "front3": "683, 709", "back3": "746, 427", "back2": "71"
-    },
-    {
-        "date": "1 กรกฎาคม 2569",
-        "day_month": "วันพุธ เดือนกรกฎาคม",
-        "moon": "แรม 2 ค่ำ เดือน 7",
-        "zodiac_astrology": "ปีจอ / ราศีเมถุน",
-        "p1": "751495", "front3": "001, 980", "back3": "304, 531", "back2": "62"
-    },
-    # ตัวอย่างย้อนหลังไปปี 2568 (สามารถเพิ่มข้อมูลอื่นๆ ต่อได้ตรงนี้)
-    {
-        "date": "30 ธันวาคม 2568",
-        "day_month": "วันอังคาร เดือนธันวาคม",
-        "moon": "ขึ้น 11 ค่ำ เดือน 2",
-        "zodiac_astrology": "ปีระกา / ราศีธนู",
-        "p1": "625520", "front3": "351, 882", "back3": "146, 858", "back2": "80"
-    },
-    {
-        "date": "16 ธันวาคม 2568",
-        "day_month": "วันอังคาร เดือนธันวาคม",
-        "moon": "แรม 12 ค่ำ เดือน 1",
-        "zodiac_astrology": "ปีระกา / ราศีธนู",
-        "p1": "435116", "front3": "321, 608", "back3": "530, 241", "back2": "47"
-    }
-]
+st.title("📊 ระบบสถิติและเปรียบเทียบผลสลากกินแบ่งรัฐบาลย้อนหลัง")
+st.markdown("ค้นหาข้อมูลย้อนหลัง พร้อมฟังก์ชันเปรียบเทียบสถิติตัวเลข")
 
-st.title("🎯 ระบบบันทึกและค้นหาผลสลากกินแบ่งรัฐบาล")
-st.markdown("---")
+# โหลดข้อมูลจากไฟล์ CSV (ดึงข้อมูลย้อนหลังทั้งหมดที่คุณเตรียมไว้)
+@st.cache_data
+def load_data():
+    try:
+        # อ่านไฟล์ lottery_data.csv ที่คุณสร้างเพิ่มขึ้นมา
+        df = pd.read_csv("lottery_data.csv")
+        return df
+    except FileNotFoundError:
+        # ข้อมูลสำรองกรณีที่ยังไม่ได้สร้างไฟล์ CSV
+        data = [
+            {"date": "16 กันยายน 2569", "day_month": "วันพุธ เดือนกันยายน", "moon": "แรม 10 ค่ำ เดือน 10", "zodiac_astrology": "ปีจอ / ราศีพฤษภ", "p1": "730640", "front3": "060, 521", "back3": "266, 041", "back2": 64},
+            {"date": "1 กันยายน 2569", "day_month": "วันอังคาร เดือนกันยายน", "moon": "แรม 10 ค่ำ เดือน 9 (หลัง)", "zodiac_astrology": "ปีจอ / ราศีสิงห์", "p1": "417212", "front3": "257, 346", "back3": "136, 740", "back2": 4},
+            {"date": "16 สิงหาคม 2569", "day_month": "วันอาทิตย์ เดือนสิงหาคม", "moon": "แรม 9 ค่ำ เดือน 9", "zodiac_astrology": "ปีจอ / ราศีสิงห์", "p1": "004615", "front3": "731, 429", "back3": "937, 094", "back2": 53},
+        ]
+        return pd.DataFrame(data)
 
-# ช่องค้นหา
-search_query = st.text_input("🔍 ค้นหา (พิมพ์วันที่, เดือน, ปี, หรือเลขท้าย):", "")
+df = load_data()
 
-# กรองข้อมูลตามคำค้นหา
-filtered_data = []
-for item in lottery_data:
-    combined_text = f"{item['date']} {item['day_month']} {item['moon']} {item['zodiac_astrology']} {item['p1']} {item['back2']}"
-    if search_query.lower() in combined_text.lower():
-        filtered_data.append(item)
+# สร้างเมนูหลัก (Tabs) เพื่อแบ่งระหว่างหน้าค้นหาปกติ กับหน้าเปรียบเทียบสถิติ
+tab1, tab2 = st.tabs(["🔍 ค้นหาและคัดลอกข้อมูล", "📈 เปรียบเทียบสถิติและวิเคราะห์"])
 
-st.subheader(f"ผลการบันทึกทั้งหมด (พบ {len(filtered_data)} งวด)")
-
-# แสดงผลแบบการ์ดสวยงาม พร้อมปุ่มก็อปปี้ข้อมูล
-for idx, item in enumerate(filtered_data):
-    with st.container():
-        st.markdown(f"### 📌 งวดวันที่: {item['date']}")
-        col1, col2 = st.columns(2)
+with tab1:
+    st.subheader("ค้นหาข้อมูลรายงวด")
+    search_query = st.text_input("พิมพ์ค้นหา (เช่น วัน, เดือน, ปี หรือเลขท้าย):", "")
+    
+    if search_query:
+        # กรองข้อมูลตามคำค้นหา
+        filtered_df = df[df.astype(str).agg(' '.join, axis=1).str.contains(search_query, case=False, na=False)]
+    else:
+        filtered_df = df
         
-        with col1:
-            st.write(f"• **วัน/เดือน:** {item['day_month']}")
-            st.write(f"• **ข้างขึ้น/ข้างแรม:** {item['moon']}")
-            st.write(f"• **ปีนักษัตร / ราศี:** {item['zodiac_astrology']}")
+    st.write(- พบข้อมูลทั้งหมด: {len(filtered_df)} งวด)
+    
+    for idx, row in filtered_df.iterrows():
+        with st.container():
+            st.markdown(f"### 📌 งวดวันที่: {row['date']}")
+            col1, col2 = st.columns(2)
             
-        with col2:
-            st.write(f"• **รางวัลที่ 1:** `{item['p1']}`")
-            st.write(f"• **เลขหน้า 3 ตัว:** {item['front3']}")
-            st.write(f"• **เลขท้าย 3 ตัว:** {item['back3']}")
-            st.write(f"• **เลขท้าย 2 ตัว:** `{item['back2']}`")
+            with col1:
+                st.write(f"• **วัน/เดือน:** {row['day_month']}")
+                st.write(f"• **ข้างขึ้น/ข้างแรม:** {row['moon']}")
+                st.write(f"• **ปีนักษัตร / ราศี:** {row['zodiac_astrology']}")
+                
+            with col2:
+                st.write(f"• **รางวัลที่ 1:** `{row['p1']}`")
+                st.write(f"• **เลขหน้า 3 ตัว:** {row['front3']}")
+                st.write(f"• **เลขท้าย 3 ตัว:** {row['back3']}")
+                st.write(f"• **เลขท้าย 2 ตัว:** `{row['back2']}`")
+                
+            format_text = f"""วัน เดือน ปี: {row['date']}
+วันอะไร เดือนอะไร: {row['day_month']}
+ข้างขึ้นข้างแรม: {row['moon']}
+ปีนักบัตร ราศรี: {row['zodiac_astrology']}
+ผลหวย: รางวัลที่ 1 ({row['p1']}), เลขท้าย 2 ตัว ({row['back2']})"""
             
-        # ปุ่มสำหรับแสดงข้อความแบบก๊อปปี้ไปบันทึกได้ง่าย
-        format_text = f"""วัน เดือน ปี: {item['date']}
-วันอะไร เดือนอะไร: {item['day_month']}
-ข้างขึ้นข้างแรม: {item['moon']}
-ปีนักบัตร ราศรี: {item['zodiac_astrology']}
-ผลหวย: รางวัลที่ 1 ({item['p1']}), เลขท้าย 2 ตัว ({item['back2']})"""
+            with st.expander("📋 คัดลอกรูปแบบข้อความบันทึก"):
+                st.code(format_text, language="text")
+            st.markdown("---")
+
+with tab2:
+    st.subheader("📊 เปรียบเทียบและวิเคราะห์สถิติตัวเลข")
+    
+    # แปลงเลขท้าย 2 ตัวให้เป็นตัวเลขเพื่อนำมาจัดอันดับ
+    if 'back2' in df.columns:
+        df['back2_str'] = df['back2'].astype(str).str.zfill(2)
         
-        with st.expander("📋 คัดลอกรูปแบบข้อความบันทึก"):
-            st.code(format_text, language="text")
+        col_a, col_b = st.columns(2)
+        
+        with col_a:
+            st.markdown("#### 🏆 สถิติเลขท้าย 2 ตัวที่ออกบ่อยที่สุดในฐานข้อมูล")
+            top_back2 = df['back2_str'].value_counts().head(5)
+            st.dataframe(top_back2, use_container_width=True)
             
+        with col_b:
+            st.markdown("#### 📅 เปรียบเทียบตามราศี / ปีนักษัตร")
+            if 'zodiac_astrology' in df.columns:
+                zodiac_counts = df['zodiac_astrology'].value_counts()
+                st.dataframe(zodiac_counts, use_container_width=True)
+        
         st.markdown("---")
-
-# ส่วนสำหรับแนะนำการเพิ่มข้อมูล 12 ปี
-st.sidebar.header("💡 คำแนะนำเพิ่มเติม")
-st.sidebar.info(
-    "คุณสามารถเพิ่มข้อมูลย้อนหลัง 12 ปี (ประมาณเกือบ 300 งวด) "
-    "เข้าไปในตัวแปร `lottery_data` ในโค้ด Python นี้ได้เรื่อยๆ หรือจะปรับให้เชื่อมต่อกับฐานข้อมูล CSV / Google Sheets เพื่อความสะดวกในการอัปเดตข้อมูลจำนวนมากครับ"
-          )
-
+        st.markdown("#### 📋 ตารางสรุปข้อมูลดิบทั้งหมด (สามารถใช้เช็กเทียบชนกันได้)")
+        st.dataframe(df, use_container_width=True)
+        
