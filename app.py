@@ -58,6 +58,7 @@ html,body{margin:0;padding:0;background:#111827;font-family:system-ui,-apple-sys
 #gps{background:#dbeafe}
 #pin{background:#dcfce7}
 #save{background:#fef3c7}
+#photo{background:#fde68a}
 #new{background:#fee2e2}
 #undo{background:#f3e8ff}
 .crosshair{
@@ -89,14 +90,15 @@ html,body{margin:0;padding:0;background:#111827;font-family:system-ui,-apple-sys
 </head>
 <body>
 <div id="map">
-  <div class="topbar">
+  <div class="topbar" data-html2canvas-ignore="true">
     <button id="gps">📍 GPS</button>
     <button id="pin">📌 ปักหมุด</button>
     <button id="undo">↩️ ลบล่าสุด</button>
     <button id="new">🗑️ เริ่มใหม่</button>
     <button id="save">💾 บันทึก</button>
+    <button id="photo">📷 บันทึกภาพ</button>
   </div>
-  <div class="crosshair"><div class="cross-dot"></div></div>
+  <div class="crosshair" id="crosshair" data-html2canvas-ignore="true"><div class="cross-dot"></div></div>
 </div>
 
 <div class="panel">
@@ -108,10 +110,11 @@ html,body{margin:0;padding:0;background:#111827;font-family:system-ui,-apple-sys
   <div class="card"><div class="label">ไถ 250/ไร่</div><div class="value" id="plow">0.00 ฿</div></div>
   <div class="card"><div class="label">พรวน 350/ไร่</div><div class="value" id="till">0.00 ฿</div></div>
   <div class="card"><div class="label">ไถ+พรวน 600/ไร่</div><div class="value" id="both">0.00 ฿</div></div>
-  <div id="status">พร้อมใช้งาน: เลื่อนแผนที่ให้มุมแปลงตรงกากบาท แล้วกดปักหมุด</div>
+  <div id="status">พร้อมใช้งาน: เลื่อนภาพดาวเทียมให้มุมแปลงตรงกากบาท แล้วกดปักหมุด</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -187,11 +190,13 @@ function render(){
  markerLayer.clearLayers();
  lineLayer.clearLayers();
 
- points.forEach((p,i)=>{
-   const m=L.circleMarker([p[0],p[1]],{
-     radius:8,weight:3,color:"#ffffff",fillColor:"#ef4444",fillOpacity:1
+ // จุดเล็ก ๆ ไม่มีตัวเลข เพื่อไม่ให้บังพื้นที่
+ points.forEach((p)=>{
+   L.circleMarker([p[0],p[1]],{
+     radius:5,weight:2,color:"#ffffff",fillColor:"#ef4444",fillOpacity:1
    }).addTo(markerLayer);
-   m.bindTooltip(String(i+1),{permanent:true,direction:"top",offset:[0,-8]});
+ });
+
  });
 
  if(points.length>=2){
@@ -267,6 +272,35 @@ document.getElementById("new").addEventListener("click",()=>{
  status("เริ่มแปลงใหม่แล้ว");
 });
 
+async function savePhoto(){
+ status("กำลังสร้างภาพบันทึก...");
+ if(typeof html2canvas!=="function"){
+   status("ระบบบันทึกภาพยังโหลดไม่เสร็จ กรุณาลองอีกครั้ง");
+   return;
+ }
+ const cross=document.getElementById("crosshair");
+ cross.style.visibility="hidden";
+ await new Promise(r=>setTimeout(r,100));
+ try{
+   const canvas=await html2canvas(document.getElementById("map"),{
+     useCORS:true,allowTaint:false,backgroundColor:"#222222",scale:2,logging:false
+   });
+   canvas.toBlob(blob=>{
+     if(blob){
+       const stamp=new Date().toISOString().replace(/[:.]/g,"-");
+       downloadBlob("Mon101_แปลง_"+stamp+".png",blob);
+       status("บันทึกภาพแปลงแล้ว — ไม่มีตัวเลขบังพื้นที่");
+     }else status("สร้างไฟล์ภาพไม่สำเร็จ");
+   },"image/png",1);
+ }catch(e){
+   status("บันทึกภาพไม่สำเร็จ: "+e.message);
+ }finally{
+   cross.style.visibility="";
+ }
+}
+
+document.getElementById("photo").addEventListener("click",savePhoto);
+
 document.getElementById("save").addEventListener("click",()=>{
  if(points.length<3){
    status("ต้องมีอย่างน้อย 3 จุดจึงจะบันทึกพื้นที่ได้");
@@ -288,8 +322,16 @@ document.getElementById("save").addEventListener("click",()=>{
  records.push(rec);
  saveJSON(RECORD_KEY,records);
  downloadText("mon101_last_record.json",JSON.stringify(rec,null,2),"application/json");
- status("บันทึกแปลงแล้ว และดาวน์โหลดข้อมูลแปลงล่าสุดให้แล้ว");
+ savePhoto();
+ status("บันทึกแปลงแล้ว — กำลังดาวน์โหลดข้อมูลและภาพแปลง");
 });
+
+function downloadBlob(name,blob){
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
 
 function downloadText(name,text,type){
  const blob=new Blob([text],{type});
