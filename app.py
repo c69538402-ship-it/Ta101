@@ -2,947 +2,329 @@ import os
 import json
 import csv
 import io
-from datetime import datetime
-
 import streamlit as st
-from pyproj import Geod
-
-
-# ============================================================
-# MON101 FIELD MEASURE
-# Leaflet map + Streamlit Components v2
-# ============================================================
+import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="Mon101 วัดพื้นที่แปลงนา",
-    page_icon="📐",
+    page_title="Mon101 เธงเธฑเธ”เธเธทเนเธเธ—เธตเนเนเธเธฅเธ",
+    page_icon="๐“",
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
-
-# ------------------------------------------------------------
-# พื้นฐาน
-# ------------------------------------------------------------
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_PATH = os.path.join(APP_DIR, "logo.jpg")
 
-DEFAULT_LAT = 17.4138
-DEFAULT_LON = 102.7875
-DEFAULT_ZOOM = 17
-
-PRICE_PLOW = 250
-PRICE_MILL = 350
-PRICE_BOTH = 600
-
-geod = Geod(ellps="WGS84")
-
-
-# ============================================================
-# Session State
-# ============================================================
-
-if "field_points" not in st.session_state:
-    st.session_state.field_points = []
-
-if "field_records" not in st.session_state:
-    st.session_state.field_records = []
-
-if "component_initialized" not in st.session_state:
-    st.session_state.component_initialized = False
-
-
-# ============================================================
-# ฟังก์ชันคำนวณพื้นที่
-# ============================================================
-
-def calculate_area_m2(points):
-    """คำนวณพื้นที่ polygon ด้วย WGS84 Geodesic"""
-
-    if len(points) < 3:
-        return 0.0
-
-    lats = [float(p[0]) for p in points]
-    lons = [float(p[1]) for p in points]
-
-    area, _ = geod.polygon_area_perimeter(
-        lons,
-        lats,
-    )
-
-    return abs(float(area))
-
-
-def convert_area(area_m2):
-    """แปลงตารางเมตร -> ไร่ งาน ตารางวา"""
-
-    rai = int(area_m2 // 1600)
-
-    remain = area_m2 - (rai * 1600)
-
-    ngan = int(remain // 400)
-
-    remain -= ngan * 400
-
-    square_wa = remain / 4
-
-    return rai, ngan, square_wa
-
-
-def area_text(area_m2):
-    rai, ngan, square_wa = convert_area(area_m2)
-
-    return (
-        f"{rai:,} ไร่ "
-        f"{ngan:,} งาน "
-        f"{square_wa:,.2f} ตารางวา"
-    )
-
-
-def calculate_prices(area_m2):
-    rai_decimal = area_m2 / 1600
-
-    return {
-        "ไถ": rai_decimal * PRICE_PLOW,
-        "ปั่น": rai_decimal * PRICE_MILL,
-        "รวม": rai_decimal * PRICE_BOTH,
-    }
-
-
-# ============================================================
-# โลโก้
-# ============================================================
+# เธเนเธเธซเธฒเน€เธเธฅเธ .mp3/.wav/.m4a เนเธเนเธเธฅเน€เธ”เธญเธฃเนเน€เธ”เธตเธขเธงเธเธฑเธ app.py เนเธ”เธขเนเธกเนเธ•เนเธญเธเธกเธตเนเธเธฅเน music.py
+AUDIO_EXTS = (".mp3", ".wav", ".m4a", ".ogg")
+AUDIO_FILES = sorted(
+    f for f in os.listdir(APP_DIR)
+    if f.lower().endswith(AUDIO_EXTS) and os.path.isfile(os.path.join(APP_DIR, f))
+)
 
 if os.path.exists(LOGO_PATH):
-    st.image(LOGO_PATH, width=120)
+    st.image(LOGO_PATH, width=110)
 
+st.title("๐“ Mon101 เธงเธฑเธ”เธเธทเนเธเธ—เธตเนเนเธเธฅเธ")
+st.caption("เธ เธฒเธเธ”เธฒเธงเน€เธ—เธตเธขเธก โ€ข GPS โ€ข เธเธฒเธเธเธฒเธ—เธเธฅเธฒเธเธเธญ โ€ข เธเธฑเธเธซเธกเธธเธ”เธ—เธตเธฅเธฐเธกเธธเธก โ€ข เธเธณเธเธงเธ“ เนเธฃเน/เธเธฒเธ/เธ•เธฒเธฃเธฒเธเธงเธฒ")
 
-# ============================================================
-# หัวข้อ
-# ============================================================
+st.info(
+    "เธงเธดเธเธตเนเธเน: เธเธ” GPS เน€เธเธทเนเธญเนเธเธเธฃเธดเน€เธงเธ“เนเธเธฅเธ โ’ เธเธนเธก/เน€เธฅเธทเนเธญเธเธ เธฒเธเธ”เธฒเธงเน€เธ—เธตเธขเธกเนเธซเนเธกเธธเธกเนเธเธฅเธเธญเธขเธนเนเธ•เธฃเธเธเธฒเธเธเธฒเธ—เธเธฅเธฒเธเธเธญ "
+    "โ’ เธเธ” ๐“ เธเธฑเธเธซเธกเธธเธ” โ’ เธ—เธณเธเนเธณเธเธเธเธฃเธเธ—เธธเธเธกเธธเธก โ’ เธเธ” ๐’พ เธเธฑเธเธ—เธถเธ"
+)
 
-st.title("📐 Mon101 วัดพื้นที่แปลงนา")
+html = r"""
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#111827;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#map{height:72vh;min-height:520px;width:100%;position:relative}
+.leaflet-control-attribution{font-size:9px}
+.topbar{
+  position:absolute;z-index:1000;top:10px;left:10px;right:10px;
+  display:flex;gap:7px;flex-wrap:wrap;pointer-events:none;
+}
+.topbar button{
+  pointer-events:auto;border:0;border-radius:10px;padding:10px 12px;
+  background:#ffffffee;color:#111827;font-weight:700;font-size:14px;
+  box-shadow:0 2px 10px #0005;
+}
+.topbar button:active{transform:scale(.97)}
+#gps{background:#dbeafe}
+#pin{background:#dcfce7}
+#save{background:#fef3c7}
+#new{background:#fee2e2}
+#undo{background:#f3e8ff}
+.crosshair{
+ position:absolute;z-index:900;left:50%;top:50%;width:42px;height:42px;
+ transform:translate(-50%,-50%);pointer-events:none;
+}
+.crosshair:before,.crosshair:after{content:"";position:absolute;background:#ff2d2d;box-shadow:0 0 2px #fff}
+.crosshair:before{width:42px;height:3px;left:0;top:19px}
+.crosshair:after{width:3px;height:42px;left:19px;top:0}
+.cross-dot{
+ position:absolute;left:50%;top:50%;width:9px;height:9px;
+ transform:translate(-50%,-50%);border:2px solid white;background:#ff2d2d;border-radius:50%;
+}
+.panel{
+ background:#111827;color:#f9fafb;padding:12px 14px;
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;
+}
+.card{background:#1f2937;border-radius:10px;padding:10px}
+.label{font-size:12px;color:#9ca3af}
+.value{font-size:19px;font-weight:800;margin-top:2px}
+#status{grid-column:1/-1;color:#d1d5db;font-size:13px}
+@media(max-width:700px){
+ #map{height:68vh;min-height:460px}
+ .topbar{gap:5px}
+ .topbar button{padding:9px 10px;font-size:13px}
+ .panel{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+</head>
+<body>
+<div id="map">
+  <div class="topbar">
+    <button id="gps">๐“ GPS</button>
+    <button id="pin">๐“ เธเธฑเธเธซเธกเธธเธ”</button>
+    <button id="undo">โฉ๏ธ เธฅเธเธฅเนเธฒเธชเธธเธ”</button>
+    <button id="new">๐—‘๏ธ เน€เธฃเธดเนเธกเนเธซเธกเน</button>
+    <button id="save">๐’พ เธเธฑเธเธ—เธถเธ</button>
+  </div>
+  <div class="crosshair"><div class="cross-dot"></div></div>
+</div>
+
+<div class="panel">
+  <div class="card"><div class="label">เธเธธเธ”เธ—เธตเนเธเธฑเธ</div><div class="value" id="points">0</div></div>
+  <div class="card"><div class="label">เธเธทเนเธเธ—เธตเน เธ•เธฃ.เธก.</div><div class="value" id="m2">0.00</div></div>
+  <div class="card"><div class="label">เนเธฃเน</div><div class="value" id="rai">0.0000</div></div>
+  <div class="card"><div class="label">เธเธฒเธ</div><div class="value" id="ngan">0.00</div></div>
+  <div class="card"><div class="label">เธ•เธฒเธฃเธฒเธเธงเธฒ</div><div class="value" id="sqw">0.00</div></div>
+  <div class="card"><div class="label">เนเธ– 250/เนเธฃเน</div><div class="value" id="plow">0.00 เธฟ</div></div>
+  <div class="card"><div class="label">เธเธฃเธงเธ 350/เนเธฃเน</div><div class="value" id="till">0.00 เธฟ</div></div>
+  <div class="card"><div class="label">เนเธ–+เธเธฃเธงเธ 600/เนเธฃเน</div><div class="value" id="both">0.00 เธฟ</div></div>
+  <div id="status">เธเธฃเนเธญเธกเนเธเนเธเธฒเธ: เน€เธฅเธทเนเธญเธเนเธเธเธ—เธตเนเนเธซเนเธกเธธเธกเนเธเธฅเธเธ•เธฃเธเธเธฒเธเธเธฒเธ— เนเธฅเนเธงเธเธ”เธเธฑเธเธซเธกเธธเธ”</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+"use strict";
+
+const VIEW_KEY="mon101_satellite_view_v8";
+const POINT_KEY="mon101_satellite_points_v8";
+const RECORD_KEY="mon101_satellite_records_v8";
+
+const defaultView={lat:17.4138,lng:102.7875,zoom:17};
+
+function loadJSON(key,fallback){
+  try{
+    const x=localStorage.getItem(key);
+    return x?JSON.parse(x):fallback;
+  }catch(e){return fallback;}
+}
+function saveJSON(key,value){
+  try{localStorage.setItem(key,JSON.stringify(value));}catch(e){}
+}
+
+const savedView=loadJSON(VIEW_KEY,defaultView);
+const map=L.map("map",{
+  center:[Number(savedView.lat)||defaultView.lat,Number(savedView.lng)||defaultView.lng],
+  zoom:Number(savedView.zoom)||defaultView.zoom,
+  zoomControl:true,
+  attributionControl:true,
+  maxZoom:20
+});
+
+const satellite=L.tileLayer(
+ "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+ {
+   maxZoom:20,
+   maxNativeZoom:19,
+   attribution:"Tiles ยฉ Esri"
+ }
+).addTo(map);
+
+let points=loadJSON(POINT_KEY,[]);
+if(!Array.isArray(points)) points=[];
+
+let records=loadJSON(RECORD_KEY,[]);
+if(!Array.isArray(records)) records=[];
+
+let markerLayer=L.layerGroup().addTo(map);
+let lineLayer=L.layerGroup().addTo(map);
+
+function areaM2(a){
+ if(a.length<3) return 0;
+ const R=6378137;
+ let s=0;
+ for(let i=0;i<a.length;i++){
+   const p=a[i], q=a[(i+1)%a.length];
+   const x=p[1]*Math.PI/180, y=p[0]*Math.PI/180;
+   const u=q[1]*Math.PI/180, v=q[0]*Math.PI/180;
+   s+=(u-x)*(2+Math.sin(y)+Math.sin(v));
+ }
+ return Math.abs(s*R*R/2);
+}
+
+function format(n,d){
+ return Number(n||0).toLocaleString("th-TH",{minimumFractionDigits:d,maximumFractionDigits:d});
+}
+
+function units(m2){
+ const rai=m2/1600;
+ const ngan=m2/400;
+ const sqw=m2/4;
+ return {rai,ngan,sqw};
+}
+
+function render(){
+ markerLayer.clearLayers();
+ lineLayer.clearLayers();
+
+ points.forEach((p,i)=>{
+   const m=L.circleMarker([p[0],p[1]],{
+     radius:8,weight:3,color:"#ffffff",fillColor:"#ef4444",fillOpacity:1
+   }).addTo(markerLayer);
+   m.bindTooltip(String(i+1),{permanent:true,direction:"top",offset:[0,-8]});
+ });
+
+ if(points.length>=2){
+   L.polyline(points,{color:"#00ff66",weight:4,opacity:.95}).addTo(lineLayer);
+ }
+ if(points.length>=3){
+   L.polygon(points,{
+     color:"#00ff66",weight:3,fillColor:"#22c55e",fillOpacity:.20
+   }).addTo(lineLayer);
+ }
+
+ const m2=areaM2(points);
+ const u=units(m2);
+ document.getElementById("points").textContent=points.length;
+ document.getElementById("m2").textContent=format(m2,2);
+ document.getElementById("rai").textContent=format(u.rai,4);
+ document.getElementById("ngan").textContent=format(u.ngan,2);
+ document.getElementById("sqw").textContent=format(u.sqw,2);
+ document.getElementById("plow").textContent=format(u.rai*250,2)+" เธฟ";
+ document.getElementById("till").textContent=format(u.rai*350,2)+" เธฟ";
+ document.getElementById("both").textContent=format(u.rai*600,2)+" เธฟ";
+ saveJSON(POINT_KEY,points);
+}
+
+function status(t){
+ document.getElementById("status").textContent=t;
+}
+
+map.on("moveend",()=>{
+ const c=map.getCenter();
+ saveJSON(VIEW_KEY,{lat:c.lat,lng:c.lng,zoom:map.getZoom()});
+});
+
+document.getElementById("gps").addEventListener("click",()=>{
+ if(!navigator.geolocation){
+   status("เธญเธธเธเธเธฃเธ“เน/เน€เธเธฃเธฒเธงเนเน€เธเธญเธฃเนเธเธตเนเนเธกเนเธฃเธญเธเธฃเธฑเธ GPS");
+   return;
+ }
+ status("เธเธณเธฅเธฑเธเธเนเธเธซเธฒเธ•เธณเนเธซเธเนเธ GPS...");
+ navigator.geolocation.getCurrentPosition(
+   p=>{
+     map.setView([p.coords.latitude,p.coords.longitude],19,{animate:true});
+     status("เนเธเธขเธฑเธเธ•เธณเนเธซเธเนเธ GPS เนเธฅเนเธง โ€” เธเธฃเธธเธ“เธฒเธเธนเธกเนเธฅเธฐเน€เธฅเธทเนเธญเธเนเธซเนเธกเธธเธกเนเธเธฅเธเธ•เธฃเธเธเธฒเธเธเธฒเธ—เธเนเธญเธเธเธฑเธเธซเธกเธธเธ”");
+   },
+   e=>{
+     status("GPS เนเธเนเธเธฒเธเนเธกเนเนเธ”เน: "+(e.message||"เธเธฃเธธเธ“เธฒเธญเธเธธเธเธฒเธ•เธ•เธณเนเธซเธเนเธ"));
+   },
+   {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+ );
+});
+
+document.getElementById("pin").addEventListener("click",()=>{
+ const c=map.getCenter();
+ points.push([Number(c.lat.toFixed(8)),Number(c.lng.toFixed(8))]);
+ render();
+ status("เธเธฑเธเธซเธกเธธเธ”เธเธธเธ”เธ—เธตเน "+points.length+" เนเธฅเนเธง โ€” เน€เธฅเธทเนเธญเธเนเธเธเธ—เธตเนเนเธเธกเธธเธกเธ–เธฑเธ”เนเธเนเธ”เนเน€เธฅเธข");
+});
+
+document.getElementById("undo").addEventListener("click",()=>{
+ if(points.length){
+   points.pop();
+   render();
+   status("เธฅเธเธเธธเธ”เธฅเนเธฒเธชเธธเธ”เนเธฅเนเธง");
+ }else{
+   status("เธขเธฑเธเนเธกเนเธกเธตเธเธธเธ”เนเธซเนเธฅเธ");
+ }
+});
+
+document.getElementById("new").addEventListener("click",()=>{
+ if(!confirm("เน€เธฃเธดเนเธกเนเธเธฅเธเนเธซเธกเน? เธเธธเธ”เธ—เธตเนเธขเธฑเธเนเธกเนเนเธ”เนเธเธฑเธเธ—เธถเธเธเธฐเธ–เธนเธเธฅเธ")) return;
+ points=[];
+ render();
+ status("เน€เธฃเธดเนเธกเนเธเธฅเธเนเธซเธกเนเนเธฅเนเธง");
+});
+
+document.getElementById("save").addEventListener("click",()=>{
+ if(points.length<3){
+   status("เธ•เนเธญเธเธกเธตเธญเธขเนเธฒเธเธเนเธญเธข 3 เธเธธเธ”เธเธถเธเธเธฐเธเธฑเธเธ—เธถเธเธเธทเนเธเธ—เธตเนเนเธ”เน");
+   return;
+ }
+ const m2=areaM2(points);
+ const u=units(m2);
+ const rec={
+   date:new Date().toISOString(),
+   points:points.map(p=>[p[0],p[1]]),
+   area_m2:Number(m2.toFixed(2)),
+   rai:Number(u.rai.toFixed(6)),
+   ngan:Number(u.ngan.toFixed(4)),
+   square_wah:Number(u.sqw.toFixed(2)),
+   price_plow:Number((u.rai*250).toFixed(2)),
+   price_till:Number((u.rai*350).toFixed(2)),
+   price_both:Number((u.rai*600).toFixed(2))
+ };
+ records.push(rec);
+ saveJSON(RECORD_KEY,records);
+ downloadText("mon101_last_record.json",JSON.stringify(rec,null,2),"application/json");
+ status("เธเธฑเธเธ—เธถเธเนเธเธฅเธเนเธฅเนเธง เนเธฅเธฐเธ”เธฒเธงเธเนเนเธซเธฅเธ”เธเนเธญเธกเธนเธฅเนเธเธฅเธเธฅเนเธฒเธชเธธเธ”เนเธซเนเนเธฅเนเธง");
+});
+
+function downloadText(name,text,type){
+ const blob=new Blob([text],{type});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download=name;
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+render();
+})();
+</script>
+</body>
+</html>
+"""
+
+components.html(html, height=900, scrolling=False)
+
+st.divider()
+st.subheader("๐ต เน€เธเธฃเธทเนเธญเธเน€เธฅเนเธเน€เธเธฅเธ")
+if AUDIO_FILES:
+    for filename in AUDIO_FILES:
+        st.write(f"๐ต {filename}")
+        st.audio(os.path.join(APP_DIR, filename))
+else:
+    st.caption("เธ–เนเธฒเธกเธตเนเธเธฅเนเน€เธเธฅเธ .mp3 / .wav / .m4a / .ogg เธญเธขเธนเนเนเธเธฅเน€เธ”เธญเธฃเนเน€เธ”เธตเธขเธงเธเธฑเธ app.py เนเธญเธเธเธฐเนเธชเธ”เธเน€เธเธฅเธเนเธซเนเธญเธฑเธ•เนเธเธกเธฑเธ•เธด เนเธ”เธขเนเธกเนเธ•เนเธญเธเธชเธฃเนเธฒเธ music.py")
+
+st.subheader("๐’ฐ เธญเธฑเธ•เธฃเธฒเธเนเธฒเธเธฃเธดเธเธฒเธฃ")
+c1, c2, c3 = st.columns(3)
+c1.metric("เนเธ–", "250 เธเธฒเธ—/เนเธฃเน")
+c2.metric("เธเธฃเธงเธ/เธเธฑเนเธเธ”เธดเธ", "350 เธเธฒเธ—/เนเธฃเน")
+c3.metric("เนเธ– + เธเธฃเธงเธ", "600 เธเธฒเธ—/เนเธฃเน")
 
 st.caption(
-    "ซูมเข้า → เลื่อนแผนที่ → ให้กากบาทตรงจุด → "
-    "กดปักหมุด"
-)
-
-
-# ============================================================
-# CSS หน้า Streamlit
-# ============================================================
-
-st.markdown(
-    """
-    <style>
-    .main-title {
-        font-weight: 700;
-    }
-
-    .info-box {
-        padding: 12px;
-        border-radius: 12px;
-        border: 1px solid rgba(128,128,128,.25);
-        margin-bottom: 10px;
-    }
-
-    .small-note {
-        font-size: 13px;
-        opacity: .8;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-
-# ============================================================
-# COMPONENT V2
-# ============================================================
-
-try:
-
-    import streamlit.components.v2 as components
-
-except Exception:
-
-    st.error(
-        "Streamlit รุ่นนี้ยังไม่รองรับ Components v2"
-    )
-
-    st.stop()
-
-
-# ============================================================
-# HTML
-# ============================================================
-
-MAP_HTML = """
-<div class="app">
-
-    <div class="toolbar">
-
-        <button id="gpsBtn" class="tool gps">
-            📍 GPS
-        </button>
-
-        <button id="satBtn" class="tool active">
-            🛰️ ดาวเทียม
-        </button>
-
-        <button id="roadBtn" class="tool">
-            🗺️ ถนน
-        </button>
-
-    </div>
-
-    <div id="map"></div>
-
-    <div class="crosshair">
-        <div class="cross-h"></div>
-        <div class="cross-v"></div>
-        <div class="cross-dot"></div>
-    </div>
-
-    <div class="bottom-panel">
-
-        <div class="panel-title">
-            📌 ปักหมุดตรงกากบาท
-        </div>
-
-        <div class="panel-subtitle">
-            ซูมและเลื่อนแผนที่ได้โดยไม่รีเฟรช
-        </div>
-
-        <button id="pinBtn" class="main-btn">
-            📌 ปักหมุดจุดนี้
-        </button>
-
-        <div class="row">
-
-            <button id="undoBtn" class="secondary-btn">
-                ↩️ ลบล่าสุด
-            </button>
-
-            <button id="clearBtn" class="danger-btn">
-                🗑️ เริ่มใหม่
-            </button>
-
-        </div>
-
-        <div id="status" class="status">
-            ยังไม่มีจุด
-        </div>
-
-    </div>
-
-</div>
-"""
-
-
-# ============================================================
-# CSS COMPONENT
-# ============================================================
-
-MAP_CSS = """
-* {
-    box-sizing: border-box;
-}
-
-.app {
-    position: relative;
-    width: 100%;
-    height: 700px;
-    border-radius: 14px;
-    overflow: hidden;
-    background: #ddd;
-    font-family: Arial, sans-serif;
-}
-
-#map {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-}
-
-.toolbar {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    z-index: 5000;
-    display: flex;
-    gap: 7px;
-    flex-wrap: wrap;
-}
-
-.tool {
-    border: none;
-    border-radius: 9px;
-    padding: 9px 12px;
-    background: white;
-    color: #222;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0,0,0,.25);
-}
-
-.tool.active {
-    background: #1683ff;
-    color: white;
-}
-
-.tool:active {
-    transform: scale(.97);
-}
-
-.crosshair {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 42px;
-    height: 42px;
-    transform: translate(-50%, -50%);
-    z-index: 4500;
-    pointer-events: none;
-}
-
-.cross-h {
-    position: absolute;
-    width: 42px;
-    height: 3px;
-    top: 19px;
-    left: 0;
-    background: #ff0000;
-    box-shadow: 0 0 3px white;
-}
-
-.cross-v {
-    position: absolute;
-    width: 3px;
-    height: 42px;
-    left: 19px;
-    top: 0;
-    background: #ff0000;
-    box-shadow: 0 0 3px white;
-}
-
-.cross-dot {
-    position: absolute;
-    width: 11px;
-    height: 11px;
-    left: 15px;
-    top: 15px;
-    background: #ff0000;
-    border: 2px solid white;
-    border-radius: 50%;
-}
-
-.bottom-panel {
-    position: absolute;
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    z-index: 5000;
-    max-width: 390px;
-    background: rgba(255,255,255,.96);
-    border-radius: 14px;
-    padding: 12px;
-    box-shadow: 0 3px 16px rgba(0,0,0,.30);
-}
-
-.panel-title {
-    font-weight: 700;
-    font-size: 17px;
-    margin-bottom: 3px;
-}
-
-.panel-subtitle {
-    font-size: 12px;
-    color: #555;
-    margin-bottom: 8px;
-}
-
-.main-btn {
-    width: 100%;
-    border: none;
-    border-radius: 10px;
-    padding: 12px;
-    background: #e31b23;
-    color: white;
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 7px;
-}
-
-.main-btn:active {
-    transform: scale(.98);
-}
-
-.row {
-    display: flex;
-    gap: 7px;
-}
-
-.secondary-btn,
-.danger-btn {
-    flex: 1;
-    border: none;
-    border-radius: 9px;
-    padding: 9px;
-    font-weight: 600;
-}
-
-.secondary-btn {
-    background: #eeeeee;
-    color: #222;
-}
-
-.danger-btn {
-    background: #ffe1e1;
-    color: #a40000;
-}
-
-.status {
-    margin-top: 8px;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.leaflet-control-attribution {
-    font-size: 9px !important;
-}
-
-@media (max-width: 600px) {
-
-    .app {
-        height: 680px;
-        border-radius: 10px;
-    }
-
-    .toolbar {
-        left: 8px;
-        top: 8px;
-    }
-
-    .tool {
-        padding: 8px 9px;
-        font-size: 12px;
-    }
-
-    .bottom-panel {
-        left: 8px;
-        right: 8px;
-        bottom: 8px;
-        max-width: none;
-    }
-
-    .panel-title {
-        font-size: 15px;
-    }
-}
-"""
-
-
-# ============================================================
-# JAVASCRIPT
-# ============================================================
-
-MAP_JS = r"""
-export default function(component) {
-
-    const {
-        parentElement,
-        data,
-        setStateValue
-    } = component;
-
-    const mapElement = parentElement.querySelector("#map");
-
-    const pinBtn = parentElement.querySelector("#pinBtn");
-    const undoBtn = parentElement.querySelector("#undoBtn");
-    const clearBtn = parentElement.querySelector("#clearBtn");
-
-    const gpsBtn = parentElement.querySelector("#gpsBtn");
-    const satBtn = parentElement.querySelector("#satBtn");
-    const roadBtn = parentElement.querySelector("#roadBtn");
-
-    const status = parentElement.querySelector("#status");
-
-    // --------------------------------------------------------
-    // Load Leaflet
-    // --------------------------------------------------------
-
-    function loadLeaflet() {
-
-        return new Promise((resolve, reject) => {
-
-            if (window.L) {
-                resolve();
-                return;
-            }
-
-            const css = document.createElement("link");
-
-            css.rel = "stylesheet";
-            css.href =
-                "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-
-            document.head.appendChild(css);
-
-            const script = document.createElement("script");
-
-            script.src =
-                "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-
-            script.onload = () => resolve();
-
-            script.onerror = () =>
-                reject(
-                    new Error("โหลด Leaflet ไม่สำเร็จ")
-                );
-
-            document.head.appendChild(script);
-        });
-    }
-
-
-    // --------------------------------------------------------
-    // Local Storage
-    // --------------------------------------------------------
-
-    const STORAGE_POINTS =
-        "mon101_field_points_v3";
-
-    const STORAGE_RECORDS =
-        "mon101_field_records_v3";
-
-    const STORAGE_VIEW =
-        "mon101_map_view_v3";
-
-
-    function readJSON(key, fallback) {
-
-        try {
-
-            const raw = localStorage.getItem(key);
-
-            if (!raw) {
-                return fallback;
-            }
-
-            return JSON.parse(raw);
-
-        } catch (e) {
-
-            return fallback;
-        }
-    }
-
-
-    function writeJSON(key, value) {
-
-        try {
-
-            localStorage.setItem(
-                key,
-                JSON.stringify(value)
-            );
-
-        } catch (e) {
-
-            console.log(
-                "localStorage error",
-                e
-            );
-        }
-    }
-
-
-    // --------------------------------------------------------
-    // Data จาก Python
-    // --------------------------------------------------------
-
-    let points =
-        Array.isArray(data?.points)
-            ? data.points
-            : [];
-
-    let records =
-        Array.isArray(data?.records)
-            ? data.records
-            : [];
-
-
-    // --------------------------------------------------------
-    // ดึงข้อมูลเก่าจากเครื่อง
-    // --------------------------------------------------------
-
-    const storedPoints =
-        readJSON(
-            STORAGE_POINTS,
-            null
-        );
-
-    const storedRecords =
-        readJSON(
-            STORAGE_RECORDS,
-            null
-        );
-
-
-    if (
-        Array.isArray(storedPoints) &&
-        storedPoints.length > 0 &&
-        points.length === 0
-    ) {
-
-        points = storedPoints;
-
-        setStateValue(
-            "points",
-            points
-        );
-    }
-
-
-    if (
-        Array.isArray(storedRecords) &&
-        storedRecords.length > 0 &&
-        records.length === 0
-    ) {
-
-        records = storedRecords;
-
-        setStateValue(
-            "records",
-            records
-        );
-    }
-
-
-    // --------------------------------------------------------
-    // โหลดแผนที่
-    // --------------------------------------------------------
-
-    let map = null;
-
-    let satelliteLayer = null;
-
-    let roadLayer = null;
-
-    let polygonLayer = null;
-
-    let markerLayer = [];
-
-    let initialized = false;
-
-
-    function saveView() {
-
-        if (!map) {
-            return;
-        }
-
-        const center =
-            map.getCenter();
-
-        const zoom =
-            map.getZoom();
-
-        writeJSON(
-            STORAGE_VIEW,
-            {
-                lat: center.lat,
-                lon: center.lng,
-                zoom: zoom
-            }
-        );
-    }
-
-
-    // --------------------------------------------------------
-    // คำนวณพื้นที่แบบ spherical approximation
-    // ใช้สำหรับแสดงสถานะใน component
-    // Python จะคำนวณ WGS84 อีกครั้งเป็นค่าหลัก
-    // --------------------------------------------------------
-
-    function calculateAreaM2(coords) {
-
-        if (!coords || coords.length < 3) {
-            return 0;
-        }
-
-        const R = 6378137;
-
-        let area = 0;
-
-        for (
-            let i = 0;
-            i < coords.length;
-            i++
-        ) {
-
-            const p1 =
-                coords[i];
-
-            const p2 =
-                coords[
-                    (i + 1) %
-                    coords.length
-                ];
-
-            const lon1 =
-                p1[1] * Math.PI / 180;
-
-            const lat1 =
-                p1[0] * Math.PI / 180;
-
-            const lon2 =
-                p2[1] * Math.PI / 180;
-
-            const lat2 =
-                p2[0] * Math.PI / 180;
-
-            area +=
-                (lon2 - lon1) *
-                (
-                    2 +
-                    Math.sin(lat1) +
-                    Math.sin(lat2)
-                );
-        }
-
-        area =
-            Math.abs(
-                area *
-                R *
-                R /
-                2
-            );
-
-        return area;
-    }
-
-
-    function areaLabel(m2) {
-
-        const rai =
-            Math.floor(
-                m2 / 1600
-            );
-
-        let remain =
-            m2 -
-            rai * 1600;
-
-        const ngan =
-            Math.floor(
-                remain / 400
-            );
-
-        remain -=
-            ngan * 400;
-
-        const wa =
-            remain / 4;
-
-        return (
-            rai.toLocaleString() +
-            " ไร่ " +
-            ngan.toLocaleString() +
-            " งาน " +
-            wa.toFixed(2) +
-            " ตารางวา"
-        );
-    }
-
-
-    // --------------------------------------------------------
-    // วาดหมุด
-    // --------------------------------------------------------
-
-    function numberedIcon(number) {
-
-        return L.divIcon({
-
-            className: "",
-
-            html:
-                '<div style="' +
-                'width:30px;' +
-                'height:30px;' +
-                'border-radius:50%;' +
-                'background:#e31b23;' +
-                'border:3px solid white;' +
-                'box-shadow:0 2px 6px #333;' +
-                'color:white;' +
-                'font-weight:bold;' +
-                'font-size:13px;' +
-                'line-height:24px;' +
-                'text-align:center;' +
-                '">' +
-                number +
-                '</div>',
-
-            iconSize: [
-                30,
-                30
-            ],
-
-            iconAnchor: [
-                15,
-                15
-            ]
-        });
-    }
-
-
-    function redraw() {
-
-        if (!map) {
-            return;
-        }
-
-
-        // ลบหมุดเก่า
-
-        markerLayer.forEach(
-            marker => {
-                map.removeLayer(marker);
-            }
-        );
-
-        markerLayer = [];
-
-
-        // ลบ polygon เก่า
-
-        if (polygonLayer) {
-
-            map.removeLayer(
-                polygonLayer
-            );
-
-            polygonLayer = null;
-        }
-
-
-        // วาดหมุดใหม่
-
-        points.forEach(
-            (point, index) => {
-
-                const marker =
-                    L.marker(
-                        [
-                            point[0],
-                            point[1]
-                        ],
-                        {
-                            icon:
-                                numberedIcon(
-                                    index + 1
-                                )
-                        }
-                    ).addTo(map);
-
-                marker.bindTooltip(
-                    "จุดที่ " +
-                    (index + 1),
-                    {
-                        direction:
-                            "top"
-                    }
-                );
-
-                markerLayer.push(
-                    marker
-                );
-            }
-        );
-
-
-        // วาด polygon
-
-        if (points.length >= 3) {
-
-            polygonLayer =
-                L.polygon(
-                    points,
-                    {
-                        color: "#e31b23",
-                        weight: 3,
-                        fillColor:
-                            "#ffd400",
-                        fillOpacity:
-                            0.28
-                    }
-                ).addTo(map);
-        }
-
-
-        const area =
-            calculateAreaM2(
-                points
-            );
-
-
-        if (points.length >= 3) {
-
-            status.innerText =
-                "📍 " +
-                points.length +
-                " จุด | 📐 " +
-                areaLabel(area);
-
-        } else {
-
-            status.innerText =
-                "📍 ปักแล้ว " +
-                points.length +
-                " จุด";
-        }
-    }
-
-
-    // --------------------------------------------------------
-    // เริ่มแผนที่
-    // --------------------------------------------------------
-
-    function initializeMap() {
-
-        if (initialized) {
-            return;
-        }
-
-        initialized = true;
-
-
-        const storedView =
-            readJSON(
-                STORAGE_VIEW,
-                null
-            );
-
-
-        let startLat =
-            17.4138;
-
-        let startLon =
-            102.7875;
-
-        let startZoom =
-            17;
-
-
-        if (
-            storedView &&
-            Number.isFinite(
-                Number(
-                    storedView.lat
-                )
-            ) &&
-            Number.isFinite(
-          
+    "เธซเธกเธฒเธขเน€เธซเธ•เธธ: เธเธทเนเธเธ—เธตเนเธเธฒเธเธ เธฒเธเธ”เธฒเธงเน€เธ—เธตเธขเธกเนเธฅเธฐ GPS เน€เธเนเธเธเธฒเธฃเธงเธฑเธ”เธชเธณเธซเธฃเธฑเธเธเธฒเธเธ เธฒเธเธชเธเธฒเธก/เธ•เธเธฅเธเธเธทเนเธเธ—เธตเน "
+    "เนเธกเนเนเธเนเธเธฒเธฃเธฃเธฑเธเธงเธฑเธ”เธ—เธตเนเธ”เธดเธเธ•เธฒเธกเธเธเธซเธกเธฒเธข เธซเธฒเธเน€เธเนเธเธเนเธญเธเธดเธเธฒเธ—เน€เธเธ•เธ—เธตเนเธ”เธดเธเธเธงเธฃเนเธเนเธเธฒเธฃเธฃเธฑเธเธงเธฑเธ”เนเธ”เธขเธซเธเนเธงเธขเธเธฒเธเธซเธฃเธทเธญเธเนเธฒเธเธฃเธฑเธเธงเธฑเธ”เธ—เธตเนเน€เธเธตเนเธขเธงเธเนเธญเธ"
+            )
