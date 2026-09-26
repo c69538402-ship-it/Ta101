@@ -1,7 +1,7 @@
 streamlit
 folium
 streamlit-folium
-streamlit-js-eval
+streamlit-js-eval>=0.1.9
 shapely
 pyproj
 pandas
