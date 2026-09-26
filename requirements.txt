@@ -5,3 +5,4 @@ streamlit-js-eval>=0.1.9
 shapely
 pyproj
 pandas
+streamlit>=1.50.0
