@@ -1,489 +1,1016 @@
 import os
 import json
+import csv
+import io
 from datetime import datetime
 
-import folium
-import pandas as pd
 import streamlit as st
-from folium.elements import MacroElement
-from folium.plugins import Fullscreen, MousePosition
 from pyproj import Geod
-from shapely.geometry import Polygon, mapping, shape
-from streamlit_folium import st_folium
 
-try:
-    from streamlit_js_eval import get_geolocation, streamlit_js_eval
-except ImportError:
-    get_geolocation = None
-    streamlit_js_eval = None
 
-st.set_page_config(page_title="Mon101 - วัดพื้นที่ไถนา", page_icon="📐", layout="wide")
+# ============================================================
+# MON101 FIELD MEASURE
+# Leaflet map + Streamlit Components v2
+# ============================================================
+
+st.set_page_config(
+    page_title="Mon101 วัดพื้นที่แปลงนา",
+    page_icon="📐",
+    layout="wide",
+)
+
+# ------------------------------------------------------------
+# พื้นฐาน
+# ------------------------------------------------------------
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_PATH = os.path.join(APP_DIR, "logo.jpg")
-STORAGE_KEY = "mon101_field_measurements_v2"
-PLOW_PRICE = 250.0
-TILL_PRICE = 350.0
-TOTAL_PRICE = 600.0
-GEOD = Geod(ellps="WGS84")
+
+DEFAULT_LAT = 17.4138
+DEFAULT_LON = 102.7875
+DEFAULT_ZOOM = 17
+
+PRICE_PLOW = 250
+PRICE_MILL = 350
+PRICE_BOTH = 600
+
+geod = Geod(ellps="WGS84")
 
 
-def show_logo():
-    if os.path.exists(LOGO_PATH):
-        st.image(LOGO_PATH, use_container_width=True)
+# ============================================================
+# Session State
+# ============================================================
+
+if "field_points" not in st.session_state:
+    st.session_state.field_points = []
+
+if "field_records" not in st.session_state:
+    st.session_state.field_records = []
+
+if "component_initialized" not in st.session_state:
+    st.session_state.component_initialized = False
 
 
-def area_parts(m2):
-    rai = int(m2 // 1600)
-    rest = m2 - rai * 1600
-    ngan = int(rest // 400)
-    wa = (rest - ngan * 400) / 4
-    return rai, ngan, wa, m2 / 1600
+# ============================================================
+# ฟังก์ชันคำนวณพื้นที่
+# ============================================================
 
+def calculate_area_m2(points):
+    """คำนวณพื้นที่ polygon ด้วย WGS84 Geodesic"""
 
-def polygon_area(geometry):
-    if not geometry:
-        return 0.0
-    geom = shape(geometry)
-    polygons = []
-    if geom.geom_type == "Polygon":
-        polygons = [geom]
-    elif geom.geom_type == "MultiPolygon":
-        polygons = list(geom.geoms)
-    total = 0.0
-    for poly in polygons:
-        coords = list(poly.exterior.coords)
-        lons = [p[0] for p in coords]
-        lats = [p[1] for p in coords]
-        a, _ = GEOD.polygon_area_perimeter(lons, lats)
-        total += abs(a)
-        for ring in poly.interiors:
-            rc = list(ring.coords)
-            a, _ = GEOD.polygon_area_perimeter([p[0] for p in rc], [p[1] for p in rc])
-            total -= abs(a)
-    return max(0.0, total)
-
-
-def points_to_geometry(points):
     if len(points) < 3:
-        return None
-    # Shapely expects (lon, lat)
-    poly = Polygon([(p[1], p[0]) for p in points])
-    if not poly.is_valid:
-        poly = poly.buffer(0)
-    if poly.is_empty:
-        return None
-    return mapping(poly)
+        return 0.0
+
+    lats = [float(p[0]) for p in points]
+    lons = [float(p[1]) for p in points]
+
+    area, _ = geod.polygon_area_perimeter(
+        lons,
+        lats,
+    )
+
+    return abs(float(area))
 
 
-def add_center_crosshair(m):
-    html = """
-    <div style="
-        position: fixed;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 9999;
-        pointer-events: none;
-        width: 34px;
-        height: 34px;
-        border: 2px solid #ff3030;
-        border-radius: 50%;
-        box-sizing: border-box;
-        background: rgba(255,255,255,0.05);
-    ">
-      <div style="position:absolute; left:15px; top:3px; width:2px; height:26px; background:#ff3030;"></div>
-      <div style="position:absolute; left:3px; top:15px; width:26px; height:2px; background:#ff3030;"></div>
-      <div style="position:absolute; left:12px; top:12px; width:8px; height:8px; background:#ff3030; border-radius:50%; border:1px solid white;"></div>
-    </div>
-    <div style="
-        position: fixed;
-        left: 50%;
-        top: calc(50% + 24px);
-        transform: translateX(-50%);
-        z-index: 9999;
-        pointer-events: none;
-        background: rgba(0,0,0,0.68);
-        color: white;
-        padding: 3px 8px;
-        border-radius: 10px;
-        font-size: 11px;
-        white-space: nowrap;
-    ">จุดกลาง = จุดที่จะปักหมุด</div>
+def convert_area(area_m2):
+    """แปลงตารางเมตร -> ไร่ งาน ตารางวา"""
+
+    rai = int(area_m2 // 1600)
+
+    remain = area_m2 - (rai * 1600)
+
+    ngan = int(remain // 400)
+
+    remain -= ngan * 400
+
+    square_wa = remain / 4
+
+    return rai, ngan, square_wa
+
+
+def area_text(area_m2):
+    rai, ngan, square_wa = convert_area(area_m2)
+
+    return (
+        f"{rai:,} ไร่ "
+        f"{ngan:,} งาน "
+        f"{square_wa:,.2f} ตารางวา"
+    )
+
+
+def calculate_prices(area_m2):
+    rai_decimal = area_m2 / 1600
+
+    return {
+        "ไถ": rai_decimal * PRICE_PLOW,
+        "ปั่น": rai_decimal * PRICE_MILL,
+        "รวม": rai_decimal * PRICE_BOTH,
+    }
+
+
+# ============================================================
+# โลโก้
+# ============================================================
+
+if os.path.exists(LOGO_PATH):
+    st.image(LOGO_PATH, width=120)
+
+
+# ============================================================
+# หัวข้อ
+# ============================================================
+
+st.title("📐 Mon101 วัดพื้นที่แปลงนา")
+
+st.caption(
+    "ซูมเข้า → เลื่อนแผนที่ → ให้กากบาทตรงจุด → "
+    "กดปักหมุด"
+)
+
+
+# ============================================================
+# CSS หน้า Streamlit
+# ============================================================
+
+st.markdown(
     """
-    from branca.element import Element
-    m.get_root().html.add_child(Element(html))
+    <style>
+    .main-title {
+        font-weight: 700;
+    }
+
+    .info-box {
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(128,128,128,.25);
+        margin-bottom: 10px;
+    }
+
+    .small-note {
+        font-size: 13px;
+        opacity: .8;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
-def make_map(center, zoom, points):
-    m = folium.Map(
-        location=center,
-        zoom_start=zoom,
-        tiles=None,
-        control_scale=True,
-        prefer_canvas=True,
-        zoom_control=True,
+# ============================================================
+# COMPONENT V2
+# ============================================================
+
+try:
+
+    import streamlit.components.v2 as components
+
+except Exception:
+
+    st.error(
+        "Streamlit รุ่นนี้ยังไม่รองรับ Components v2"
     )
 
-    folium.TileLayer(
-        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        attr="Sources: Esri and the GIS User Community",
-        name="🛰️ ภาพดาวเทียม",
-        overlay=False,
-        control=True,
-        max_zoom=20,
-    ).add_to(m)
-    folium.TileLayer(
-        "OpenStreetMap",
-        name="🗺️ แผนที่ถนน",
-        overlay=False,
-        control=True,
-        max_zoom=19,
-    ).add_to(m)
-
-    add_center_crosshair(m)
-
-    # GPS starting point, shown separately from the fixed center crosshair.
-    folium.Marker(
-        center,
-        tooltip="📍 ตำแหน่งเริ่มต้นจาก GPS",
-        popup=f"GPS: {center[0]:.6f}, {center[1]:.6f}",
-        icon=folium.Icon(color="red", icon="location-arrow", prefix="fa"),
-    ).add_to(m)
-
-    # Numbered pins.
-    for idx, p in enumerate(points, start=1):
-        folium.Marker(
-            p,
-            tooltip=f"หมุดที่ {idx}",
-            popup=f"หมุดที่ {idx}<br>Lat {p[0]:.6f}<br>Lon {p[1]:.6f}",
-            icon=folium.DivIcon(
-                html=f"<div style='font-size:13px;font-weight:bold;color:#fff;background:#1976d2;border:2px solid #fff;border-radius:50%;width:26px;height:26px;text-align:center;line-height:22px;box-shadow:0 1px 4px #333'>{idx}</div>"
-            ),
-        ).add_to(m)
-
-    if len(points) >= 2:
-        folium.PolyLine(
-            points + ([points[0]] if len(points) >= 3 else []),
-            color="#1976D2",
-            weight=4,
-            opacity=0.9,
-        ).add_to(m)
-
-    if len(points) >= 3:
-        geometry = points_to_geometry(points)
-        if geometry:
-            folium.GeoJson(
-                geometry,
-                name="พื้นที่ที่วัด",
-                style_function=lambda _: {
-                    "color": "#00C853",
-                    "weight": 4,
-                    "fillColor": "#00C853",
-                    "fillOpacity": 0.22,
-                },
-            ).add_to(m)
-
-    Fullscreen(position="topright").add_to(m)
-    MousePosition(position="bottomleft", separator=" | ", prefix="พิกัด: ").add_to(m)
-    folium.LayerControl(collapsed=True).add_to(m)
-    return m
+    st.stop()
 
 
-def load_saved_records():
-    if streamlit_js_eval is None:
-        return []
-    try:
-        raw = streamlit_js_eval(
-            js_expressions=f"localStorage.getItem('{STORAGE_KEY}')",
-            key="mon101_load_records",
-        )
-        if raw:
-            data = json.loads(raw)
-            return data if isinstance(data, list) else []
-    except Exception:
-        pass
-    return []
+# ============================================================
+# HTML
+# ============================================================
+
+MAP_HTML = """
+<div class="app">
+
+    <div class="toolbar">
+
+        <button id="gpsBtn" class="tool gps">
+            📍 GPS
+        </button>
+
+        <button id="satBtn" class="tool active">
+            🛰️ ดาวเทียม
+        </button>
+
+        <button id="roadBtn" class="tool">
+            🗺️ ถนน
+        </button>
+
+    </div>
+
+    <div id="map"></div>
+
+    <div class="crosshair">
+        <div class="cross-h"></div>
+        <div class="cross-v"></div>
+        <div class="cross-dot"></div>
+    </div>
+
+    <div class="bottom-panel">
+
+        <div class="panel-title">
+            📌 ปักหมุดตรงกากบาท
+        </div>
+
+        <div class="panel-subtitle">
+            ซูมและเลื่อนแผนที่ได้โดยไม่รีเฟรช
+        </div>
+
+        <button id="pinBtn" class="main-btn">
+            📌 ปักหมุดจุดนี้
+        </button>
+
+        <div class="row">
+
+            <button id="undoBtn" class="secondary-btn">
+                ↩️ ลบล่าสุด
+            </button>
+
+            <button id="clearBtn" class="danger-btn">
+                🗑️ เริ่มใหม่
+            </button>
+
+        </div>
+
+        <div id="status" class="status">
+            ยังไม่มีจุด
+        </div>
+
+    </div>
+
+</div>
+"""
 
 
-def save_records_to_browser(records):
-    if streamlit_js_eval is None:
-        return
-    try:
-        payload = json.dumps(records, ensure_ascii=False, separators=(",", ":"), default=str)
-        js = f"localStorage.setItem('{STORAGE_KEY}', {json.dumps(payload, ensure_ascii=False)})"
-        streamlit_js_eval(js_expressions=js, key=f"mon101_save_{len(records)}_{hash(payload)}")
-    except Exception:
-        pass
+# ============================================================
+# CSS COMPONENT
+# ============================================================
+
+MAP_CSS = """
+* {
+    box-sizing: border-box;
+}
+
+.app {
+    position: relative;
+    width: 100%;
+    height: 700px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #ddd;
+    font-family: Arial, sans-serif;
+}
+
+#map {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.toolbar {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 5000;
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.tool {
+    border: none;
+    border-radius: 9px;
+    padding: 9px 12px;
+    background: white;
+    color: #222;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+
+.tool.active {
+    background: #1683ff;
+    color: white;
+}
+
+.tool:active {
+    transform: scale(.97);
+}
+
+.crosshair {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 42px;
+    height: 42px;
+    transform: translate(-50%, -50%);
+    z-index: 4500;
+    pointer-events: none;
+}
+
+.cross-h {
+    position: absolute;
+    width: 42px;
+    height: 3px;
+    top: 19px;
+    left: 0;
+    background: #ff0000;
+    box-shadow: 0 0 3px white;
+}
+
+.cross-v {
+    position: absolute;
+    width: 3px;
+    height: 42px;
+    left: 19px;
+    top: 0;
+    background: #ff0000;
+    box-shadow: 0 0 3px white;
+}
+
+.cross-dot {
+    position: absolute;
+    width: 11px;
+    height: 11px;
+    left: 15px;
+    top: 15px;
+    background: #ff0000;
+    border: 2px solid white;
+    border-radius: 50%;
+}
+
+.bottom-panel {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 5000;
+    max-width: 390px;
+    background: rgba(255,255,255,.96);
+    border-radius: 14px;
+    padding: 12px;
+    box-shadow: 0 3px 16px rgba(0,0,0,.30);
+}
+
+.panel-title {
+    font-weight: 700;
+    font-size: 17px;
+    margin-bottom: 3px;
+}
+
+.panel-subtitle {
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.main-btn {
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    background: #e31b23;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 7px;
+}
+
+.main-btn:active {
+    transform: scale(.98);
+}
+
+.row {
+    display: flex;
+    gap: 7px;
+}
+
+.secondary-btn,
+.danger-btn {
+    flex: 1;
+    border: none;
+    border-radius: 9px;
+    padding: 9px;
+    font-weight: 600;
+}
+
+.secondary-btn {
+    background: #eeeeee;
+    color: #222;
+}
+
+.danger-btn {
+    background: #ffe1e1;
+    color: #a40000;
+}
+
+.status {
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.leaflet-control-attribution {
+    font-size: 9px !important;
+}
+
+@media (max-width: 600px) {
+
+    .app {
+        height: 680px;
+        border-radius: 10px;
+    }
+
+    .toolbar {
+        left: 8px;
+        top: 8px;
+    }
+
+    .tool {
+        padding: 8px 9px;
+        font-size: 12px;
+    }
+
+    .bottom-panel {
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        max-width: none;
+    }
+
+    .panel-title {
+        font-size: 15px;
+    }
+}
+"""
 
 
-def clear_browser_records():
-    if streamlit_js_eval is None:
-        return
-    try:
-        streamlit_js_eval(
-            js_expressions=f"localStorage.removeItem('{STORAGE_KEY}')",
-            key="mon101_clear_records",
-        )
-    except Exception:
-        pass
+# ============================================================
+# JAVASCRIPT
+# ============================================================
 
+MAP_JS = r"""
+export default function(component) {
 
-# -------------------- Session state --------------------
-if "location" not in st.session_state:
-    st.session_state.location = [17.4138, 102.7875]
-if "map_center" not in st.session_state:
-    st.session_state.map_center = list(st.session_state.location)
-if "zoom" not in st.session_state:
-    st.session_state.zoom = 17
-if "points" not in st.session_state:
-    st.session_state.points = []
-if "records" not in st.session_state:
-    st.session_state.records = None
-if "request_location" not in st.session_state:
-    st.session_state.request_location = False
+    const {
+        parentElement,
+        data,
+        setStateValue
+    } = component;
 
-# Restore browser-saved records once per session.
-if st.session_state.records is None:
-    st.session_state.records = load_saved_records()
+    const mapElement = parentElement.querySelector("#map");
 
-show_logo()
-st.title("📐 Mon101 — เครื่องวัดพื้นที่ไถนา")
-st.caption("ซูมแผนที่ให้ใกล้ที่สุด แล้วเลื่อนแผนที่ให้ 'กากบาทกลางจอ' ตรงจุดจริง จากนั้นกดปุ่มปักหมุด — ไม่ต้องเอานิ้วจิ้มให้ตรง")
+    const pinBtn = parentElement.querySelector("#pinBtn");
+    const undoBtn = parentElement.querySelector("#undoBtn");
+    const clearBtn = parentElement.querySelector("#clearBtn");
 
-# -------------------- GPS --------------------
-c1, c2 = st.columns([1, 3])
-with c1:
-    if st.button("📍 ใช้ตำแหน่งปัจจุบัน", use_container_width=True):
-        st.session_state.request_location = True
-with c2:
-    st.caption("GPS ใช้เป็นจุดเริ่มต้นเท่านั้น หลังจากนั้นสามารถลากแผนที่ไปยังแปลงจริงได้")
+    const gpsBtn = parentElement.querySelector("#gpsBtn");
+    const satBtn = parentElement.querySelector("#satBtn");
+    const roadBtn = parentElement.querySelector("#roadBtn");
 
-loc = None
-if get_geolocation is not None:
-    try:
-        loc = get_geolocation()
-    except Exception as exc:
-        if st.session_state.request_location:
-            st.warning("อ่าน GPS ไม่สำเร็จ")
-            st.caption(str(exc))
+    const status = parentElement.querySelector("#status");
 
-if st.session_state.request_location:
-    if get_geolocation is None:
-        st.error("ไม่พบ streamlit-js-eval กรุณาตรวจ requirements.txt")
-    elif loc and "coords" in loc:
-        coords = loc["coords"]
-        lat = coords.get("latitude")
-        lon = coords.get("longitude")
-        if lat is not None and lon is not None:
-            st.session_state.location = [float(lat), float(lon)]
-            st.session_state.map_center = [float(lat), float(lon)]
-            st.session_state.request_location = False
-            st.success(f"GPS: {float(lat):.6f}, {float(lon):.6f}")
-            st.rerun()
-    elif loc and "error" in loc:
-        st.warning(f"อ่าน GPS ไม่สำเร็จ: {loc['error'].get('message', 'ไม่ทราบสาเหตุ')}")
-    else:
-        st.info("กำลังรอพิกัด GPS... กรุณาอนุญาต Location ในเบราว์เซอร์")
+    // --------------------------------------------------------
+    // Load Leaflet
+    // --------------------------------------------------------
 
-# -------------------- Map + side controls --------------------
-st.subheader("🛰️ 1) เลื่อนแผนที่ให้กากบาทตรงจุดจริง")
-left, right = st.columns([3.6, 1.2], gap="medium")
+    function loadLeaflet() {
 
-with left:
-    map_state = st_folium(
-        make_map(st.session_state.map_center, st.session_state.zoom, st.session_state.points),
-        height=620,
-        width=None,
-        returned_objects=["center", "zoom"],
-        key="mon101_map_v2",
-    )
+        return new Promise((resolve, reject) => {
 
-if map_state:
-    center = map_state.get("center")
-    if isinstance(center, dict) and center.get("lat") is not None and center.get("lng") is not None:
-        st.session_state.map_center = [float(center["lat"]), float(center["lng"])]
-    elif isinstance(center, (list, tuple)) and len(center) >= 2:
-        st.session_state.map_center = [float(center[0]), float(center[1])]
-    if map_state.get("zoom") is not None:
-        st.session_state.zoom = int(map_state["zoom"])
-
-with right:
-    st.markdown("### 📌 ปักหมุด")
-    st.write("เลื่อนแผนที่ให้กากบาทแดงตรงมุมแปลง แล้วกดปุ่มนี้")
-    if st.button("📌 ปักหมุดตรงกลาง", type="primary", use_container_width=True):
-        p = [round(float(st.session_state.map_center[0]), 7), round(float(st.session_state.map_center[1]), 7)]
-        # Avoid accidental duplicate points.
-        if not st.session_state.points or p != st.session_state.points[-1]:
-            st.session_state.points.append(p)
-        st.rerun()
-
-    if st.session_state.points:
-        st.markdown(f"**ปักแล้ว {len(st.session_state.points)} จุด**")
-        for i, p in enumerate(st.session_state.points, start=1):
-            st.caption(f"{i}. {p[0]:.7f}, {p[1]:.7f}")
-
-    if st.button("↩️ ลบหมุดล่าสุด", use_container_width=True, disabled=not st.session_state.points):
-        st.session_state.points.pop()
-        st.rerun()
-
-    if st.button("🗑️ เริ่มวัดแปลงใหม่", use_container_width=True, disabled=not st.session_state.points):
-        st.session_state.points = []
-        st.rerun()
-
-    st.info("แนะนำให้ซูมระดับ 19–20 ก่อนปักหมุดมุมแปลง เพื่อให้กะตำแหน่งได้ละเอียดขึ้น")
-
-# Build geometry from pinned points.
-st.session_state.geometry = points_to_geometry(st.session_state.points)
-
-# -------------------- Measurement --------------------
-st.subheader("📏 2) ผลการวัด")
-if len(st.session_state.points) < 3 or not st.session_state.geometry:
-    st.warning(f"ต้องมีอย่างน้อย 3 หมุด ตอนนี้มี {len(st.session_state.points)} หมุด")
-else:
-    m2 = polygon_area(st.session_state.geometry)
-    rai, ngan, wa, total_rai = area_parts(m2)
-    plow = total_rai * PLOW_PRICE
-    till = total_rai * TILL_PRICE
-    total = total_rai * TOTAL_PRICE
-
-    a, b, c, d = st.columns(4)
-    a.metric("ไร่", f"{rai:,}")
-    b.metric("งาน", f"{ngan:,}")
-    c.metric("ตารางวา", f"{wa:,.2f}")
-    d.metric("พื้นที่รวม (ไร่)", f"{total_rai:,.4f}")
-    st.success(f"พื้นที่ทั้งหมด = {rai:,} ไร่ {ngan:,} งาน {wa:,.2f} ตารางวา ({m2:,.2f} ตร.ม.)")
-
-    price_df = pd.DataFrame([
-        {"รายการ": "1. ไถนา", "ราคา/ไร่": PLOW_PRICE, "พื้นที่ (ไร่)": total_rai, "เป็นเงิน (บาท)": plow},
-        {"รายการ": "2. ปั่นดิน", "ราคา/ไร่": TILL_PRICE, "พื้นที่ (ไร่)": total_rai, "เป็นเงิน (บาท)": till},
-        {"รายการ": "3. รวมไถนา + ปั่นดิน", "ราคา/ไร่": TOTAL_PRICE, "พื้นที่ (ไร่)": total_rai, "เป็นเงิน (บาท)": total},
-    ])
-    st.dataframe(price_df, use_container_width=True, hide_index=True)
-    st.success(f"💰 รวมไถนา + ปั่นดิน = {total:,.2f} บาท")
-
-    name = st.text_input("ชื่อแปลง / ชื่อลูกค้า", placeholder="เช่น นาแม่บุญมา แปลงที่ 1", key="field_name")
-    save_col1, save_col2 = st.columns([2, 1])
-    with save_col1:
-        if st.button("💾 บันทึกแปลงนี้", type="primary", use_container_width=True):
-            record = {
-                "วันที่เวลา": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-                "ชื่อแปลง": name.strip() or "ไม่ระบุชื่อ",
-                "ไร่": rai,
-                "งาน": ngan,
-                "ตารางวา": round(wa, 2),
-                "พื้นที่_ตรม": round(m2, 2),
-                "พื้นที่_ไร่รวม": round(total_rai, 6),
-                "ค่าไถนา_บาท": round(plow, 2),
-                "ค่าปั่นดิน_บาท": round(till, 2),
-                "รวม_บาท": round(total, 2),
-                "พิกัดเริ่มต้น_lat": round(st.session_state.location[0], 6),
-                "พิกัดเริ่มต้น_lon": round(st.session_state.location[1], 6),
-                "จำนวนหมุด": len(st.session_state.points),
-                "หมุด": st.session_state.points,
-                "geometry": st.session_state.geometry,
+            if (window.L) {
+                resolve();
+                return;
             }
-            st.session_state.records.append(record)
-            save_records_to_browser(st.session_state.records)
-            st.success("บันทึกแล้ว และเก็บสำเนาไว้ในเบราว์เซอร์เครื่องนี้")
-            st.rerun()
-    with save_col2:
-        st.download_button(
-            "⬇️ ดาวน์โหลดข้อมูลแปลง",
-            json.dumps(
+
+            const css = document.createElement("link");
+
+            css.rel = "stylesheet";
+            css.href =
+                "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+
+            document.head.appendChild(css);
+
+            const script = document.createElement("script");
+
+            script.src =
+                "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+
+            script.onload = () => resolve();
+
+            script.onerror = () =>
+                reject(
+                    new Error("โหลด Leaflet ไม่สำเร็จ")
+                );
+
+            document.head.appendChild(script);
+        });
+    }
+
+
+    // --------------------------------------------------------
+    // Local Storage
+    // --------------------------------------------------------
+
+    const STORAGE_POINTS =
+        "mon101_field_points_v3";
+
+    const STORAGE_RECORDS =
+        "mon101_field_records_v3";
+
+    const STORAGE_VIEW =
+        "mon101_map_view_v3";
+
+
+    function readJSON(key, fallback) {
+
+        try {
+
+            const raw = localStorage.getItem(key);
+
+            if (!raw) {
+                return fallback;
+            }
+
+            return JSON.parse(raw);
+
+        } catch (e) {
+
+            return fallback;
+        }
+    }
+
+
+    function writeJSON(key, value) {
+
+        try {
+
+            localStorage.setItem(
+                key,
+                JSON.stringify(value)
+            );
+
+        } catch (e) {
+
+            console.log(
+                "localStorage error",
+                e
+            );
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // Data จาก Python
+    // --------------------------------------------------------
+
+    let points =
+        Array.isArray(data?.points)
+            ? data.points
+            : [];
+
+    let records =
+        Array.isArray(data?.records)
+            ? data.records
+            : [];
+
+
+    // --------------------------------------------------------
+    // ดึงข้อมูลเก่าจากเครื่อง
+    // --------------------------------------------------------
+
+    const storedPoints =
+        readJSON(
+            STORAGE_POINTS,
+            null
+        );
+
+    const storedRecords =
+        readJSON(
+            STORAGE_RECORDS,
+            null
+        );
+
+
+    if (
+        Array.isArray(storedPoints) &&
+        storedPoints.length > 0 &&
+        points.length === 0
+    ) {
+
+        points = storedPoints;
+
+        setStateValue(
+            "points",
+            points
+        );
+    }
+
+
+    if (
+        Array.isArray(storedRecords) &&
+        storedRecords.length > 0 &&
+        records.length === 0
+    ) {
+
+        records = storedRecords;
+
+        setStateValue(
+            "records",
+            records
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // โหลดแผนที่
+    // --------------------------------------------------------
+
+    let map = null;
+
+    let satelliteLayer = null;
+
+    let roadLayer = null;
+
+    let polygonLayer = null;
+
+    let markerLayer = [];
+
+    let initialized = false;
+
+
+    function saveView() {
+
+        if (!map) {
+            return;
+        }
+
+        const center =
+            map.getCenter();
+
+        const zoom =
+            map.getZoom();
+
+        writeJSON(
+            STORAGE_VIEW,
+            {
+                lat: center.lat,
+                lon: center.lng,
+                zoom: zoom
+            }
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // คำนวณพื้นที่แบบ spherical approximation
+    // ใช้สำหรับแสดงสถานะใน component
+    // Python จะคำนวณ WGS84 อีกครั้งเป็นค่าหลัก
+    // --------------------------------------------------------
+
+    function calculateAreaM2(coords) {
+
+        if (!coords || coords.length < 3) {
+            return 0;
+        }
+
+        const R = 6378137;
+
+        let area = 0;
+
+        for (
+            let i = 0;
+            i < coords.length;
+            i++
+        ) {
+
+            const p1 =
+                coords[i];
+
+            const p2 =
+                coords[
+                    (i + 1) %
+                    coords.length
+                ];
+
+            const lon1 =
+                p1[1] * Math.PI / 180;
+
+            const lat1 =
+                p1[0] * Math.PI / 180;
+
+            const lon2 =
+                p2[1] * Math.PI / 180;
+
+            const lat2 =
+                p2[0] * Math.PI / 180;
+
+            area +=
+                (lon2 - lon1) *
+                (
+                    2 +
+                    Math.sin(lat1) +
+                    Math.sin(lat2)
+                );
+        }
+
+        area =
+            Math.abs(
+                area *
+                R *
+                R /
+                2
+            );
+
+        return area;
+    }
+
+
+    function areaLabel(m2) {
+
+        const rai =
+            Math.floor(
+                m2 / 1600
+            );
+
+        let remain =
+            m2 -
+            rai * 1600;
+
+        const ngan =
+            Math.floor(
+                remain / 400
+            );
+
+        remain -=
+            ngan * 400;
+
+        const wa =
+            remain / 4;
+
+        return (
+            rai.toLocaleString() +
+            " ไร่ " +
+            ngan.toLocaleString() +
+            " งาน " +
+            wa.toFixed(2) +
+            " ตารางวา"
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // วาดหมุด
+    // --------------------------------------------------------
+
+    function numberedIcon(number) {
+
+        return L.divIcon({
+
+            className: "",
+
+            html:
+                '<div style="' +
+                'width:30px;' +
+                'height:30px;' +
+                'border-radius:50%;' +
+                'background:#e31b23;' +
+                'border:3px solid white;' +
+                'box-shadow:0 2px 6px #333;' +
+                'color:white;' +
+                'font-weight:bold;' +
+                'font-size:13px;' +
+                'line-height:24px;' +
+                'text-align:center;' +
+                '">' +
+                number +
+                '</div>',
+
+            iconSize: [
+                30,
+                30
+            ],
+
+            iconAnchor: [
+                15,
+                15
+            ]
+        });
+    }
+
+
+    function redraw() {
+
+        if (!map) {
+            return;
+        }
+
+
+        // ลบหมุดเก่า
+
+        markerLayer.forEach(
+            marker => {
+                map.removeLayer(marker);
+            }
+        );
+
+        markerLayer = [];
+
+
+        // ลบ polygon เก่า
+
+        if (polygonLayer) {
+
+            map.removeLayer(
+                polygonLayer
+            );
+
+            polygonLayer = null;
+        }
+
+
+        // วาดหมุดใหม่
+
+        points.forEach(
+            (point, index) => {
+
+                const marker =
+                    L.marker(
+                        [
+                            point[0],
+                            point[1]
+                        ],
+                        {
+                            icon:
+                                numberedIcon(
+                                    index + 1
+                                )
+                        }
+                    ).addTo(map);
+
+                marker.bindTooltip(
+                    "จุดที่ " +
+                    (index + 1),
+                    {
+                        direction:
+                            "top"
+                    }
+                );
+
+                markerLayer.push(
+                    marker
+                );
+            }
+        );
+
+
+        // วาด polygon
+
+        if (points.length >= 3) {
+
+            polygonLayer =
+                L.polygon(
+                    points,
+                    {
+                        color: "#e31b23",
+                        weight: 3,
+                        fillColor:
+                            "#ffd400",
+                        fillOpacity:
+                            0.28
+                    }
+                ).addTo(map);
+        }
+
+
+        const area =
+            calculateAreaM2(
+                points
+            );
+
+
+        if (points.length >= 3) {
+
+            status.innerText =
+                "📍 " +
+                points.length +
+                " จุด | 📐 " +
+                areaLabel(area);
+
+        } else {
+
+            status.innerText =
+                "📍 ปักแล้ว " +
+                points.length +
+                " จุด";
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // เริ่มแผนที่
+    // --------------------------------------------------------
+
+    function initializeMap() {
+
+        if (initialized) {
+            return;
+        }
+
+        initialized = true;
+
+
+        const storedView =
+            readJSON(
+                STORAGE_VIEW,
+                null
+            );
+
+
+        let startLat =
+            17.4138;
+
+        let startLon =
+            102.7875;
+
+        let startZoom =
+            17;
+
+
+        if (
+            storedView &&
+            Number.isFinite(
+                Number(
+                    storedView.lat
+                )
+            ) &&
+            Number.isFinite(
+                Number(
+                    storedView.lon
+                )
+            )
+        ) {
+
+            startLat =
+                Number(
+                    storedView.lat
+                );
+
+            startLon =
+                Number(
+                    storedView.lon
+                );
+
+            startZoom =
+                Number(
+                    storedView.zoom
+                ) || 17;
+        }
+
+
+        map =
+            L.map(
+                mapElement,
                 {
-                    "ชื่อแปลง": name.strip() or "ไม่ระบุชื่อ",
-                    "วันที่เวลา": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-                    "พื้นที่_ตรม": round(m2, 2),
-                    "พื้นที่_ไร่รวม": round(total_rai, 6),
-                    "ไร่": rai,
-                    "งาน": ngan,
-                    "ตารางวา": round(wa, 2),
-                    "ราคา_รวม": round(total, 2),
-                    "หมุด": st.session_state.points,
-                    "geometry": st.session_state.geometry,
-                },
-                ensure_ascii=False,
-                indent=2,
-            ),
-            "mon101_field.json",
-            "application/json",
-            use_container_width=True,
-        )
+                    zoomControl: true,
+                    attributionControl: true,
+                    preferCanvas: true
+                }
+            ).setView(
+                [
+                    startLat,
+                    startLon
+                ],
+                startZoom
+            );
 
-# -------------------- Saved records --------------------
-st.divider()
-st.subheader("📋 3) รายการที่บันทึกไว้")
-st.caption("รายการจะถูกเก็บในพื้นที่จัดเก็บของเบราว์เซอร์เครื่องนี้ เพื่อไม่ให้หายเมื่อปิด/เปิดหน้าแอปใหม่ ควรดาวน์โหลด CSV/JSON สำรองด้วย")
 
-if st.session_state.records:
-    rows = [{k: v for k, v in r.items() if k not in ("geometry", "หมุด")} for r in st.session_state.records]
-    df = pd.DataFrame(rows)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+        // ----------------------------------------------------
+        // ดาวเทียม
+        // ----------------------------------------------------
 
-    dl1, dl2, dl3 = st.columns(3)
-    with dl1:
-        st.download_button(
-            "⬇️ ดาวน์โหลด CSV",
-            df.to_csv(index=False, encoding="utf-8-sig"),
-            "mon101_field_measurements.csv",
-            "text/csv",
-            use_container_width=True,
-        )
-    with dl2:
-        st.download_button(
-            "⬇️ ดาวน์โหลด JSON",
-            json.dumps(st.session_state.records, ensure_ascii=False, indent=2, default=str),
-            "mon101_field_measurements.json",
-            "application/json",
-            use_container_width=True,
-        )
-    with dl3:
-        if st.button("🗑️ ลบรายการที่บันทึกทั้งหมด", use_container_width=True):
-            st.session_state.records = []
-            clear_browser_records()
-            st.success("ลบรายการในเครื่องนี้แล้ว")
-            st.rerun()
-else:
-    st.info("ยังไม่มีรายการบันทึก")
+        satelliteLayer =
+            L.tileLayer(
+                "https://server.arcgisonline.com/" +
+                "ArcGIS/rest/services/World_Imagery/" +
+                "MapServer/tile/{z}/{y}/{x}",
+                {
+                    maxZoom: 20,
+                    maxNativeZoom: 19,
+                    attribution:
+                        "Tiles © Esri"
+                }
+            ).addTo(map);
 
-# -------------------- Manual coordinates --------------------
-with st.expander("🧭 GPS คลาดเคลื่อน / ใส่พิกัดเริ่มต้นเอง"):
-    mc1, mc2 = st.columns(2)
-    with mc1:
-        manual_lat = st.number_input("Latitude", value=float(st.session_state.location[0]), format="%.7f", key="manual_lat")
-    with mc2:
-        manual_lon = st.number_input("Longitude", value=float(st.session_state.location[1]), format="%.7f", key="manual_lon")
-    if st.button("📌 ใช้พิกัดนี้", use_container_width=True):
-        st.session_state.location = [float(manual_lat), float(manual_lon)]
-        st.session_state.map_center = [float(manual_lat), float(manual_lon)]
-        st.rerun()
 
-# -------------------- Music --------------------
-st.divider()
-show_logo()
-st.subheader("🎵 เครื่องเล่นเพลง")
-exts = (".mp3", ".wav", ".ogg", ".m4a", ".aac")
-music = sorted([
-    f for f in os.listdir(APP_DIR)
-    if os.path.isfile(os.path.join(APP_DIR, f)) and f.lower().endswith(exts)
-])
-if music:
-    for f in music:
-        st.write(f"🎵 {f}")
-        with open(os.path.join(APP_DIR, f), "rb") as audio:
-            st.audio(audio.read())
-else:
-    st.info("วางไฟล์เพลง .mp3 / .wav / .ogg / .m4a ไว้โฟลเดอร์เดียวกับ app.py")
+        // ----------------------------------------------------
+        // ถนน
+        // ----------------------------------------------------
 
-st.divider()
-st.subheader("⚖️ หมายเหตุเรื่องความเที่ยงธรรม")
-st.markdown("""
-- ใช้กากบาทกลางจอแทนการเอานิ้วจิ้มบนแผนที่โดยตรง เพื่อลดความคลาดเคลื่อนจากนิ้วบังตำแหน่ง
-- คำนวณพื้นที่จากพิกัดหมุดด้วย WGS84/Geodesic
-- ควรให้เจ้าของนาและผู้รับจ้างเห็นหมุด/เส้นเขตเดียวกัน และเก็บไฟล์ JSON หรือ CSV ไว้ทั้งสองฝ่าย
-- GPS โทรศัพท์และภาพดาวเทียมมีความคลาดเคลื่อนได้ จึงไม่ใช่การรังวัดที่ดินตามกฎหมาย
-- หากมีข้อพิพาทเรื่องแนวเขตที่ดิน ควรใช้การรังวัดโดยผู้สำรวจ/หน่วยงานที่มีอำนาจ
-- 1 ไร่ = 4 งาน = 400 ตารางวา = 1,600 ตารางเมตร
-""")
-st.caption("อัตราที่ตั้งไว้: ไถนา 250 บาท/ไร่ • ปั่นดิน 350 บาท/ไร่ • รวม 600 บาท/ไร่")
+        roadLayer =
+            L.tileLayer(
+                "https://tile.openstreetmap.org/" +
+                "{z}/{x}/{y}.png",
+                {
+                    maxZoom: 19,
+                    attributio
