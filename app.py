@@ -58,7 +58,7 @@ html,body{margin:0;padding:0;background:#111827;font-family:system-ui,-apple-sys
 #gps{background:#dbeafe}
 #pin{background:#dcfce7}
 #save{background:#fef3c7}
-#photo{background:#fde68a}
+#photo{background:#fde68a} #reload{background:#e0f2fe}
 #new{background:#fee2e2}
 #undo{background:#f3e8ff}
 .crosshair{
@@ -96,6 +96,7 @@ html,body{margin:0;padding:0;background:#111827;font-family:system-ui,-apple-sys
     <button id="undo">↩️ ลบล่าสุด</button>
     <button id="new">🗑️ เริ่มใหม่</button>
     <button id="save">💾 บันทึก</button>
+    <button id="reload">🛰️ โหลดภาพใหม่</button>
     <button id="photo">📷 บันทึกภาพ</button>
   </div>
   <div class="crosshair" id="crosshair" data-html2canvas-ignore="true"><div class="cross-dot"></div></div>
@@ -114,7 +115,6 @@ html,body{margin:0;padding:0;background:#111827;font-family:system-ui,-apple-sys
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -144,14 +144,36 @@ const map=L.map("map",{
   maxZoom:20
 });
 
-const satellite=L.tileLayer(
+const satelliteUrls=[
  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
- {
-   maxZoom:20,
-   maxNativeZoom:19,
-   attribution:"Tiles © Esri"
- }
-).addTo(map);
+ "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+];
+let satelliteIndex=0;
+let satellite=null;
+let satelliteErrors=0;
+function loadSatellite(){
+ satelliteErrors=0;
+ document.getElementById("loading").style.display="block";
+ document.getElementById("loading").textContent="🛰️ กำลังโหลดภาพดาวเทียม...";
+ if(satellite) map.removeLayer(satellite);
+ satellite=L.tileLayer(satelliteUrls[satelliteIndex],{maxZoom:20,maxNativeZoom:19,attribution:"Tiles © Esri",crossOrigin:true});
+ satellite.on("tileload",function(){
+   document.getElementById("loading").style.display="none";
+   setStatus("ภาพดาวเทียมพร้อมใช้งาน — เลื่อนให้มุมแปลงตรงกากบาท แล้วกดปักหมุด");
+ });
+ satellite.on("tileerror",function(){
+   satelliteErrors++;
+   if(satelliteErrors>=4 && satelliteIndex<satelliteUrls.length-1){
+     satelliteIndex++; loadSatellite();
+   } else if(satelliteErrors>=8){
+     document.getElementById("loading").innerHTML="⚠️ ภาพดาวเทียมยังโหลดไม่ได้<br>กด 🛰️ โหลดภาพใหม่";
+     setStatus("แหล่งภาพดาวเทียมตอบสนองช้า กรุณากดโหลดภาพใหม่");
+   }
+ });
+ satellite.addTo(map);
+ setTimeout(function(){map.invalidateSize(true)},300);
+}
+loadSatellite();
 
 let points=loadJSON(POINT_KEY,[]);
 if(!Array.isArray(points)) points=[];
@@ -273,30 +295,15 @@ document.getElementById("new").addEventListener("click",()=>{
 });
 
 async function savePhoto(){
- status("กำลังสร้างภาพบันทึก...");
- if(typeof html2canvas!=="function"){
-   status("ระบบบันทึกภาพยังโหลดไม่เสร็จ กรุณาลองอีกครั้ง");
-   return;
- }
  const cross=document.getElementById("crosshair");
+ const old=cross.style.visibility;
  cross.style.visibility="hidden";
- await new Promise(r=>setTimeout(r,100));
- try{
-   const canvas=await html2canvas(document.getElementById("map"),{
-     useCORS:true,allowTaint:false,backgroundColor:"#222222",scale:2,logging:false
-   });
-   canvas.toBlob(blob=>{
-     if(blob){
-       const stamp=new Date().toISOString().replace(/[:.]/g,"-");
-       downloadBlob("Mon101_แปลง_"+stamp+".png",blob);
-       status("บันทึกภาพแปลงแล้ว — ไม่มีตัวเลขบังพื้นที่");
-     }else status("สร้างไฟล์ภาพไม่สำเร็จ");
-   },"image/png",1);
- }catch(e){
-   status("บันทึกภาพไม่สำเร็จ: "+e.message);
- }finally{
-   cross.style.visibility="";
- }
+ setStatus("เปิดหน้าพิมพ์เพื่อบันทึกภาพแผนที่...");
+ setTimeout(function(){
+   window.print();
+   cross.style.visibility=old;
+   setStatus("เลือกบันทึกเป็น PDF/ภาพจากหน้าพิมพ์ของโทรศัพท์ได้");
+ },150);
 }
 
 document.getElementById("photo").addEventListener("click",savePhoto);
