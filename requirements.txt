@@ -1,4 +1,7 @@
 streamlit
-requests
-pythainlp
-ephem
+folium
+streamlit-folium
+streamlit-js-eval
+shapely
+pyproj
+pandas
