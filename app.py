@@ -121,28 +121,86 @@ with c1:
 with c2:
     st.caption("ต้องอนุญาต Location ในเบราว์เซอร์/มือถือ หากไม่อนุญาตยังสามารถเลื่อนแผนที่ไปวัดที่อื่นได้")
 
+# streamlit-js-eval รุ่นปัจจุบันใช้ get_geolocation() โดยไม่รับ
+# geolocation_options หรือ component_key และควรเรียก component
+# นอก if/st.button branch
+loc = None
+if get_geolocation is not None:
+    try:
+        loc = get_geolocation()
+    except Exception as exc:
+        if st.session_state.request_location:
+            st.warning("อ่าน GPS ไม่สำเร็จ")
+            st.caption(str(exc))
+
 if st.session_state.request_location:
     if get_geolocation is None:
         st.error("ไม่พบ streamlit-js-eval กรุณาใส่แพ็กเกจนี้ใน requirements.txt")
-    else:
-        try:
-            loc = get_geolocation(
-                component_key="mon101_gps",
-                geolocation_options={"enableHighAccuracy": True, "timeout": 15000, "maximumAge": 0},
+    elif loc and "coords" in loc:
+        coords = loc["coords"]
+        lat = coords.get("latitude")
+        lon = coords.get("longitude")
+
+        if lat is not None and lon is not None:
+            st.session_state.location = [float(lat), float(lon)]
+            st.session_state.request_location = False
+            st.success(
+                f"ตำแหน่งปัจจุบันจาก GPS: "
+                f"{float(lat):.6f}, {float(lon):.6f}"
             )
-            if loc and "coords" in loc:
-                lat = loc["coords"].get("latitude")
-                lon = loc["coords"].get("longitude")
-                if lat is not None and lon is not None:
-                    st.session_state.location = [float(lat), float(lon)]
-                    st.session_state.request_location = False
-                    st.success(f"ตำแหน่งปัจจุบัน: {float(lat):.6f}, {float(lon):.6f}")
-                    st.rerun()
-            elif loc and "error" in loc:
-                st.warning(str(loc["error"].get("message", "อ่านตำแหน่งไม่ได้")))
-        except Exception as exc:
-            st.warning("อ่าน GPS ไม่สำเร็จ")
-            st.caption(str(exc))
+            st.rerun()
+
+    elif loc and "error" in loc:
+        error_code = loc["error"].get("code")
+        error_msg = loc["error"].get(
+            "message",
+            "ไม่สามารถอ่านตำแหน่งได้",
+        )
+        st.warning(
+            f"อ่าน GPS ไม่สำเร็จ (รหัส {error_code}): {error_msg}"
+        )
+    else:
+        st.info(
+            "กำลังรอพิกัด GPS... กรุณากดอนุญาต Location "
+            "ในหน้าต่างของเบราว์เซอร์"
+        )
+
+with st.expander("🧭 ถ้า GPS คลาดเคลื่อน: ใส่พิกัดเองได้"):
+    st.caption(
+        "ใช้สำหรับตรวจสอบหรือแก้ตำแหน่งเริ่มต้น กรณีมือถือจับตำแหน่งคลาดเคลื่อน"
+    )
+    mc1, mc2 = st.columns(2)
+
+    with mc1:
+        manual_lat = st.number_input(
+            "ละติจูด (Latitude)",
+            value=float(st.session_state.location[0]),
+            format="%.6f",
+            key="manual_lat",
+        )
+
+    with mc2:
+        manual_lon = st.number_input(
+            "ลองจิจูด (Longitude)",
+            value=float(st.session_state.location[1]),
+            format="%.6f",
+            key="manual_lon",
+        )
+
+    if st.button(
+        "📌 ใช้พิกัดนี้เป็นจุดเริ่มต้น",
+        use_container_width=True,
+    ):
+        st.session_state.location = [
+            float(manual_lat),
+            float(manual_lon),
+        ]
+        st.success(
+            f"ตั้งจุดเริ่มต้นแล้ว: "
+            f"{manual_lat:.6f}, {manual_lon:.6f}"
+        )
+        st.rerun()
+
 
 st.subheader("🛰️ แผนที่วัดพื้นที่")
 map_state = st_folium(
