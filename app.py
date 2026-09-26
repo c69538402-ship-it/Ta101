@@ -6,8 +6,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="Mon101 เธงเธฑเธ”เธเธทเนเธเธ—เธตเนเนเธเธฅเธ",
-    page_icon="๐“",
+    page_title="Mon101 วัดพื้นที่แปลง",
+    page_icon="📐",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -15,7 +15,7 @@ st.set_page_config(
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_PATH = os.path.join(APP_DIR, "logo.jpg")
 
-# เธเนเธเธซเธฒเน€เธเธฅเธ .mp3/.wav/.m4a เนเธเนเธเธฅเน€เธ”เธญเธฃเนเน€เธ”เธตเธขเธงเธเธฑเธ app.py เนเธ”เธขเนเธกเนเธ•เนเธญเธเธกเธตเนเธเธฅเน music.py
+# ค้นหาเพลง .mp3/.wav/.m4a ในโฟลเดอร์เดียวกับ app.py โดยไม่ต้องมีไฟล์ music.py
 AUDIO_EXTS = (".mp3", ".wav", ".m4a", ".ogg")
 AUDIO_FILES = sorted(
     f for f in os.listdir(APP_DIR)
@@ -25,12 +25,12 @@ AUDIO_FILES = sorted(
 if os.path.exists(LOGO_PATH):
     st.image(LOGO_PATH, width=110)
 
-st.title("๐“ Mon101 เธงเธฑเธ”เธเธทเนเธเธ—เธตเนเนเธเธฅเธ")
-st.caption("เธ เธฒเธเธ”เธฒเธงเน€เธ—เธตเธขเธก โ€ข GPS โ€ข เธเธฒเธเธเธฒเธ—เธเธฅเธฒเธเธเธญ โ€ข เธเธฑเธเธซเธกเธธเธ”เธ—เธตเธฅเธฐเธกเธธเธก โ€ข เธเธณเธเธงเธ“ เนเธฃเน/เธเธฒเธ/เธ•เธฒเธฃเธฒเธเธงเธฒ")
+st.title("📐 Mon101 วัดพื้นที่แปลง")
+st.caption("ภาพดาวเทียม • GPS • กากบาทกลางจอ • ปักหมุดทีละมุม • คำนวณ ไร่/งาน/ตารางวา")
 
 st.info(
-    "เธงเธดเธเธตเนเธเน: เธเธ” GPS เน€เธเธทเนเธญเนเธเธเธฃเธดเน€เธงเธ“เนเธเธฅเธ โ’ เธเธนเธก/เน€เธฅเธทเนเธญเธเธ เธฒเธเธ”เธฒเธงเน€เธ—เธตเธขเธกเนเธซเนเธกเธธเธกเนเธเธฅเธเธญเธขเธนเนเธ•เธฃเธเธเธฒเธเธเธฒเธ—เธเธฅเธฒเธเธเธญ "
-    "โ’ เธเธ” ๐“ เธเธฑเธเธซเธกเธธเธ” โ’ เธ—เธณเธเนเธณเธเธเธเธฃเธเธ—เธธเธเธกเธธเธก โ’ เธเธ” ๐’พ เธเธฑเธเธ—เธถเธ"
+    "วิธีใช้: กด GPS เพื่อไปบริเวณแปลง → ซูม/เลื่อนภาพดาวเทียมให้มุมแปลงอยู่ตรงกากบาทกลางจอ "
+    "→ กด 📌 ปักหมุด → ทำซ้ำจนครบทุกมุม → กด 💾 บันทึก"
 )
 
 html = r"""
@@ -90,25 +90,25 @@ html,body{margin:0;padding:0;background:#111827;font-family:system-ui,-apple-sys
 <body>
 <div id="map">
   <div class="topbar">
-    <button id="gps">๐“ GPS</button>
-    <button id="pin">๐“ เธเธฑเธเธซเธกเธธเธ”</button>
-    <button id="undo">โฉ๏ธ เธฅเธเธฅเนเธฒเธชเธธเธ”</button>
-    <button id="new">๐—‘๏ธ เน€เธฃเธดเนเธกเนเธซเธกเน</button>
-    <button id="save">๐’พ เธเธฑเธเธ—เธถเธ</button>
+    <button id="gps">📍 GPS</button>
+    <button id="pin">📌 ปักหมุด</button>
+    <button id="undo">↩️ ลบล่าสุด</button>
+    <button id="new">🗑️ เริ่มใหม่</button>
+    <button id="save">💾 บันทึก</button>
   </div>
   <div class="crosshair"><div class="cross-dot"></div></div>
 </div>
 
 <div class="panel">
-  <div class="card"><div class="label">เธเธธเธ”เธ—เธตเนเธเธฑเธ</div><div class="value" id="points">0</div></div>
-  <div class="card"><div class="label">เธเธทเนเธเธ—เธตเน เธ•เธฃ.เธก.</div><div class="value" id="m2">0.00</div></div>
-  <div class="card"><div class="label">เนเธฃเน</div><div class="value" id="rai">0.0000</div></div>
-  <div class="card"><div class="label">เธเธฒเธ</div><div class="value" id="ngan">0.00</div></div>
-  <div class="card"><div class="label">เธ•เธฒเธฃเธฒเธเธงเธฒ</div><div class="value" id="sqw">0.00</div></div>
-  <div class="card"><div class="label">เนเธ– 250/เนเธฃเน</div><div class="value" id="plow">0.00 เธฟ</div></div>
-  <div class="card"><div class="label">เธเธฃเธงเธ 350/เนเธฃเน</div><div class="value" id="till">0.00 เธฟ</div></div>
-  <div class="card"><div class="label">เนเธ–+เธเธฃเธงเธ 600/เนเธฃเน</div><div class="value" id="both">0.00 เธฟ</div></div>
-  <div id="status">เธเธฃเนเธญเธกเนเธเนเธเธฒเธ: เน€เธฅเธทเนเธญเธเนเธเธเธ—เธตเนเนเธซเนเธกเธธเธกเนเธเธฅเธเธ•เธฃเธเธเธฒเธเธเธฒเธ— เนเธฅเนเธงเธเธ”เธเธฑเธเธซเธกเธธเธ”</div>
+  <div class="card"><div class="label">จุดที่ปัก</div><div class="value" id="points">0</div></div>
+  <div class="card"><div class="label">พื้นที่ ตร.ม.</div><div class="value" id="m2">0.00</div></div>
+  <div class="card"><div class="label">ไร่</div><div class="value" id="rai">0.0000</div></div>
+  <div class="card"><div class="label">งาน</div><div class="value" id="ngan">0.00</div></div>
+  <div class="card"><div class="label">ตารางวา</div><div class="value" id="sqw">0.00</div></div>
+  <div class="card"><div class="label">ไถ 250/ไร่</div><div class="value" id="plow">0.00 ฿</div></div>
+  <div class="card"><div class="label">พรวน 350/ไร่</div><div class="value" id="till">0.00 ฿</div></div>
+  <div class="card"><div class="label">ไถ+พรวน 600/ไร่</div><div class="value" id="both">0.00 ฿</div></div>
+  <div id="status">พร้อมใช้งาน: เลื่อนแผนที่ให้มุมแปลงตรงกากบาท แล้วกดปักหมุด</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -146,7 +146,7 @@ const satellite=L.tileLayer(
  {
    maxZoom:20,
    maxNativeZoom:19,
-   attribution:"Tiles ยฉ Esri"
+   attribution:"Tiles © Esri"
  }
 ).addTo(map);
 
@@ -210,9 +210,9 @@ function render(){
  document.getElementById("rai").textContent=format(u.rai,4);
  document.getElementById("ngan").textContent=format(u.ngan,2);
  document.getElementById("sqw").textContent=format(u.sqw,2);
- document.getElementById("plow").textContent=format(u.rai*250,2)+" เธฟ";
- document.getElementById("till").textContent=format(u.rai*350,2)+" เธฟ";
- document.getElementById("both").textContent=format(u.rai*600,2)+" เธฟ";
+ document.getElementById("plow").textContent=format(u.rai*250,2)+" ฿";
+ document.getElementById("till").textContent=format(u.rai*350,2)+" ฿";
+ document.getElementById("both").textContent=format(u.rai*600,2)+" ฿";
  saveJSON(POINT_KEY,points);
 }
 
@@ -227,17 +227,17 @@ map.on("moveend",()=>{
 
 document.getElementById("gps").addEventListener("click",()=>{
  if(!navigator.geolocation){
-   status("เธญเธธเธเธเธฃเธ“เน/เน€เธเธฃเธฒเธงเนเน€เธเธญเธฃเนเธเธตเนเนเธกเนเธฃเธญเธเธฃเธฑเธ GPS");
+   status("อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ GPS");
    return;
  }
- status("เธเธณเธฅเธฑเธเธเนเธเธซเธฒเธ•เธณเนเธซเธเนเธ GPS...");
+ status("กำลังค้นหาตำแหน่ง GPS...");
  navigator.geolocation.getCurrentPosition(
    p=>{
      map.setView([p.coords.latitude,p.coords.longitude],19,{animate:true});
-     status("เนเธเธขเธฑเธเธ•เธณเนเธซเธเนเธ GPS เนเธฅเนเธง โ€” เธเธฃเธธเธ“เธฒเธเธนเธกเนเธฅเธฐเน€เธฅเธทเนเธญเธเนเธซเนเธกเธธเธกเนเธเธฅเธเธ•เธฃเธเธเธฒเธเธเธฒเธ—เธเนเธญเธเธเธฑเธเธซเธกเธธเธ”");
+     status("ไปยังตำแหน่ง GPS แล้ว — กรุณาซูมและเลื่อนให้มุมแปลงตรงกากบาทก่อนปักหมุด");
    },
    e=>{
-     status("GPS เนเธเนเธเธฒเธเนเธกเนเนเธ”เน: "+(e.message||"เธเธฃเธธเธ“เธฒเธญเธเธธเธเธฒเธ•เธ•เธณเนเธซเธเนเธ"));
+     status("GPS ใช้งานไม่ได้: "+(e.message||"กรุณาอนุญาตตำแหน่ง"));
    },
    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
  );
@@ -247,29 +247,29 @@ document.getElementById("pin").addEventListener("click",()=>{
  const c=map.getCenter();
  points.push([Number(c.lat.toFixed(8)),Number(c.lng.toFixed(8))]);
  render();
- status("เธเธฑเธเธซเธกเธธเธ”เธเธธเธ”เธ—เธตเน "+points.length+" เนเธฅเนเธง โ€” เน€เธฅเธทเนเธญเธเนเธเธเธ—เธตเนเนเธเธกเธธเธกเธ–เธฑเธ”เนเธเนเธ”เนเน€เธฅเธข");
+ status("ปักหมุดจุดที่ "+points.length+" แล้ว — เลื่อนแผนที่ไปมุมถัดไปได้เลย");
 });
 
 document.getElementById("undo").addEventListener("click",()=>{
  if(points.length){
    points.pop();
    render();
-   status("เธฅเธเธเธธเธ”เธฅเนเธฒเธชเธธเธ”เนเธฅเนเธง");
+   status("ลบจุดล่าสุดแล้ว");
  }else{
-   status("เธขเธฑเธเนเธกเนเธกเธตเธเธธเธ”เนเธซเนเธฅเธ");
+   status("ยังไม่มีจุดให้ลบ");
  }
 });
 
 document.getElementById("new").addEventListener("click",()=>{
- if(!confirm("เน€เธฃเธดเนเธกเนเธเธฅเธเนเธซเธกเน? เธเธธเธ”เธ—เธตเนเธขเธฑเธเนเธกเนเนเธ”เนเธเธฑเธเธ—เธถเธเธเธฐเธ–เธนเธเธฅเธ")) return;
+ if(!confirm("เริ่มแปลงใหม่? จุดที่ยังไม่ได้บันทึกจะถูกลบ")) return;
  points=[];
  render();
- status("เน€เธฃเธดเนเธกเนเธเธฅเธเนเธซเธกเนเนเธฅเนเธง");
+ status("เริ่มแปลงใหม่แล้ว");
 });
 
 document.getElementById("save").addEventListener("click",()=>{
  if(points.length<3){
-   status("เธ•เนเธญเธเธกเธตเธญเธขเนเธฒเธเธเนเธญเธข 3 เธเธธเธ”เธเธถเธเธเธฐเธเธฑเธเธ—เธถเธเธเธทเนเธเธ—เธตเนเนเธ”เน");
+   status("ต้องมีอย่างน้อย 3 จุดจึงจะบันทึกพื้นที่ได้");
    return;
  }
  const m2=areaM2(points);
@@ -288,7 +288,7 @@ document.getElementById("save").addEventListener("click",()=>{
  records.push(rec);
  saveJSON(RECORD_KEY,records);
  downloadText("mon101_last_record.json",JSON.stringify(rec,null,2),"application/json");
- status("เธเธฑเธเธ—เธถเธเนเธเธฅเธเนเธฅเนเธง เนเธฅเธฐเธ”เธฒเธงเธเนเนเธซเธฅเธ”เธเนเธญเธกเธนเธฅเนเธเธฅเธเธฅเนเธฒเธชเธธเธ”เนเธซเนเนเธฅเนเธง");
+ status("บันทึกแปลงแล้ว และดาวน์โหลดข้อมูลแปลงล่าสุดให้แล้ว");
 });
 
 function downloadText(name,text,type){
@@ -310,21 +310,21 @@ render();
 components.html(html, height=900, scrolling=False)
 
 st.divider()
-st.subheader("๐ต เน€เธเธฃเธทเนเธญเธเน€เธฅเนเธเน€เธเธฅเธ")
+st.subheader("🎵 เครื่องเล่นเพลง")
 if AUDIO_FILES:
     for filename in AUDIO_FILES:
-        st.write(f"๐ต {filename}")
+        st.write(f"🎵 {filename}")
         st.audio(os.path.join(APP_DIR, filename))
 else:
-    st.caption("เธ–เนเธฒเธกเธตเนเธเธฅเนเน€เธเธฅเธ .mp3 / .wav / .m4a / .ogg เธญเธขเธนเนเนเธเธฅเน€เธ”เธญเธฃเนเน€เธ”เธตเธขเธงเธเธฑเธ app.py เนเธญเธเธเธฐเนเธชเธ”เธเน€เธเธฅเธเนเธซเนเธญเธฑเธ•เนเธเธกเธฑเธ•เธด เนเธ”เธขเนเธกเนเธ•เนเธญเธเธชเธฃเนเธฒเธ music.py")
+    st.caption("ถ้ามีไฟล์เพลง .mp3 / .wav / .m4a / .ogg อยู่โฟลเดอร์เดียวกับ app.py แอปจะแสดงเพลงให้อัตโนมัติ โดยไม่ต้องสร้าง music.py")
 
-st.subheader("๐’ฐ เธญเธฑเธ•เธฃเธฒเธเนเธฒเธเธฃเธดเธเธฒเธฃ")
+st.subheader("💰 อัตราค่าบริการ")
 c1, c2, c3 = st.columns(3)
-c1.metric("เนเธ–", "250 เธเธฒเธ—/เนเธฃเน")
-c2.metric("เธเธฃเธงเธ/เธเธฑเนเธเธ”เธดเธ", "350 เธเธฒเธ—/เนเธฃเน")
-c3.metric("เนเธ– + เธเธฃเธงเธ", "600 เธเธฒเธ—/เนเธฃเน")
+c1.metric("ไถ", "250 บาท/ไร่")
+c2.metric("พรวน/ปั่นดิน", "350 บาท/ไร่")
+c3.metric("ไถ + พรวน", "600 บาท/ไร่")
 
 st.caption(
-    "เธซเธกเธฒเธขเน€เธซเธ•เธธ: เธเธทเนเธเธ—เธตเนเธเธฒเธเธ เธฒเธเธ”เธฒเธงเน€เธ—เธตเธขเธกเนเธฅเธฐ GPS เน€เธเนเธเธเธฒเธฃเธงเธฑเธ”เธชเธณเธซเธฃเธฑเธเธเธฒเธเธ เธฒเธเธชเธเธฒเธก/เธ•เธเธฅเธเธเธทเนเธเธ—เธตเน "
-    "เนเธกเนเนเธเนเธเธฒเธฃเธฃเธฑเธเธงเธฑเธ”เธ—เธตเนเธ”เธดเธเธ•เธฒเธกเธเธเธซเธกเธฒเธข เธซเธฒเธเน€เธเนเธเธเนเธญเธเธดเธเธฒเธ—เน€เธเธ•เธ—เธตเนเธ”เธดเธเธเธงเธฃเนเธเนเธเธฒเธฃเธฃเธฑเธเธงเธฑเธ”เนเธ”เธขเธซเธเนเธงเธขเธเธฒเธเธซเธฃเธทเธญเธเนเธฒเธเธฃเธฑเธเธงเธฑเธ”เธ—เธตเนเน€เธเธตเนเธขเธงเธเนเธญเธ"
-            )
+    "หมายเหตุ: พื้นที่จากภาพดาวเทียมและ GPS เป็นการวัดสำหรับงานภาคสนาม/ตกลงพื้นที่ "
+    "ไม่ใช่การรังวัดที่ดินตามกฎหมาย หากเป็นข้อพิพาทเขตที่ดินควรใช้การรังวัดโดยหน่วยงานหรือช่างรังวัดที่เกี่ยวข้อง"
+)
