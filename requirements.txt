@@ -6,3 +6,4 @@ shapely
 pyproj
 pandas
 streamlit>=1.50.0
+streamlit>=1.40.0
