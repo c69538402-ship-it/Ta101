@@ -111,16 +111,18 @@ body{overflow:hidden}
 .halo2{
  position:absolute;inset:-2%;border-radius:50%;
  background:conic-gradient(transparent,#00eaff,transparent,#ff00c8,transparent);
- animation:spinrev 4s linear infinite;
+ animation:pulseRing .65s steps(2,end) infinite;
 }
 .disc{
  position:absolute;inset:4%;border-radius:50%;
- background:repeating-radial-gradient(circle,#07070c 0,#07070c 3px,#171722 4px,#06060a 7px);
- border:1px solid rgba(255,255,255,.16);
- box-shadow:inset 0 0 70px #000,0 0 55px rgba(0,234,255,.2);
- animation:spin 7s linear infinite paused;
+ background:
+ radial-gradient(circle at 50% 50%,rgba(0,234,255,.16) 0 9%,transparent 10%),
+ radial-gradient(circle at 50% 50%,#11131d 0 28%,#06070c 29% 48%,#0e1018 49% 66%,#05060b 67%);
+ border:1px solid rgba(255,255,255,.13);
+ box-shadow:inset 0 0 65px #000,0 0 55px rgba(0,234,255,.16);
+
 }
-.disc.playing{animation-play-state:running}
+.disc.playing{animation:corePulse .42s steps(2,end) infinite}
 .disc:after{
  content:"";position:absolute;inset:15%;border-radius:50%;
  border:1px solid rgba(255,255,255,.05);
@@ -131,11 +133,33 @@ body{overflow:hidden}
  box-shadow:0 0 25px rgba(0,234,255,.6),0 0 55px rgba(255,0,180,.25);
 }
 .center{
- position:absolute;width:18px;height:18px;border-radius:50%;z-index:6;
- background:#fff;box-shadow:0 0 14px #fff,0 0 30px #00eaff;
+ position:absolute;width:68px;height:68px;border-radius:50%;z-index:6;
+ background:rgba(3,4,10,.88);border:1px solid rgba(255,255,255,.24);
+ box-shadow:0 0 18px rgba(0,234,255,.35),inset 0 0 22px rgba(255,0,200,.18);
+ display:grid;place-items:center;
+}
+.musicMark{
+ font-size:30px;font-weight:900;color:#fff;line-height:1;
+ text-shadow:0 0 8px #00eaff,0 0 20px #ff00c8;
+}
+.musicPulse{
+ position:absolute;inset:-7px;border-radius:50%;
+ border:1px solid rgba(0,234,255,.65);
+ animation:pulseRing .42s steps(2,end) infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes corePulse{
+  0%{transform:scale(1)}
+  45%{transform:scale(1.035)}
+  55%{transform:scale(.985)}
+  100%{transform:scale(1)}
+}
 @keyframes spinrev{to{transform:rotate(-360deg)}}
+@keyframes pulseRing{
+  0%{opacity:.45;transform:scale(.99)}
+  50%{opacity:1;transform:scale(1.025)}
+  100%{opacity:.45;transform:scale(.99)}
+}
 
 .title{
  margin:23px auto 0;max-width:94%;
@@ -154,7 +178,7 @@ body{overflow:hidden}
 }
 .bar{width:4px;height:5px;border-radius:20px;
  background:linear-gradient(to top,#00eaff,#7650ff,#ff00c8);
- box-shadow:0 0 9px rgba(0,234,255,.45);transition:height .07s linear}
+ box-shadow:0 0 9px rgba(0,234,255,.45);transition:height .025s steps(3,end)}
 
 .times{display:flex;justify-content:space-between;color:#707184;font-size:10px;margin-top:3px}
 .progress{height:5px;border-radius:20px;background:rgba(255,255,255,.08);overflow:hidden;cursor:pointer;margin-top:7px}
@@ -228,18 +252,18 @@ body{overflow:hidden}
 <button class="fs" onclick="fullscreen()">⛶</button>
 
 <div class="content">
-  <div class="kicker">MUSIC • LIGHT • MOTION</div>
+  <div class="kicker">♫  MUSIC • LIGHT • MOTION  ♫</div>
 
   <div class="discbox">
     <div class="halo"></div>
     <div class="halo2"></div>
     <div id="disc" class="disc"></div>
     <img id="cover" class="cover" alt="cover">
-    <div class="center"></div>
+    <div class="center"><span class="musicMark">♫</span><span class="musicPulse"></span></div>
   </div>
 
   <div id="title" class="title">NEON MUSIC</div>
-  <div class="artist">NOW PLAYING</div>
+  <div class="artist">♫  MUSIC EXPERIENCE  ♫</div>
 
   <div id="wave" class="wave"></div>
 
@@ -292,7 +316,7 @@ if (logoSrc) {
 }
 
 const bars = [];
-for(let i=0;i<56;i++){
+for(let i=0;i<72;i++){
   const b=document.createElement("div");
   b.className="bar";
   wave.appendChild(b);
@@ -334,7 +358,8 @@ function draw(){
     analyser.getByteFrequencyData(data);
     bars.forEach((b,i)=>{
       const n=data[Math.floor(i*data.length/bars.length)]||0;
-      b.style.height=Math.max(5,Math.min(72,n*.34))+"px";
+      const kick = (n > 145 ? Math.random()*28 : Math.random()*7);
+      b.style.height=Math.max(5,Math.min(86,n*.52+kick))+"px";
     });
   }else{
     bars.forEach((b,i)=>{
