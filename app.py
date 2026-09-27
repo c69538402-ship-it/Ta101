@@ -1,365 +1,1340 @@
-import os
+```python
 import streamlit as st
 import streamlit.components.v1 as components
+from pathlib import Path
+import base64
+import json
+import html
+import mimetypes
 
-st.set_page_config(page_title="Mon101 วัดพื้นที่แปลง", page_icon="📐", layout="wide")
+# ============================================================
+# NEON MUSIC PLAYER
+# วางไฟล์ .mp3 ไว้โฟลเดอร์เดียวกับ app.py
+# ============================================================
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-LOGO_PATH = os.path.join(APP_DIR, "logo.jpg")
-AUDIO_EXTS = (".mp3", ".wav", ".m4a", ".ogg")
-AUDIO_FILES = sorted(
-    f for f in os.listdir(APP_DIR)
-    if f.lower().endswith(AUDIO_EXTS) and os.path.isfile(os.path.join(APP_DIR, f))
+st.set_page_config(
+    page_title="NEON MUSIC",
+    page_icon="🎧",
+    layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
-if os.path.exists(LOGO_PATH):
-    st.image(LOGO_PATH, width=110)
+# ------------------------------------------------------------
+# ค้นหาเพลง MP3 อัตโนมัติ
+# ------------------------------------------------------------
 
-st.title("📐 Mon101 วัดพื้นที่แปลง")
-st.caption("ภาพดาวเทียมเท่านั้น • GPS • กากบาทกลางจอ • ปักหมุด • บันทึกภาพ")
+BASE_DIR = Path(__file__).resolve().parent
 
-st.info(
-    "กด GPS → รอภาพดาวเทียม → ซูม/เลื่อนให้มุมแปลงตรงกากบาท → "
-    "กด 📌 ปักหมุด → ทำซ้ำจนครบ → กด 📷 บันทึกภาพ"
+mp3_files = sorted(
+    [
+        p for p in BASE_DIR.iterdir()
+        if p.is_file() and p.suffix.lower() == ".mp3"
+    ],
+    key=lambda x: x.name.lower()
 )
 
-html = r"""
-<!doctype html>
+songs = []
+
+for file in mp3_files:
+    try:
+        raw = file.read_bytes()
+        encoded = base64.b64encode(raw).decode("utf-8")
+
+        songs.append({
+            "name": file.stem,
+            "file": file.name,
+            "src": f"data:audio/mpeg;base64,{encoded}"
+        })
+    except Exception:
+        pass
+
+
+# ------------------------------------------------------------
+# CSS หน้า Streamlit
+# ------------------------------------------------------------
+
+st.markdown(
+    """
+    <style>
+
+    #MainMenu {
+        visibility: hidden;
+    }
+
+    footer {
+        visibility: hidden;
+    }
+
+    header {
+        visibility: hidden;
+    }
+
+    .stApp {
+        background:
+            radial-gradient(
+                circle at 50% 30%,
+                rgba(94, 0, 255, 0.16),
+                transparent 35%
+            ),
+            radial-gradient(
+                circle at 20% 80%,
+                rgba(0, 220, 255, 0.12),
+                transparent 30%
+            ),
+            #03030a;
+    }
+
+    .block-container {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        max-width: 1400px;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ------------------------------------------------------------
+# ถ้าไม่มีเพลง
+# ------------------------------------------------------------
+
+if not songs:
+    st.markdown(
+        """
+        <div style="
+            min-height:80vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            text-align:center;
+            color:white;
+            font-family:Arial,sans-serif;
+        ">
+            <div>
+                <div style="font-size:80px;">🎧</div>
+
+                <div style="
+                    font-size:32px;
+                    font-weight:900;
+                    letter-spacing:5px;
+                    margin:20px 0;
+                    background:linear-gradient(
+                        90deg,
+                        #00eaff,
+                        #8b5cff,
+                        #ff2bd6
+                    );
+                    -webkit-background-clip:text;
+                    color:transparent;
+                ">
+                    NEON MUSIC
+                </div>
+
+                <div style="
+                    color:#9b9bad;
+                    font-size:16px;
+                    line-height:1.8;
+                ">
+                    ยังไม่พบไฟล์ MP3<br>
+                    ให้วางไฟล์ <b style="color:#00eaff;">.mp3</b>
+                    ไว้ในโฟลเดอร์เดียวกับ
+                    <b style="color:white;">app.py</b>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.stop()
+
+
+# ------------------------------------------------------------
+# เตรียมข้อมูลเพลง
+# ------------------------------------------------------------
+
+songs_json = json.dumps(songs, ensure_ascii=False)
+
+
+# ------------------------------------------------------------
+# HTML + CSS + JavaScript
+# ------------------------------------------------------------
+
+player_html = r"""
+<!DOCTYPE html>
+
 <html lang="th">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 
-<link rel="stylesheet"
- href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
- crossorigin="anonymous">
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width,
+             initial-scale=1.0,
+             maximum-scale=1.0,
+             user-scalable=no"
+>
 
 <style>
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#111827;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-#map{height:72vh;min-height:520px;width:100%;position:relative;background:#b7c59c}
-.topbar{
- position:absolute;z-index:2000;top:10px;left:10px;right:10px;
- display:flex;gap:7px;flex-wrap:wrap;pointer-events:none
+
+* {
+    box-sizing: border-box;
 }
-.topbar button{
- pointer-events:auto;border:0;border-radius:12px;padding:10px 13px;
- background:#ffffffee;color:#111827;font-weight:800;font-size:15px;
- box-shadow:0 2px 10px #0005
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    overflow: hidden;
+    background: #03030a;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 }
-#gps{background:#dbeafe}#pin{background:#dcfce7}#photo{background:#fde68a}
-#new{background:#fee2e2}#undo{background:#f3e8ff}#reload{background:#dff3ff}
-.crosshair{
- position:absolute;z-index:1900;left:50%;top:50%;width:44px;height:44px;
- transform:translate(-50%,-50%);pointer-events:none
+
+body {
+    color: white;
 }
-.crosshair:before,.crosshair:after{
- content:"";position:absolute;background:#ff2020;box-shadow:0 0 3px #fff
+
+/* =========================================================
+   BACKGROUND
+   ========================================================= */
+
+.scene {
+
+    position: relative;
+
+    width: 100%;
+
+    min-height: 900px;
+
+    overflow: hidden;
+
+    background:
+        radial-gradient(
+            circle at 50% 30%,
+            rgba(97, 0, 255, 0.20),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at 15% 80%,
+            rgba(0, 229, 255, 0.13),
+            transparent 28%
+        ),
+        radial-gradient(
+            circle at 90% 70%,
+            rgba(255, 0, 179, 0.12),
+            transparent 25%
+        ),
+        #03030a;
 }
-.crosshair:before{width:44px;height:3px;left:0;top:20px}
-.crosshair:after{width:3px;height:44px;left:20px;top:0}
-.cross-dot{
- position:absolute;left:50%;top:50%;width:9px;height:9px;
- transform:translate(-50%,-50%);border:2px solid white;background:#ff2020;border-radius:50%
+
+/* moving neon lights */
+
+.glow {
+
+    position: absolute;
+
+    width: 500px;
+    height: 500px;
+
+    border-radius: 50%;
+
+    filter: blur(90px);
+
+    opacity: .30;
+
+    animation:
+        floatingGlow 9s
+        ease-in-out
+        infinite alternate;
 }
-#loading{
- position:absolute;z-index:1800;left:50%;top:50%;transform:translate(-50%,-50%);
- background:#111827ee;color:white;padding:14px 18px;border-radius:12px;
- font-weight:800;box-shadow:0 4px 20px #0007;text-align:center;display:block
+
+.glow.one {
+
+    left: -180px;
+    top: 100px;
+
+    background: #00eaff;
 }
-#mapmsg{
- position:absolute;z-index:1700;left:50%;bottom:12px;transform:translateX(-50%);
- background:#111827dd;color:#fff;padding:7px 12px;border-radius:10px;
- font-size:12px;display:none;white-space:nowrap
+
+.glow.two {
+
+    right: -180px;
+    top: 250px;
+
+    background: #ff00cc;
+
+    animation-delay: -3s;
 }
-.panel{
- background:#111827;color:#f9fafb;padding:12px 14px;
- display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px
+
+.glow.three {
+
+    left: 35%;
+    bottom: -300px;
+
+    background: #702cff;
+
+    animation-delay: -6s;
 }
-.card{background:#1f2937;border-radius:10px;padding:10px}
-.label{font-size:12px;color:#9ca3af}.value{font-size:19px;font-weight:800;margin-top:2px}
-#status{grid-column:1/-1;color:#d1d5db;font-size:13px}
-@media(max-width:700px){
- #map{height:68vh;min-height:460px}
- .topbar{gap:5px}
- .topbar button{padding:9px 10px;font-size:13px}
- .panel{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+@keyframes floatingGlow {
+
+    0% {
+        transform: translate3d(
+            -30px,
+            -20px,
+            0
+        ) scale(0.9);
+    }
+
+    100% {
+        transform: translate3d(
+            40px,
+            30px,
+            0
+        ) scale(1.15);
+    }
 }
+
+
+/* =========================================================
+   TOP
+   ========================================================= */
+
+.topbar {
+
+    position: relative;
+
+    z-index: 5;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 25px 30px 0;
+}
+
+.logo {
+
+    font-size: 15px;
+
+    font-weight: 900;
+
+    letter-spacing: 5px;
+
+    color: white;
+
+    text-shadow:
+        0 0 8px #00eaff,
+        0 0 20px rgba(0,234,255,.6);
+}
+
+.live {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    color: #a7a7b7;
+
+    font-size: 11px;
+
+    letter-spacing: 2px;
+}
+
+.liveDot {
+
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #00ffbf;
+
+    box-shadow:
+        0 0 8px #00ffbf,
+        0 0 18px #00ffbf;
+
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+
+    50% {
+        opacity: .3;
+    }
+}
+
+
+/* =========================================================
+   MAIN PLAYER
+   ========================================================= */
+
+.player {
+
+    position: relative;
+
+    z-index: 3;
+
+    width: min(560px, 94vw);
+
+    margin: 35px auto 0;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   RECORD
+   ========================================================= */
+
+.recordWrap {
+
+    position: relative;
+
+    width: min(390px, 78vw);
+
+    aspect-ratio: 1 / 1;
+
+    margin: auto;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+}
+
+.recordGlow {
+
+    position: absolute;
+
+    width: 96%;
+
+    height: 96%;
+
+    border-radius: 50%;
+
+    background:
+        conic-gradient(
+            from 0deg,
+            #00eaff,
+            #753cff,
+            #ff00c8,
+            #00eaff
+        );
+
+    filter: blur(28px);
+
+    opacity: .55;
+
+    animation: pulseGlow 3s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+
+    50% {
+        transform: scale(1.08);
+        opacity: .75;
+    }
+}
+
+.record {
+
+    position: relative;
+
+    width: 92%;
+
+    height: 92%;
+
+    border-radius: 50%;
+
+    background:
+        repeating-radial-gradient(
+            circle,
+            #08080e 0px,
+            #08080e 3px,
+            #171722 4px,
+            #07070d 7px
+        );
+
+    border: 2px solid rgba(
+        255,
+        255,
+        255,
+        .10
+    );
+
+    box-shadow:
+        0 0 0 8px rgba(
+            255,
+            255,
+            255,
+            .02
+        ),
+        0 0 50px rgba(
+            0,
+            220,
+            255,
+            .28
+        ),
+        inset 0 0 80px rgba(
+            0,
+            0,
+            0,
+            .9
+        );
+
+    animation:
+        recordSpin 7s
+        linear
+        infinite;
+
+    animation-play-state: paused;
+}
+
+.record.playing {
+    animation-play-state: running;
+}
+
+@keyframes recordSpin {
+
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* record rainbow ring */
+
+.ring {
+
+    position: absolute;
+
+    width: 94%;
+    height: 94%;
+
+    border-radius: 50%;
+
+    border: 2px solid transparent;
+
+    background:
+        linear-gradient(#050509,#050509)
+        padding-box,
+        conic-gradient(
+            #00eaff,
+            #7b3cff,
+            #ff00c8,
+            #00eaff
+        ) border-box;
+
+    opacity: .85;
+
+    animation:
+        ringSpin 5s
+        linear
+        infinite;
+}
+
+@keyframes ringSpin {
+
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(-360deg);
+    }
+}
+
+
+/* center */
+
+.center {
+
+    position: absolute;
+
+    width: 105px;
+    height: 105px;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            #181827,
+            #05050a 65%
+        );
+
+    border: 3px solid rgba(
+        255,
+        255,
+        255,
+        .12
+    );
+
+    box-shadow:
+        0 0 30px
+        rgba(0,234,255,.45),
+        inset 0 0 25px
+        rgba(255,0,200,.25);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    z-index: 5;
+}
+
+.centerIcon {
+
+    font-size: 32px;
+
+    filter:
+        drop-shadow(
+            0 0 8px
+            rgba(0,234,255,.9)
+        );
+}
+
+
+/* =========================================================
+   SONG INFO
+   ========================================================= */
+
+.songInfo {
+
+    margin-top: 30px;
+}
+
+.songTitle {
+
+    font-size: clamp(
+        25px,
+        5vw,
+        38px
+    );
+
+    font-weight: 900;
+
+    line-height: 1.15;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    padding: 0 10px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #ffffff,
+            #6defff,
+            #c77dff,
+            #ffffff
+        );
+
+    -webkit-background-clip: text;
+
+    color: transparent;
+
+    background-size: 250% auto;
+
+    animation:
+        titleMove 4s
+        linear
+        infinite;
+
+    text-shadow:
+        0 0 25px
+        rgba(0,234,255,.15);
+}
+
+@keyframes titleMove {
+
+    to {
+        background-position:
+            250% center;
+    }
+}
+
+.subtitle {
+
+    margin-top: 8px;
+
+    color: #6f7081;
+
+    font-size: 11px;
+
+    letter-spacing: 4px;
+
+    text-transform: uppercase;
+}
+
+
+/* =========================================================
+   VISUALIZER
+   ========================================================= */
+
+.visualizer {
+
+    height: 85px;
+
+    margin-top: 18px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 4px;
+
+    overflow: hidden;
+}
+
+.bar {
+
+    width: 4px;
+
+    min-height: 5px;
+
+    height: 8px;
+
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            to top,
+            #00eaff,
+            #7c3cff,
+            #ff00c8
+        );
+
+    box-shadow:
+        0 0 8px
+        rgba(0,234,255,.5);
+
+    transition:
+        height .08s
+        linear;
+}
+
+
+/* =========================================================
+   PROGRESS
+   ========================================================= */
+
+.progressArea {
+
+    margin-top: 10px;
+}
+
+.timeRow {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    color: #77788b;
+
+    font-size: 10px;
+
+    margin-bottom: 7px;
+}
+
+.progress {
+
+    width: 100%;
+
+    height: 5px;
+
+    border-radius: 20px;
+
+    background: rgba(
+        255,
+        255,
+        255,
+        .08
+    );
+
+    cursor: pointer;
+
+    overflow: hidden;
+}
+
+.progressFill {
+
+    width: 0%;
+
+    height: 100%;
+
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #00eaff,
+            #7a4cff,
+            #ff00c8
+        );
+
+    box-shadow:
+        0 0 15px
+        rgba(0,234,255,.8);
+}
+
+
+/* =========================================================
+   CONTROLS
+   ========================================================= */
+
+.controls {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 22px;
+
+    margin-top: 24px;
+}
+
+.control {
+
+    width: 48px;
+    height: 48px;
+
+    border-radius: 50%;
+
+    border: 1px solid rgba(
+        255,
+        255,
+        255,
+        .10
+    );
+
+    background: rgba(
+        255,
+        255,
+        255,
+        .04
+    );
+
+    color: white;
+
+    font-size: 18px;
+
+    cursor: pointer;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    transition: .2s;
+}
+
+.control:hover {
+
+    transform: scale(1.08);
+
+    border-color:
+        rgba(0,234,255,.6);
+
+    box-shadow:
+        0 0 20px
+        rgba(0,234,255,.3);
+}
+
+.play {
+
+    width: 68px;
+    height: 68px;
+
+    border: none;
+
+    background:
+        linear-gradient(
+            135deg,
+            #00eaff,
+            #713cff,
+            #ff00c8
+        );
+
+    box-shadow:
+        0 0 25px
+        rgba(0,234,255,.45),
+        0 0 50px
+        rgba(255,0,200,.2);
+
+    font-size: 25px;
+}
+
+.play:hover {
+
+    transform: scale(1.10);
+
+    box-shadow:
+        0 0 35px
+        rgba(0,234,255,.65),
+        0 0 70px
+        rgba(255,0,200,.35);
+}
+
+
+/* =========================================================
+   PLAYLIST
+   ========================================================= */
+
+.playlist {
+
+    position: relative;
+
+    z-index: 5;
+
+    width: min(
+        700px,
+        94vw
+    );
+
+    margin: 28px auto 0;
+
+    padding: 12px;
+
+    border-radius: 18px;
+
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .035
+        );
+
+    border: 1px solid rgba(
+        255,
+        255,
+        255,
+        .07
+    );
+
+    backdrop-filter: blur(18px);
+
+    max-height: 190px;
+
+    overflow-y: auto;
+}
+
+.playlistTitle {
+
+    padding: 5px 8px 10px;
+
+    color: #656678;
+
+    font-size: 9px;
+
+    letter-spacing: 3px;
+
+    text-align: left;
+}
+
+.track {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 10px 12px;
+
+    margin: 3px 0;
+
+    border-radius: 11px;
+
+    cursor: pointer;
+
+    color: #a3a4b5;
+
+    font-size: 12px;
+
+    transition: .2s;
+}
+
+.track:hover {
+
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .06
+        );
+
+    color: white;
+}
+
+.track.active {
+
+    color: white;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(0,234,255,.12),
+            rgba(122,60,255,.08),
+            rgba(255,0,200,.08)
+        );
+
+    box-shadow:
+        inset 2px 0 0
+        #00eaff;
+}
+
+.trackNumber {
+
+    width: 22px;
+
+    color: #565768;
+
+    font-size: 10px;
+}
+
+.track.active .trackNumber {
+
+    color: #00eaff;
+}
+
+.trackName {
+
+    flex: 1;
+
+    overflow: hidden;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   FULLSCREEN
+   ========================================================= */
+
+.fullscreen {
+
+    position: absolute;
+
+    right: 25px;
+
+    top: 70px;
+
+    z-index: 20;
+
+    width: 40px;
+    height: 40px;
+
+    border-radius: 50%;
+
+    border: 1px solid rgba(
+        255,
+        255,
+        255,
+        .10
+    );
+
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .04
+        );
+
+    color: #77788a;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .scene {
+        min-height: 850px;
+    }
+
+    .topbar {
+        padding:
+            18px
+            18px
+            0;
+    }
+
+    .player {
+        margin-top: 18px;
+    }
+
+    .recordWrap {
+        width: 76vw;
+    }
+
+    .center {
+        width: 82px;
+        height: 82px;
+    }
+
+    .centerIcon {
+        font-size: 25px;
+    }
+
+    .controls {
+        gap: 14px;
+    }
+
+    .control {
+        width: 43px;
+        height: 43px;
+    }
+
+    .play {
+        width: 62px;
+        height: 62px;
+    }
+
+    .playlist {
+        margin-top: 20px;
+        max-height: 145px;
+    }
+
+    .fullscreen {
+        top: 65px;
+        right: 15px;
+    }
+}
+
 </style>
+
 </head>
+
+
 <body>
 
-<div id="map">
- <div id="loading">🛰️ กำลังโหลดภาพดาวเทียม...</div>
- <div id="mapmsg"></div>
+<div class="scene">
 
- <div class="topbar" data-html2canvas-ignore="true">
-  <button id="gps">📍 GPS</button>
-  <button id="pin">📌 ปักหมุด</button>
-  <button id="undo">↩️ ลบล่าสุด</button>
-  <button id="new">🗑️ เริ่มใหม่</button>
-  <button id="reload">🛰️ โหลดภาพใหม่</button>
-  <button id="photo">📷 บันทึกภาพ</button>
- </div>
+    <div class="glow one"></div>
+    <div class="glow two"></div>
+    <div class="glow three"></div>
 
- <div class="crosshair" id="crosshair" data-html2canvas-ignore="true">
-  <div class="cross-dot"></div>
- </div>
+
+    <div class="topbar">
+
+        <div class="logo">
+            NEON MUSIC
+        </div>
+
+        <div class="live">
+            <span class="liveDot"></span>
+            AUDIO VISUALIZER
+        </div>
+
+    </div>
+
+
+    <button
+        class="fullscreen"
+        onclick="goFullscreen()"
+        title="Fullscreen"
+    >
+        ⛶
+    </button>
+
+
+    <main class="player">
+
+
+        <!-- RECORD -->
+
+        <div class="recordWrap">
+
+            <div class="recordGlow"></div>
+
+            <div
+                id="record"
+                class="record"
+            >
+
+                <div class="ring"></div>
+
+            </div>
+
+            <div class="center">
+
+                <div class="centerIcon">
+                    🎧
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- SONG -->
+
+        <div class="songInfo">
+
+            <div
+                id="songTitle"
+                class="songTitle"
+            >
+                NEON MUSIC
+            </div>
+
+            <div class="subtitle">
+                NOW PLAYING
+            </div>
+
+        </div>
+
+
+        <!-- VISUALIZER -->
+
+        <div
+            id="visualizer"
+            class="visualizer"
+        >
+        </div>
+
+
+        <!-- PROGRESS -->
+
+        <div class="progressArea">
+
+            <div class="timeRow">
+
+                <span id="currentTime">
+                    0:00
+                </span>
+
+                <span id="duration">
+                    0:00
+                </span>
+
+            </div>
+
+            <div
+                id="progress"
+                class="progress"
+            >
+
+                <div
+                    id="progressFill"
+                    class="progressFill"
+                >
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- CONTROLS -->
+
+        <div class="controls">
+
+            <button
+                id="prevBtn"
+                class="control"
+            >
+                ⏮
+            </button>
+
+            <button
+                id="playBtn"
+                class="control play"
+            >
+                ▶
+            </button>
+
+            <button
+                id="nextBtn"
+                class="control"
+            >
+                ⏭
+            </button>
+
+        </div>
+
+
+        <!-- PLAYLIST -->
+
+        <div class="playlist">
+
+            <div class="playlistTitle">
+                PLAYLIST
+            </div>
+
+            <div id="playlist"></div>
+
+        </div>
+
+
+    </main>
+
 </div>
 
-<div class="panel">
- <div class="card"><div class="label">จุดที่ปัก</div><div class="value" id="points">0</div></div>
- <div class="card"><div class="label">พื้นที่ ตร.ม.</div><div class="value" id="m2">0.00</div></div>
- <div class="card"><div class="label">ไร่</div><div class="value" id="rai">0.0000</div></div>
- <div class="card"><div class="label">งาน</div><div class="value" id="ngan">0.00</div></div>
- <div class="card"><div class="label">ตารางวา</div><div class="value" id="sqw">0.00</div></div>
- <div class="card"><div class="label">ไถ 250/ไร่</div><div class="value" id="plow">0.00 ฿</div></div>
- <div class="card"><div class="label">พรวน 350/ไร่</div><div class="value" id="till">0.00 ฿</div></div>
- <div class="card"><div class="label">ไถ+พรวน 600/ไร่</div><div class="value" id="both">0.00 ฿</div></div>
- <div class="card" style="grid-column:1/-1"><div class="label">หน่วยพื้นที่แบบไทย</div><div class="value" id="thaiArea">0 ไร่ 0 งาน 0 ตารางวา</div></div>
- <div id="status">กำลังโหลดภาพดาวเทียม...</div>
-</div>
-
-<script
- src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
- crossorigin="anonymous"></script>
 
 <script>
-(function(){
-"use strict";
 
-function status(t){document.getElementById("status").textContent=t}
-function showLoading(t){
- const x=document.getElementById("loading");
- x.textContent=t;x.style.display="block";
-}
-function hideLoading(){document.getElementById("loading").style.display="none"}
+/* =========================================================
+   SONG DATA
+   ========================================================= */
 
-if(typeof L==="undefined"){
- document.getElementById("loading").innerHTML=
-  "⚠️ โหลดระบบแผนที่ไม่สำเร็จ<br>กำลังลองใหม่...";
- setTimeout(function(){location.reload()},2500);
- return;
-}
+const songs = __SONGS_DATA__;
 
-const VIEW_KEY="mon101_satellite_view_v11";
-const POINT_KEY="mon101_satellite_points_v11";
-const defaultView={lat:17.4138,lng:102.7875,zoom:17};
+let currentIndex = 0;
 
-function load(k,f){
- try{const x=localStorage.getItem(k);return x?JSON.parse(x):f}
- catch(e){return f}
-}
-function save(k,v){
- try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}
-}
+let audio = new Audio();
 
-const v=load(VIEW_KEY,defaultView);
+audio.preload = "auto";
 
-const map=L.map("map",{
- center:[Number(v.lat)||defaultView.lat,Number(v.lng)||defaultView.lng],
- zoom:Number(v.zoom)||defaultView.zoom,
- zoomControl:true,
- attributionControl:true,
- maxZoom:20,
- minZoom:3
-});
+let audioContext = null;
 
-/* ใช้ภาพดาวเทียม Esri โดยตรงเท่านั้น */
-const SAT_URL=
- "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+let analyser = null;
 
-let sat=L.tileLayer(SAT_URL,{
- maxZoom:20,
- maxNativeZoom:19,
- attribution:"Tiles © Esri"
-}).addTo(map);
+let sourceNode = null;
 
-let firstTile=false;
-let tileErrors=0;
+let connected = false;
 
-sat.on("tileload",function(){
- firstTile=true;
- tileErrors=0;
- hideLoading();
- status("🛰️ ภาพดาวเทียมพร้อมแล้ว — เลื่อน/ซูมให้มุมแปลงตรงกากบาท");
-});
 
-sat.on("tileerror",function(){
- tileErrors++;
- if(!firstTile && tileErrors>=3){
-   showLoading("⚠️ ภาพดาวเทียมกำลังโหลดช้า<br>ลองกด 🛰️ โหลดภาพใหม่");
-   status("ยังรับภาพดาวเทียมไม่ได้จากเซิร์ฟเวอร์");
- }
-});
+/* =========================================================
+   ELEMENTS
+   ========================================================= */
 
-setTimeout(function(){
- map.invalidateSize(true);
- if(!firstTile){
-   status("กำลังรอภาพดาวเทียม... หากยังมืดให้กด 🛰️ โหลดภาพใหม่");
- }
-},500);
-
-const points=load(POINT_KEY,[]);
-if(!Array.isArray(points))points=[];
-const markers=L.layerGroup().addTo(map);
-const lines=L.layerGroup().addTo(map);
-
-function areaM2(a){
- if(a.length<3)return 0;
- const R=6378137;
- let s=0;
- for(let i=0;i<a.length;i++){
-  const p=a[i],q=a[(i+1)%a.length];
-  const x=p[1]*Math.PI/180,y=p[0]*Math.PI/180;
-  const u=q[1]*Math.PI/180,w=q[0]*Math.PI/180;
-  s+=(u-x)*(2+Math.sin(y)+Math.sin(w));
- }
- return Math.abs(s*R*R/2);
-}
-
-function fmt(n,d){
- return Number(n||0).toLocaleString("th-TH",{
-  minimumFractionDigits:d,maximumFractionDigits:d
- });
-}
-
-function render(){
- markers.clearLayers();
- lines.clearLayers();
-
- points.forEach(function(p){
-  L.circleMarker(p,{
-   radius:3,weight:1,color:"#ffffff",fillColor:"#ff2020",fillOpacity:0.95
-  }).addTo(markers);
- });
-
- if(points.length>=2){
-  L.polyline(points,{color:"#00ff66",weight:4,opacity:.95}).addTo(lines);
- }
- if(points.length>=3){
-  L.polygon(points,{
-   color:"#00ff66",weight:3,fillColor:"#22c55e",fillOpacity:.18
-  }).addTo(lines);
- }
-
- const m=areaM2(points),r=m/1600;
- const rai=Math.floor(m/1600);
- const remAfterRai=m-(rai*1600);
- const ngan=Math.floor(remAfterRai/400);
- const remAfterNgan=remAfterRai-(ngan*400);
- const sqw=remAfterNgan/4;
- document.getElementById("points").textContent=points.length;
- document.getElementById("m2").textContent=fmt(m,2);
- document.getElementById("rai").textContent=fmt(r,4);
- document.getElementById("ngan").textContent=fmt(ngan,0);
- document.getElementById("sqw").textContent=fmt(sqw,2);
- document.getElementById("thaiArea").textContent=rai+" ไร่ "+ngan+" งาน "+fmt(sqw,2)+" ตารางวา";
- document.getElementById("plow").textContent=fmt(r*250,2)+" ฿";
- document.getElementById("till").textContent=fmt(r*350,2)+" ฿";
- document.getElementById("both").textContent=fmt(r*600,2)+" ฿";
-
- save(POINT_KEY,points);
-}
-
-map.on("moveend",function(){
- const c=map.getCenter();
- save(VIEW_KEY,{lat:c.lat,lng:c.lng,zoom:map.getZoom()});
-});
-
-document.getElementById("gps").onclick=function(){
- if(!navigator.geolocation){
-  status("อุปกรณ์นี้ไม่รองรับ GPS");return;
- }
- status("กำลังค้นหา GPS...");
- navigator.geolocation.getCurrentPosition(
-  function(p){
-   map.setView([p.coords.latitude,p.coords.longitude],19,{animate:true});
-   status("ถึงตำแหน่ง GPS แล้ว — เลื่อนภาพให้มุมแปลงตรงกากบาท");
-  },
-  function(e){
-   status("GPS ใช้งานไม่ได้: "+(e.message||"กรุณาอนุญาตตำแหน่ง"));
-  },
-  {enableHighAccuracy:true,timeout:15000,maximumAge:0}
- );
-};
-
-document.getElementById("pin").onclick=function(){
- const c=map.getCenter();
- points.push([
-  Number(c.lat.toFixed(8)),
-  Number(c.lng.toFixed(8))
- ]);
- render();
- status("📌 ปักหมุดแล้ว "+points.length+" จุด — ไปมุมถัดไปได้เลย");
-};
-
-document.getElementById("undo").onclick=function(){
- if(points.length){
-  points.pop();render();status("ลบจุดล่าสุดแล้ว");
- }else status("ยังไม่มีจุดให้ลบ");
-};
-
-document.getElementById("new").onclick=function(){
- if(confirm("เริ่มแปลงใหม่? จุดที่ยังไม่ได้บันทึกจะถูกลบ")){
-  points.length=0;render();status("เริ่มแปลงใหม่แล้ว");
- }
-};
-
-document.getElementById("reload").onclick=function(){
- showLoading("🛰️ กำลังโหลดภาพดาวเทียมใหม่...");
- tileErrors=0;firstTile=false;
- map.removeLayer(sat);
- sat=L.tileLayer(SAT_URL,{
-  maxZoom:20,maxNativeZoom:19,attribution:"Tiles © Esri"
- }).addTo(map);
- setTimeout(function(){map.invalidateSize(true)},300);
-};
-
-document.getElementById("photo").onclick=function(){
- /*
-  ไม่พยายามแปลง tile ดาวเทียมเป็น canvas เพราะเบราว์เซอร์มือถืออาจบล็อก
-  ภาพข้ามโดเมน ทำให้ภาพออกมามืด/ว่าง
-  ใช้เมนูพิมพ์ของเบราว์เซอร์แทนเพื่อเก็บภาพที่ผู้ใช้เห็นจริง
- */
- document.getElementById("crosshair").style.visibility="hidden";
- setTimeout(function(){
-  window.print();
-  document.getElementById("crosshair").style.visibility="";
-  status("เลือกบันทึก/พิมพ์จากเมนูของโทรศัพท์ได้");
- },150);
-};
-
-render();
-})();
-</script>
-
-<style>
-@media print{
- html,body{background:white!important}
- #map{height:100vh!important;min-height:100vh!important}
- .panel,.topbar,#loading,#mapmsg{display:none!important}
- .leaflet-control-zoom,.leaflet-control-attribution{display:none!important}
-}
-</style>
-
-</body>
-</html>
-"""
-
-components.html(html, height=900, scrolling=False)
-
-st.divider()
-st.subheader("🎵 เครื่องเล่นเพลง")
-if AUDIO_FILES:
-    for f in AUDIO_FILES:
-        st.write("🎵 " + f)
-        st.audio(os.path.join(APP_DIR, f))
-else:
-    st.caption("วางไฟล์ .mp3 / .wav / .m4a / .ogg ไว้โฟลเดอร์เดียวกับ app.py ได้เลย")
-
-st.subheader("💰 อัตราค่าบริการ")
-a,b,c=st.columns(3)
-a.metric("ไถ","250 บาท/ไร่")
-b.metric("พรวน/ปั่นดิน","350 บาท/ไร่")
-c.metric("ไถ + พรวน","600 บาท/ไร่")
+co
