@@ -116,6 +116,7 @@ html,body{margin:0;padding:0;background:#111827;font-family:system-ui,-apple-sys
  <div class="card"><div class="label">ไถ 250/ไร่</div><div class="value" id="plow">0.00 ฿</div></div>
  <div class="card"><div class="label">พรวน 350/ไร่</div><div class="value" id="till">0.00 ฿</div></div>
  <div class="card"><div class="label">ไถ+พรวน 600/ไร่</div><div class="value" id="both">0.00 ฿</div></div>
+ <div class="card" style="grid-column:1/-1"><div class="label">หน่วยพื้นที่แบบไทย</div><div class="value" id="thaiArea">0 ไร่ 0 งาน 0 ตารางวา</div></div>
  <div id="status">กำลังโหลดภาพดาวเทียม...</div>
 </div>
 
@@ -229,7 +230,7 @@ function render(){
 
  points.forEach(function(p){
   L.circleMarker(p,{
-   radius:5,weight:2,color:"#fff",fillColor:"#ef4444",fillOpacity:1
+   radius:3,weight:1,color:"#ffffff",fillColor:"#ff2020",fillOpacity:0.95
   }).addTo(markers);
  });
 
@@ -243,11 +244,17 @@ function render(){
  }
 
  const m=areaM2(points),r=m/1600;
+ const rai=Math.floor(m/1600);
+ const remAfterRai=m-(rai*1600);
+ const ngan=Math.floor(remAfterRai/400);
+ const remAfterNgan=remAfterRai-(ngan*400);
+ const sqw=remAfterNgan/4;
  document.getElementById("points").textContent=points.length;
  document.getElementById("m2").textContent=fmt(m,2);
  document.getElementById("rai").textContent=fmt(r,4);
- document.getElementById("ngan").textContent=fmt(m/400,2);
- document.getElementById("sqw").textContent=fmt(m/4,2);
+ document.getElementById("ngan").textContent=fmt(ngan,0);
+ document.getElementById("sqw").textContent=fmt(sqw,2);
+ document.getElementById("thaiArea").textContent=rai+" ไร่ "+ngan+" งาน "+fmt(sqw,2)+" ตารางวา";
  document.getElementById("plow").textContent=fmt(r*250,2)+" ฿";
  document.getElementById("till").textContent=fmt(r*350,2)+" ฿";
  document.getElementById("both").textContent=fmt(r*600,2)+" ฿";
