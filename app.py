@@ -5,11 +5,6 @@ import base64
 import json
 import html
 
-try:
-    from PIL import Image, ImageEnhance, ImageFilter
-except Exception:
-    Image = None
-
 st.set_page_config(
     page_title="NEON VISION MUSIC",
     page_icon="🎧",
@@ -19,22 +14,17 @@ st.set_page_config(
 
 BASE = Path(__file__).resolve().parent
 
+# ---------------------------------------------------------
+# หาเพลง MP3 และ logo.jpg อัตโนมัติจากโฟลเดอร์เดียวกับ app.py
+# ---------------------------------------------------------
 songs = []
-
-for p in sorted(
-    BASE.glob("*.mp3"),
-    key=lambda x: x.name.lower()
-):
+for p in sorted(BASE.glob("*.mp3"), key=lambda x: x.name.lower()):
     try:
-        data = base64.b64encode(
-            p.read_bytes()
-        ).decode("ascii")
-
+        data = base64.b64encode(p.read_bytes()).decode("ascii")
         songs.append({
             "name": p.stem,
             "src": "data:audio/mpeg;base64," + data
         })
-
     except Exception:
         pass
 
@@ -42,138 +32,37 @@ logo_src = ""
 logo_path = BASE / "logo.jpg"
 
 if logo_path.exists():
-
     try:
-
-        if Image is not None:
-
-            im = Image.open(
-                logo_path
-            ).convert("RGB")
-
-            target = max(
-                720,
-                im.width,
-                im.height
-            )
-
-            scale = target / max(
-                im.width,
-                im.height
-            )
-
-            if scale > 1:
-
-                im = im.resize(
-                    (
-                        max(
-                            1,
-                            int(im.width * scale)
-                        ),
-                        max(
-                            1,
-                            int(im.height * scale)
-                        )
-                    ),
-                    Image.Resampling.LANCZOS
-                )
-
-            im = ImageEnhance.Contrast(
-                im
-            ).enhance(1.10)
-
-            im = ImageEnhance.Sharpness(
-                im
-            ).enhance(1.65)
-
-            im = ImageEnhance.Color(
-                im
-            ).enhance(1.08)
-
-            import io
-
-            buf = io.BytesIO()
-
-            im.save(
-                buf,
-                format="JPEG",
-                quality=96,
-                subsampling=0,
-                optimize=True
-            )
-
-            logo_src = (
-                "data:image/jpeg;base64,"
-                +
-                base64.b64encode(
-                    buf.getvalue()
-                ).decode("ascii")
-            )
-
-        else:
-
-            logo_src = (
-                "data:image/jpeg;base64,"
-                +
-                base64.b64encode(
-                    logo_path.read_bytes()
-                ).decode("ascii")
-            )
-
+        logo_src = "data:image/jpeg;base64," + base64.b64encode(
+            logo_path.read_bytes()
+        ).decode("ascii")
     except Exception:
         logo_src = ""
 
 if not songs:
-
     st.markdown(
-        "<div style='height:80vh;"
-        "display:grid;place-items:center;"
-        "background:#03030a;color:white;"
-        "text-align:center;font-family:Arial'>"
-        "<div>"
-        "<div style='font-size:72px'>🎧</div>"
-        "<h1 style='letter-spacing:5px'>"
-        "NEON VISION MUSIC"
-        "</h1>"
-        "<p style='color:#888'>"
-        "นำไฟล์ .mp3 และ logo.jpg "
-        "มาวางไว้ข้าง app.py"
-        "</p>"
+        "<div style='height:80vh;display:grid;place-items:center;"
+        "background:#03030a;color:white;text-align:center;font-family:Arial'>"
+        "<div><div style='font-size:72px'>🎧</div>"
+        "<h1 style='letter-spacing:5px'>NEON VISION MUSIC</h1>"
+        "<p style='color:#888'>นำไฟล์ .mp3 และ logo.jpg มาวางไว้ข้าง app.py</p>"
         "</div></div>",
         unsafe_allow_html=True,
     )
-
     st.stop()
 
-songs_json = json.dumps(
-    songs,
-    ensure_ascii=False
-)
-
-logo_json = json.dumps(
-    logo_src
-)
+songs_json = json.dumps(songs, ensure_ascii=False)
+logo_json = json.dumps(logo_src)
 
 page = r'''
 <!doctype html>
-
 <html lang="th">
-
 <head>
-
 <meta charset="utf-8">
-
-<meta name="viewport"
-content="width=device-width,
-initial-scale=1,
-maximum-scale=1,
-user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 
 <style>
-
-*{
-box-sizing:border-box
-}
+*{box-sizing:border-box}
 
 html,body{
 margin:0;
@@ -193,23 +82,10 @@ width:100%;
 height:980px;
 max-height:100vh;
 overflow:hidden;
-
 background:
-radial-gradient(
-circle at 50% 38%,
-rgba(40,0,120,.25),
-transparent 28%
-),
-radial-gradient(
-circle at 5% 78%,
-rgba(0,234,255,.13),
-transparent 26%
-),
-radial-gradient(
-circle at 95% 72%,
-rgba(255,0,160,.14),
-transparent 27%
-),
+radial-gradient(circle at 50% 38%,rgba(40,0,120,.25),transparent 28%),
+radial-gradient(circle at 5% 78%,rgba(0,234,255,.13),transparent 26%),
+radial-gradient(circle at 95% 72%,rgba(255,0,160,.14),transparent 27%),
 #020208
 }
 
@@ -218,25 +94,7 @@ position:absolute;
 inset:0;
 opacity:.035;
 pointer-events:none;
-
-background-image:url(
-"data:image/svg+xml,
-%3Csvg xmlns='http://www.w3.org/2000/svg'
-width='140' height='140'
-%3E%3Cfilter id='n'%3E
-%3CfeTurbulence
-type='fractalNoise'
-baseFrequency='.8'
-numOctaves='3'
-stitchTiles='stitch'
-/%3E
-%3C/filter%3E
-%3Crect width='100%25'
-height='100%25'
-filter='%23n'
-opacity='.6'
-/%3E%3C/svg%3E"
-)
+background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E")
 }
 
 .blob{
@@ -253,8 +111,7 @@ height:420px;
 background:#00eaff;
 left:-220px;
 top:180px;
-animation:
-float1 8s ease-in-out infinite alternate
+animation:float1 8s ease-in-out infinite alternate
 }
 
 .b2{
@@ -263,8 +120,7 @@ height:440px;
 background:#ff009d;
 right:-240px;
 top:300px;
-animation:
-float2 10s ease-in-out infinite alternate
+animation:float2 10s ease-in-out infinite alternate
 }
 
 .b3{
@@ -273,32 +129,19 @@ height:360px;
 background:#693cff;
 left:35%;
 bottom:-250px;
-animation:
-float3 9s ease-in-out infinite alternate
+animation:float3 9s ease-in-out infinite alternate
 }
 
 @keyframes float1{
-to{
-transform:
-translate(120px,70px)
-scale(1.15)
-}
+to{transform:translate(120px,70px) scale(1.15)}
 }
 
 @keyframes float2{
-to{
-transform:
-translate(-100px,-80px)
-scale(1.18)
-}
+to{transform:translate(-100px,-80px) scale(1.18)}
 }
 
 @keyframes float3{
-to{
-transform:
-translate(30px,-100px)
-scale(1.1)
-}
+to{transform:translate(30px,-100px) scale(1.1)}
 }
 
 .top{
@@ -317,22 +160,12 @@ gap:11px
 }
 
 .logo{
-width:58px;
-height:58px;
-border-radius:16px;
+width:50px;
+height:50px;
+border-radius:15px;
 object-fit:cover;
-object-position:center;
-border:
-1px solid rgba(255,255,255,.42);
-
-box-shadow:
-0 0 24px rgba(0,234,255,.42),
-0 0 38px rgba(255,0,200,.18);
-
-filter:
-contrast(1.08)
-saturate(1.08)
-brightness(1.04)
+border:1px solid rgba(255,255,255,.3);
+box-shadow:0 0 22px rgba(0,234,255,.35)
 }
 
 .brandtxt{
@@ -359,9 +192,7 @@ animation:blink 1s infinite
 }
 
 @keyframes blink{
-50%{
-opacity:.25
-}
+50%{opacity:.25}
 }
 
 .content{
@@ -396,43 +227,33 @@ flex:0 0 auto
 position:absolute;
 inset:-8%;
 border-radius:50%;
-
-background:
-conic-gradient(
+background:conic-gradient(
 #00eaff,
 #7a3cff,
 #ff00c8,
 #ffe66b,
 #00eaff
 );
-
 filter:blur(20px);
 opacity:.48;
-
-animation:
-haloPulse .55s steps(2,end) infinite
+animation:haloPulse .55s steps(2,end) infinite
 }
 
 .halo2{
 position:absolute;
 inset:2%;
 border-radius:50%;
-border:
-2px dashed rgba(0,234,255,.32);
-
+border:2px dashed rgba(0,234,255,.32);
 box-shadow:
 0 0 35px rgba(0,234,255,.28),
 inset 0 0 35px rgba(255,0,200,.12);
-
-animation:
-ringSnap .65s steps(4,end) infinite
+animation:ringSnap .65s steps(4,end) infinite
 }
 
 .core{
 position:absolute;
 inset:15%;
 border-radius:50%;
-
 background:
 radial-gradient(
 circle at 50% 48%,
@@ -445,16 +266,11 @@ circle,
 #070912 33% 63%,
 #03040a 64%
 );
-
-border:
-1px solid rgba(255,255,255,.16);
-
+border:1px solid rgba(255,255,255,.16);
 box-shadow:
 inset 0 0 55px #000,
 0 0 45px rgba(0,234,255,.2);
-
-transition:
-transform .04s steps(2,end)
+transition:transform .04s steps(2,end)
 }
 
 .core:before{
@@ -462,38 +278,26 @@ content:"";
 position:absolute;
 inset:10%;
 border-radius:50%;
-border:
-1px solid rgba(255,255,255,.09);
-
-box-shadow:
-0 0 22px rgba(255,0,200,.22)
+border:1px solid rgba(255,255,255,.09);
+box-shadow:0 0 22px rgba(255,0,200,.22)
 }
 
 .core.playing{
-animation:
-corePulse .18s steps(2,end) infinite
+animation:corePulse .18s steps(2,end) infinite
 }
 
 .cover{
 position:absolute;
-width:47%;
+width:43%;
 aspect-ratio:1;
-border-radius:22%;
+border-radius:24%;
 object-fit:cover;
-image-rendering:auto;
-
-border:
-2px solid rgba(255,255,255,.52);
-
+border:2px solid rgba(255,255,255,.52);
 z-index:4;
-
 box-shadow:
 0 0 22px rgba(0,234,255,.65),
 0 0 45px rgba(255,0,180,.3);
-
-transition:
-transform .04s steps(2,end);
-
+transition:transform .04s steps(2,end);
 filter:saturate(1.15)
 }
 
@@ -503,20 +307,13 @@ width:82px;
 height:82px;
 border-radius:28px;
 z-index:6;
-
-background:
-rgba(3,4,10,.88);
-
-border:
-1px solid rgba(255,255,255,.22);
-
+background:rgba(3,4,10,.88);
+border:1px solid rgba(255,255,255,.22);
 box-shadow:
 0 0 20px rgba(0,234,255,.42),
 inset 0 0 24px rgba(255,0,200,.2);
-
 display:grid;
 place-items:center;
-
 transform:rotate(45deg);
 overflow:visible
 }
@@ -526,12 +323,8 @@ content:"";
 position:absolute;
 inset:-11px;
 border-radius:34px;
-
-border:
-1px solid rgba(0,234,255,.38);
-
-box-shadow:
-0 0 18px rgba(0,234,255,.25)
+border:1px solid rgba(0,234,255,.38);
+box-shadow:0 0 18px rgba(0,234,255,.25)
 }
 
 .musicMark{
@@ -539,160 +332,67 @@ font-size:32px;
 font-weight:900;
 color:#fff;
 line-height:1;
-
 text-shadow:
 0 0 8px #00eaff,
 0 0 20px #ff00c8;
-
 transform:rotate(-45deg)
 }
 
 .headphone{
 position:absolute;
-bottom:-47px;
+bottom:-44px;
 left:50%;
-
-transform:
-translateX(-50%);
-
-width:76px;
-height:42px;
-
-border:
-2px solid rgba(255,255,255,.82);
-
-border-top:0;
-
-border-radius:
-0 0 38px 38px;
-
+transform:translateX(-50%);
+font-size:30px;
 color:#fff;
-
 text-shadow:
 0 0 8px #00eaff,
 0 0 18px #ff00c8;
-
 z-index:8;
-
-filter:
-drop-shadow(0 0 7px #00eaff);
-
-font-size:0
-}
-
-.headphone:before,
-.headphone:after{
-content:"";
-position:absolute;
-bottom:-1px;
-width:15px;
-height:25px;
-border-radius:8px;
-
-background:
-linear-gradient(
-180deg,
-#fff,
-#00eaff 55%,
-#ff00c8
-);
-
-box-shadow:
-0 0 10px #00eaff
-}
-
-.headphone:before{
-left:-2px
-}
-
-.headphone:after{
-right:-2px
+letter-spacing:-5px
 }
 
 .musicPulse{
 position:absolute;
 inset:-10px;
 border-radius:34px;
-border:
-2px solid rgba(0,234,255,.7);
-
-animation:
-pulseRing .22s steps(2,end) infinite
+border:2px solid rgba(0,234,255,.7);
+animation:pulseRing .22s steps(2,end) infinite
 }
 
 @keyframes corePulse{
-0%{
-transform:scale(1)
-}
-25%{
-transform:scale(1.045)
-}
-48%{
-transform:scale(.94)
-}
-68%{
-transform:scale(1.065)
-}
-100%{
-transform:scale(1)
-}
+0%{transform:scale(1)}
+25%{transform:scale(1.045)}
+48%{transform:scale(.94)}
+68%{transform:scale(1.065)}
+100%{transform:scale(1)}
 }
 
 @keyframes pulseRing{
-0%{
-opacity:.2;
-transform:scale(.9)
-}
-40%{
-opacity:1;
-transform:scale(1.08)
-}
-100%{
-opacity:.15;
-transform:scale(.94)
-}
+0%{opacity:.2;transform:scale(.9)}
+40%{opacity:1;transform:scale(1.08)}
+100%{opacity:.15;transform:scale(.94)}
 }
 
 @keyframes haloPulse{
-0%,100%{
-transform:scale(.95);
-opacity:.32
-}
-50%{
-transform:scale(1.09);
-opacity:.7
-}
+0%,100%{transform:scale(.95);opacity:.32}
+50%{transform:scale(1.09);opacity:.7}
 }
 
 @keyframes ringSnap{
-0%{
-transform:
-rotate(0deg)
-scale(.97)
-}
-45%{
-transform:
-rotate(90deg)
-scale(1.03)
-}
-100%{
-transform:
-rotate(180deg)
-scale(.98)
-}
+0%{transform:rotate(0deg) scale(.97)}
+45%{transform:rotate(90deg) scale(1.03)}
+100%{transform:rotate(180deg) scale(.98)}
 }
 
 .title{
 margin:9px auto 0;
 max-width:94%;
-font-size:
-clamp(21px,4.2vw,34px);
-
+font-size:clamp(21px,4.2vw,34px);
 font-weight:900;
 white-space:nowrap;
 overflow:hidden;
 text-overflow:ellipsis;
-
 background:
 linear-gradient(
 90deg,
@@ -703,21 +403,14 @@ linear-gradient(
 #ffe66b,
 #fff
 );
-
 background-size:350% auto;
-
 -webkit-background-clip:text;
 color:transparent;
-
-animation:
-shine 4s linear infinite
+animation:shine 4s linear infinite
 }
 
 @keyframes shine{
-to{
-background-position:
-350% center
-}
+to{background-position:350% center}
 }
 
 .artist{
@@ -730,26 +423,20 @@ color:#77798c
 .waveWrap{
 position:relative;
 width:100%;
-height:138px;
+height:128px;
 margin:10px auto 0;
-
 display:flex;
 align-items:center;
 justify-content:center;
-
 overflow:hidden;
-
 border-radius:18px;
-
 background:
 linear-gradient(
 180deg,
 rgba(0,0,0,.08),
 rgba(0,0,0,.2)
 );
-
-border:
-1px solid rgba(255,255,255,.04)
+border:1px solid rgba(255,255,255,.04)
 }
 
 .centerLine{
@@ -757,8 +444,7 @@ position:absolute;
 left:0;
 right:0;
 top:50%;
-height:3px;
-
+height:2px;
 background:
 linear-gradient(
 90deg,
@@ -770,13 +456,10 @@ transparent,
 #00eaff,
 transparent
 );
-
 opacity:.8;
-
 box-shadow:
 0 0 14px #00eaff,
 0 0 28px #ff00c8;
-
 z-index:2
 }
 
@@ -784,11 +467,9 @@ z-index:2
 position:relative;
 width:100%;
 height:100%;
-
 display:flex;
 align-items:center;
 justify-content:center;
-
 gap:3px;
 overflow:hidden;
 padding:0 8px
@@ -797,15 +478,11 @@ padding:0 8px
 .bar{
 width:4px;
 height:8px;
-
 border-radius:8px;
-
 flex:1 1 0;
 max-width:7px;
 min-width:2px;
-
 transform-origin:center;
-
 background:
 linear-gradient(
 to top,
@@ -814,11 +491,9 @@ to top,
 #ff00c8,
 #ffe66b
 );
-
 box-shadow:
 0 0 9px #00eaff,
 0 0 14px #ff00c8;
-
 transition:
 height .012s steps(2,end),
 transform .012s steps(2,end),
@@ -838,10 +513,7 @@ margin-top:0
 width:100%;
 height:5px;
 border-radius:20px;
-
-background:
-rgba(255,255,255,.08);
-
+background:rgba(255,255,255,.08);
 overflow:hidden;
 cursor:pointer;
 margin-top:6px
@@ -851,7 +523,6 @@ margin-top:6px
 height:100%;
 width:0;
 border-radius:20px;
-
 background:
 linear-gradient(
 90deg,
@@ -860,9 +531,7 @@ linear-gradient(
 #ff00c8,
 #ffe66b
 );
-
-box-shadow:
-0 0 14px #00eaff
+box-shadow:0 0 14px #00eaff
 }
 
 .controls{
@@ -877,13 +546,8 @@ margin-top:14px
 width:46px;
 height:46px;
 border-radius:50%;
-
-border:
-1px solid rgba(255,255,255,.13);
-
-background:
-rgba(255,255,255,.045);
-
+border:1px solid rgba(255,255,255,.13);
+background:rgba(255,255,255,.045);
 color:#fff;
 font-size:17px;
 cursor:pointer;
@@ -892,16 +556,13 @@ transition:.16s
 
 .btn:hover{
 transform:scale(1.08);
-
-box-shadow:
-0 0 22px rgba(0,234,255,.3)
+box-shadow:0 0 22px rgba(0,234,255,.3)
 }
 
 .play{
 width:65px;
 height:65px;
 border:0;
-
 background:
 linear-gradient(
 135deg,
@@ -909,76 +570,22 @@ linear-gradient(
 #7041ff,
 #ff00c8
 );
-
 box-shadow:
 0 0 25px rgba(0,234,255,.42),
 0 0 50px rgba(255,0,200,.18);
-
 font-size:22px
-}
-
-.play:hover{
-transform:scale(1.09)
-}
-
-.effects{
-width:100%;
-display:flex;
-justify-content:center;
-gap:7px;
-flex-wrap:wrap;
-margin-top:10px
-}
-
-.fx{
-border:
-1px solid rgba(255,255,255,.1);
-
-background:
-rgba(255,255,255,.035);
-
-color:#858797;
-border-radius:999px;
-
-padding:7px 12px;
-
-font-size:8px;
-letter-spacing:1.8px;
-cursor:pointer
-}
-
-.fx.active{
-color:#fff;
-border-color:#00eaff;
-
-background:
-linear-gradient(
-90deg,
-rgba(0,234,255,.12),
-rgba(255,0,200,.11)
-);
-
-box-shadow:
-0 0 15px rgba(0,234,255,.14)
 }
 
 .fxpanel{
 width:min(520px,100%);
 display:grid;
-grid-template-columns:
-repeat(3,1fr);
-
+grid-template-columns:repeat(3,1fr);
 gap:9px;
 margin-top:8px;
 padding:8px 10px;
-
-border:
-1px solid rgba(255,255,255,.06);
-
+border:1px solid rgba(255,255,255,.06);
 border-radius:14px;
-
-background:
-rgba(0,0,0,.18)
+background:rgba(0,0,0,.18)
 }
 
 .sliderBox{
@@ -988,12 +595,9 @@ text-align:left
 .sliderBox label{
 display:flex;
 justify-content:space-between;
-
 color:#77798c;
-
 font-size:7px;
 letter-spacing:1.5px;
-
 margin-bottom:3px
 }
 
@@ -1010,82 +614,116 @@ height:14px
 
 .playlist{
 width:100%;
-margin:9px auto 0;
-padding:8px;
-
-border:
-1px solid rgba(255,255,255,.07);
-
-border-radius:14px;
-
-background:
-rgba(255,255,255,.035);
-
-backdrop-filter:blur(18px);
-
-flex:1;
-min-height:60px;
-max-height:135px;
-
+margin-top:10px;
+padding:10px 14px;
+border-radius:18px;
+background:rgba(8,7,20,.58);
+border:1px solid rgba(255,255,255,.07);
+text-align:left;
 overflow:auto;
-text-align:left
+max-height:120px
 }
 
 .pltitle{
 font-size:8px;
-letter-spacing:4px;
-color:#686a7b;
-padding:2px 8px 5px
+letter-spacing:5px;
+color:#77798c;
+margin-bottom:7px
 }
 
 .track{
 display:flex;
 align-items:center;
 gap:10px;
-
-padding:7px 9px;
-
-border-radius:9px;
-
-color:#9294a5;
-
-font-size:10px;
-cursor:pointer
+padding:8px 8px;
+border-radius:10px;
+cursor:pointer;
+font-size:12px
 }
 
-.track:hover{
-background:
-rgba(255,255,255,.06);
-color:#fff
-}
-
+.track:hover,
 .track.active{
 background:
 linear-gradient(
 90deg,
 rgba(0,234,255,.12),
-rgba(255,0,200,.06)
-);
-
-color:#fff;
-
-box-shadow:
-inset 2px 0 #00eaff
+rgba(255,0,200,.08)
+)
 }
 
 .num{
-width:22px;
-color:#555768
-}
-
-.track.active .num{
-color:#00eaff
+color:#00eaff;
+font-size:9px;
+width:25px
 }
 
 .name{
 overflow:hidden;
 text-overflow:ellipsis;
 white-space:nowrap
+}
+
+.effects{
+display:flex;
+justify-content:center;
+flex-wrap:wrap;
+gap:6px;
+margin-top:8px
+}
+
+.fx{
+padding:7px 11px;
+border-radius:20px;
+border:1px solid rgba(255,255,255,.1);
+background:rgba(255,255,255,.035);
+color:#77798c;
+font-size:8px;
+letter-spacing:1.5px;
+cursor:pointer
+}
+
+.fx.active{
+color:#fff;
+border-color:#00eaff;
+box-shadow:
+0 0 14px rgba(0,234,255,.3),
+inset 0 0 12px rgba(0,234,255,.08)
+}
+
+.fx-rainbow .bar{
+background:
+linear-gradient(
+to top,
+#00eaff,
+#00ff9d,
+#ffe600,
+#ff5a00,
+#ff00c8
+)
+}
+
+.fx-laser .bar{
+background:
+linear-gradient(
+to top,
+#fff,
+#00eaff,
+#008cff
+)
+}
+
+.fx-gold .bar{
+background:
+linear-gradient(
+to top,
+#fff,
+#ffe66b,
+#ff9f1c
+)
+}
+
+.fx-calm .bar{
+filter:saturate(.65)
 }
 
 .fxCanvas{
@@ -1100,7 +738,6 @@ z-index:3
 .beatFlash{
 position:absolute;
 inset:0;
-
 background:
 radial-gradient(
 circle at 50% 48%,
@@ -1108,58 +745,224 @@ rgba(255,255,255,.3),
 rgba(0,234,255,.12),
 transparent 55%
 );
-
 opacity:0;
 pointer-events:none;
 z-index:4;
-
 mix-blend-mode:screen
 }
 
 .visualText{
 position:absolute;
-bottom:7px;
+bottom:8px;
 left:0;
 right:0;
-
 text-align:center;
-
-color:#4e5061;
 font-size:7px;
-letter-spacing:4px
+letter-spacing:4px;
+color:rgba(255,255,255,.18)
 }
 
-.fs{
-position:absolute;
-right:18px;
-top:72px;
-z-index:50;
-
-width:48px;
-height:48px;
-
-border-radius:50%;
-
-border:
-1px solid rgba(0,234,255,.32);
-
-background:
-rgba(3,4,12,.72);
-
-backdrop-filter:blur(10px);
-
-color:#fff;
-cursor:pointer;
-font-size:22px;
-
-box-shadow:
-0 0 18px rgba(0,234,255,.22),
-inset 0 0 14px rgba(255,0,200,.08)
+@media (display-mode:fullscreen){
+#stage{
+height:100vh;
+width:100vw
 }
 
-.fs:active{
-transform:scale(.94)
+.content{
+width:min(760px,94vw);
+height:calc(100% - 70px)
 }
+
+.discbox{
+width:min(360px,38vh,72vw)
+}
+
+.waveWrap{
+height:140px
+}
+
+.playlist{
+max-height:150px
+}
+}
+
+@media(max-width:600px){
+.content{
+width:94vw
+}
+
+.discbox{
+width:min(300px,40vh,78vw)
+}
+
+.fxpanel{
+grid-template-columns:1fr
+}
+
+.waveWrap{
+height:104px
+}
+
+.playlist{
+max-height:105px
+}
+}
+
+@media(prefers-reduced-motion:reduce){
+*{
+animation-duration:.01ms!important;
+animation-iteration-count:1!important
+}
+}
+</style>
+</head>
+
+<body>
+
+<div id="stage" class="stage">
+
+<div class="noise"></div>
+
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
+
+<div class="top">
+
+<div class="brand">
+<img id="logo" class="logo" alt="logo">
+<div class="brandtxt">NEON VISION</div>
+</div>
+
+<div class="status">
+<span class="dot"></span>
+LIVE MUSIC
+</div>
+
+</div>
+
+<div class="content">
+
+<div class="kicker">
+♫ MUSIC • LIGHT • MOTION ♫
+</div>
+
+<div class="discbox">
+
+<div class="halo"></div>
+<div class="halo2"></div>
+
+<div id="disc" class="core"></div>
+
+<canvas id="fxCanvas" class="fxCanvas"></canvas>
+
+<div id="beatFlash" class="beatFlash"></div>
+
+<img id="cover" class="cover" alt="cover">
+
+<div class="center">
+<span class="musicMark">♫</span>
+<span class="musicPulse"></span>
+</div>
+
+<div class="headphone">◖🎧◗</div>
+
+</div>
+
+<div id="title" class="title">
+NEON MUSIC
+</div>
+
+<div class="artist">
+♫ MUSIC EXPERIENCE ♫
+</div>
+
+<div class="waveWrap">
+<div class="centerLine"></div>
+<div id="wave" class="wave"></div>
+</div>
+
+<div class="times">
+<span id="now">0:00</span>
+<span id="total">0:00</span>
+</div>
+
+<div id="progress" class="progress">
+<div id="fill" class="fill"></div>
+</div>
+
+<div class="controls">
+<button id="prev" class="btn" type="button">⏮</button>
+<button id="play" class="btn play" type="button">▶</button>
+<button id="next" class="btn" type="button">⏭</button>
+</div>
+
+<div class="effects">
+
+<button class="fx active" data-fx="cyber" type="button">
+CYBER
+</button>
+
+<button class="fx" data-fx="rainbow" type="button">
+RAINBOW
+</button>
+
+<button class="fx" data-fx="laser" type="button">
+LASER
+</button>
+
+<button class="fx" data-fx="gold" type="button">
+GOLD
+</button>
+
+<button class="fx" data-fx="calm" type="button">
+CALM
+</button>
+
+</div>
+
+<div class="fxpanel">
+
+<div class="sliderBox">
+<label>
+PUNCH
+<b id="punchVal">85</b>
+</label>
+<input id="punch" type="range" min="20" max="160" value="85">
+</div>
+
+<div class="sliderBox">
+<label>
+GLOW
+<b id="glowVal">70</b>
+</label>
+<input id="glow" type="range" min="0" max="120" value="70">
+</div>
+
+<div class="sliderBox">
+<label>
+SHAKE
+<b id="shakeVal">75</b>
+</label>
+<input id="shake" type="range" min="0" max="130" value="75">
+</div>
+
+</div>
+
+<div class="playlist">
+<div class="pltitle">YOUR MUSIC</div>
+<div id="tracks"></div>
+</div>
+
+</div>
+
+<div class="visualText">
+NEON VISION MUSIC EXPERIENCE
+</div>
+
+</div>
+
+<script>
 const songs=__SONGS__;
 const logoSrc=__LOGO__;
 let index=0;
