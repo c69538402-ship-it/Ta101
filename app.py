@@ -1,1340 +1,426 @@
-```python
 import streamlit as st
 import streamlit.components.v1 as components
 from pathlib import Path
 import base64
 import json
 import html
-import mimetypes
-
-# ============================================================
-# NEON MUSIC PLAYER
-# วางไฟล์ .mp3 ไว้โฟลเดอร์เดียวกับ app.py
-# ============================================================
 
 st.set_page_config(
-    page_title="NEON MUSIC",
+    page_title="NEON VISION MUSIC",
     page_icon="🎧",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# ------------------------------------------------------------
-# ค้นหาเพลง MP3 อัตโนมัติ
-# ------------------------------------------------------------
+BASE = Path(__file__).resolve().parent
 
-BASE_DIR = Path(__file__).resolve().parent
-
-mp3_files = sorted(
-    [
-        p for p in BASE_DIR.iterdir()
-        if p.is_file() and p.suffix.lower() == ".mp3"
-    ],
-    key=lambda x: x.name.lower()
-)
-
+# ---------------------------------------------------------
+# หาเพลง MP3 และ logo.jpg อัตโนมัติจากโฟลเดอร์เดียวกับ app.py
+# ---------------------------------------------------------
 songs = []
-
-for file in mp3_files:
+for p in sorted(BASE.glob("*.mp3"), key=lambda x: x.name.lower()):
     try:
-        raw = file.read_bytes()
-        encoded = base64.b64encode(raw).decode("utf-8")
-
+        data = base64.b64encode(p.read_bytes()).decode("ascii")
         songs.append({
-            "name": file.stem,
-            "file": file.name,
-            "src": f"data:audio/mpeg;base64,{encoded}"
+            "name": p.stem,
+            "src": "data:audio/mpeg;base64," + data
         })
     except Exception:
         pass
 
-
-# ------------------------------------------------------------
-# CSS หน้า Streamlit
-# ------------------------------------------------------------
-
-st.markdown(
-    """
-    <style>
-
-    #MainMenu {
-        visibility: hidden;
-    }
-
-    footer {
-        visibility: hidden;
-    }
-
-    header {
-        visibility: hidden;
-    }
-
-    .stApp {
-        background:
-            radial-gradient(
-                circle at 50% 30%,
-                rgba(94, 0, 255, 0.16),
-                transparent 35%
-            ),
-            radial-gradient(
-                circle at 20% 80%,
-                rgba(0, 220, 255, 0.12),
-                transparent 30%
-            ),
-            #03030a;
-    }
-
-    .block-container {
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-        max-width: 1400px;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-
-# ------------------------------------------------------------
-# ถ้าไม่มีเพลง
-# ------------------------------------------------------------
+logo_src = ""
+logo_path = BASE / "logo.jpg"
+if logo_path.exists():
+    try:
+        logo_src = "data:image/jpeg;base64," + base64.b64encode(
+            logo_path.read_bytes()
+        ).decode("ascii")
+    except Exception:
+        logo_src = ""
 
 if not songs:
     st.markdown(
-        """
-        <div style="
-            min-height:80vh;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            text-align:center;
-            color:white;
-            font-family:Arial,sans-serif;
-        ">
-            <div>
-                <div style="font-size:80px;">🎧</div>
-
-                <div style="
-                    font-size:32px;
-                    font-weight:900;
-                    letter-spacing:5px;
-                    margin:20px 0;
-                    background:linear-gradient(
-                        90deg,
-                        #00eaff,
-                        #8b5cff,
-                        #ff2bd6
-                    );
-                    -webkit-background-clip:text;
-                    color:transparent;
-                ">
-                    NEON MUSIC
-                </div>
-
-                <div style="
-                    color:#9b9bad;
-                    font-size:16px;
-                    line-height:1.8;
-                ">
-                    ยังไม่พบไฟล์ MP3<br>
-                    ให้วางไฟล์ <b style="color:#00eaff;">.mp3</b>
-                    ไว้ในโฟลเดอร์เดียวกับ
-                    <b style="color:white;">app.py</b>
-                </div>
-            </div>
-        </div>
-        """,
+        "<div style='height:80vh;display:grid;place-items:center;"
+        "background:#03030a;color:white;text-align:center;font-family:Arial'>"
+        "<div><div style='font-size:72px'>🎧</div>"
+        "<h1 style='letter-spacing:5px'>NEON VISION MUSIC</h1>"
+        "<p style='color:#888'>นำไฟล์ .mp3 และ logo.jpg มาวางไว้ข้าง app.py</p>"
+        "</div></div>",
         unsafe_allow_html=True,
     )
     st.stop()
 
-
-# ------------------------------------------------------------
-# เตรียมข้อมูลเพลง
-# ------------------------------------------------------------
-
 songs_json = json.dumps(songs, ensure_ascii=False)
+logo_json = json.dumps(logo_src)
 
-
-# ------------------------------------------------------------
-# HTML + CSS + JavaScript
-# ------------------------------------------------------------
-
-player_html = r"""
-<!DOCTYPE html>
-
+# ---------------------------------------------------------
+# ใช้ triple single quote ภายใน page เพื่อเลี่ยงปัญหา quote ซ้อน
+# ---------------------------------------------------------
+page = r'''
+<!doctype html>
 <html lang="th">
-
 <head>
-
-<meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width,
-             initial-scale=1.0,
-             maximum-scale=1.0,
-             user-scalable=no"
->
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <style>
-
-* {
-    box-sizing: border-box;
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#020208;color:#fff;font-family:Arial,sans-serif}
+body{overflow:hidden}
+.stage{
+ position:relative;width:100%;min-height:980px;overflow:hidden;
+ background:
+ radial-gradient(circle at 50% 42%,rgba(90,0,255,.22),transparent 28%),
+ radial-gradient(circle at 10% 80%,rgba(0,234,255,.15),transparent 25%),
+ radial-gradient(circle at 90% 70%,rgba(255,0,160,.15),transparent 25%),
+ #020208;
 }
+.noise{position:absolute;inset:0;opacity:.045;pointer-events:none;
+ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E")}
+.blob{position:absolute;border-radius:50%;filter:blur(75px);opacity:.32;pointer-events:none}
+.b1{width:430px;height:430px;background:#00eaff;left:-220px;top:180px;animation:float1 8s ease-in-out infinite alternate}
+.b2{width:450px;height:450px;background:#ff009d;right:-240px;top:300px;animation:float2 10s ease-in-out infinite alternate}
+.b3{width:380px;height:380px;background:#693cff;left:35%;bottom:-270px;animation:float3 9s ease-in-out infinite alternate}
+@keyframes float1{to{transform:translate(120px,70px) scale(1.15)}}
+@keyframes float2{to{transform:translate(-100px,-80px) scale(1.18)}}
+@keyframes float3{to{transform:translate(30px,-100px) scale(1.1)}}
 
-html,
-body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    min-height: 100%;
-    overflow: hidden;
-    background: #03030a;
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
+.top{
+ position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;
+ padding:20px 24px 0;
 }
-
-body {
-    color: white;
+.brand{display:flex;align-items:center;gap:11px}
+.logo{
+ width:48px;height:48px;border-radius:14px;object-fit:cover;
+ border:1px solid rgba(255,255,255,.3);
+ box-shadow:0 0 22px rgba(0,234,255,.35);
 }
+.brandtxt{font-weight:900;letter-spacing:3px;font-size:13px}
+.status{font-size:9px;letter-spacing:3px;color:#8b8c9c}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#00ffb7;
+ box-shadow:0 0 12px #00ffb7;margin-right:7px;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
 
-/* =========================================================
-   BACKGROUND
-   ========================================================= */
-
-.scene {
-
-    position: relative;
-
-    width: 100%;
-
-    min-height: 900px;
-
-    overflow: hidden;
-
-    background:
-        radial-gradient(
-            circle at 50% 30%,
-            rgba(97, 0, 255, 0.20),
-            transparent 30%
-        ),
-        radial-gradient(
-            circle at 15% 80%,
-            rgba(0, 229, 255, 0.13),
-            transparent 28%
-        ),
-        radial-gradient(
-            circle at 90% 70%,
-            rgba(255, 0, 179, 0.12),
-            transparent 25%
-        ),
-        #03030a;
+.content{position:relative;z-index:5;width:min(620px,94vw);margin:25px auto 0;text-align:center}
+.kicker{font-size:9px;letter-spacing:6px;color:#666879;margin-bottom:15px}
+.discbox{position:relative;width:min(370px,76vw);aspect-ratio:1;margin:auto;display:grid;place-items:center}
+.halo{
+ position:absolute;inset:-8%;border-radius:50%;
+ background:conic-gradient(#00eaff,#713cff,#ff009d,#ffdf4a,#00eaff);
+ filter:blur(20px);opacity:.5;animation:spin 7s linear infinite;
 }
-
-/* moving neon lights */
-
-.glow {
-
-    position: absolute;
-
-    width: 500px;
-    height: 500px;
-
-    border-radius: 50%;
-
-    filter: blur(90px);
-
-    opacity: .30;
-
-    animation:
-        floatingGlow 9s
-        ease-in-out
-        infinite alternate;
+.halo2{
+ position:absolute;inset:-2%;border-radius:50%;
+ background:conic-gradient(transparent,#00eaff,transparent,#ff00c8,transparent);
+ animation:spinrev 4s linear infinite;
 }
-
-.glow.one {
-
-    left: -180px;
-    top: 100px;
-
-    background: #00eaff;
+.disc{
+ position:absolute;inset:4%;border-radius:50%;
+ background:repeating-radial-gradient(circle,#07070c 0,#07070c 3px,#171722 4px,#06060a 7px);
+ border:1px solid rgba(255,255,255,.16);
+ box-shadow:inset 0 0 70px #000,0 0 55px rgba(0,234,255,.2);
+ animation:spin 7s linear infinite paused;
 }
-
-.glow.two {
-
-    right: -180px;
-    top: 250px;
-
-    background: #ff00cc;
-
-    animation-delay: -3s;
+.disc.playing{animation-play-state:running}
+.disc:after{
+ content:"";position:absolute;inset:15%;border-radius:50%;
+ border:1px solid rgba(255,255,255,.05);
 }
-
-.glow.three {
-
-    left: 35%;
-    bottom: -300px;
-
-    background: #702cff;
-
-    animation-delay: -6s;
+.cover{
+ position:absolute;width:38%;aspect-ratio:1;border-radius:50%;object-fit:cover;
+ border:3px solid rgba(255,255,255,.5);z-index:4;
+ box-shadow:0 0 25px rgba(0,234,255,.6),0 0 55px rgba(255,0,180,.25);
 }
-
-@keyframes floatingGlow {
-
-    0% {
-        transform: translate3d(
-            -30px,
-            -20px,
-            0
-        ) scale(0.9);
-    }
-
-    100% {
-        transform: translate3d(
-            40px,
-            30px,
-            0
-        ) scale(1.15);
-    }
+.center{
+ position:absolute;width:18px;height:18px;border-radius:50%;z-index:6;
+ background:#fff;box-shadow:0 0 14px #fff,0 0 30px #00eaff;
 }
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinrev{to{transform:rotate(-360deg)}}
 
-
-/* =========================================================
-   TOP
-   ========================================================= */
-
-.topbar {
-
-    position: relative;
-
-    z-index: 5;
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    padding: 25px 30px 0;
+.title{
+ margin:23px auto 0;max-width:94%;
+ font-size:clamp(24px,5vw,40px);font-weight:900;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ background:linear-gradient(90deg,#fff,#66edff,#b478ff,#ff62ca,#fff);
+ background-size:300% auto;-webkit-background-clip:text;color:transparent;
+ animation:shine 5s linear infinite;
 }
+@keyframes shine{to{background-position:300% center}}
+.artist{margin-top:7px;font-size:9px;letter-spacing:5px;color:#77798c}
 
-.logo {
-
-    font-size: 15px;
-
-    font-weight: 900;
-
-    letter-spacing: 5px;
-
-    color: white;
-
-    text-shadow:
-        0 0 8px #00eaff,
-        0 0 20px rgba(0,234,255,.6);
+.wave{
+ height:78px;margin:17px auto 0;display:flex;align-items:center;justify-content:center;
+ gap:3px;overflow:hidden;
 }
+.bar{width:4px;height:5px;border-radius:20px;
+ background:linear-gradient(to top,#00eaff,#7650ff,#ff00c8);
+ box-shadow:0 0 9px rgba(0,234,255,.45);transition:height .07s linear}
 
-.live {
+.times{display:flex;justify-content:space-between;color:#707184;font-size:10px;margin-top:3px}
+.progress{height:5px;border-radius:20px;background:rgba(255,255,255,.08);overflow:hidden;cursor:pointer;margin-top:7px}
+.fill{height:100%;width:0;border-radius:20px;background:linear-gradient(90deg,#00eaff,#7a4cff,#ff00c8);
+ box-shadow:0 0 14px #00eaff}
 
-    display: flex;
-
-    align-items: center;
-
-    gap: 8px;
-
-    color: #a7a7b7;
-
-    font-size: 11px;
-
-    letter-spacing: 2px;
+.controls{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:20px}
+.btn{
+ width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.11);
+ background:rgba(255,255,255,.045);color:#fff;font-size:17px;cursor:pointer;
+ transition:.18s
 }
-
-.liveDot {
-
-    width: 7px;
-    height: 7px;
-
-    border-radius: 50%;
-
-    background: #00ffbf;
-
-    box-shadow:
-        0 0 8px #00ffbf,
-        0 0 18px #00ffbf;
-
-    animation: blink 1s infinite;
+.btn:hover{transform:scale(1.08);box-shadow:0 0 22px rgba(0,234,255,.3)}
+.play{
+ width:67px;height:67px;border:0;
+ background:linear-gradient(135deg,#00eaff,#7041ff,#ff00c8);
+ box-shadow:0 0 25px rgba(0,234,255,.42),0 0 50px rgba(255,0,200,.18);
+ font-size:23px
 }
+.play:hover{transform:scale(1.1)}
 
-@keyframes blink {
-
-    50% {
-        opacity: .3;
-    }
+.playlist{
+ width:min(720px,94vw);margin:22px auto 0;padding:10px;
+ border:1px solid rgba(255,255,255,.07);border-radius:16px;
+ background:rgba(255,255,255,.035);backdrop-filter:blur(18px);
+ max-height:155px;overflow:auto;text-align:left;
 }
+.pltitle{font-size:8px;letter-spacing:4px;color:#686a7b;padding:4px 8px 8px}
+.track{display:flex;align-items:center;gap:10px;padding:9px;border-radius:10px;
+ color:#9294a5;font-size:11px;cursor:pointer}
+.track:hover{background:rgba(255,255,255,.06);color:#fff}
+.track.active{background:linear-gradient(90deg,rgba(0,234,255,.12),rgba(255,0,200,.06));
+ color:#fff;box-shadow:inset 2px 0 #00eaff}
+.num{width:22px;color:#555768}
+.track.active .num{color:#00eaff}
+.name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-
-/* =========================================================
-   MAIN PLAYER
-   ========================================================= */
-
-.player {
-
-    position: relative;
-
-    z-index: 3;
-
-    width: min(560px, 94vw);
-
-    margin: 35px auto 0;
-
-    text-align: center;
+.visualText{
+ position:absolute;bottom:12px;left:0;right:0;text-align:center;
+ color:#555768;font-size:7px;letter-spacing:4px
 }
-
-
-/* =========================================================
-   RECORD
-   ========================================================= */
-
-.recordWrap {
-
-    position: relative;
-
-    width: min(390px, 78vw);
-
-    aspect-ratio: 1 / 1;
-
-    margin: auto;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
+.fs{
+ position:absolute;right:20px;top:75px;z-index:20;width:38px;height:38px;border-radius:50%;
+ border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);
+ color:#77798a;cursor:pointer
 }
-
-.recordGlow {
-
-    position: absolute;
-
-    width: 96%;
-
-    height: 96%;
-
-    border-radius: 50%;
-
-    background:
-        conic-gradient(
-            from 0deg,
-            #00eaff,
-            #753cff,
-            #ff00c8,
-            #00eaff
-        );
-
-    filter: blur(28px);
-
-    opacity: .55;
-
-    animation: pulseGlow 3s ease-in-out infinite;
+@media(max-width:600px){
+ .stage{min-height:900px}
+ .top{padding:16px}
+ .content{margin-top:15px}
+ .discbox{width:76vw}
+ .playlist{max-height:125px}
+ .fs{top:68px;right:13px}
+ .status{display:none}
 }
-
-@keyframes pulseGlow {
-
-    50% {
-        transform: scale(1.08);
-        opacity: .75;
-    }
-}
-
-.record {
-
-    position: relative;
-
-    width: 92%;
-
-    height: 92%;
-
-    border-radius: 50%;
-
-    background:
-        repeating-radial-gradient(
-            circle,
-            #08080e 0px,
-            #08080e 3px,
-            #171722 4px,
-            #07070d 7px
-        );
-
-    border: 2px solid rgba(
-        255,
-        255,
-        255,
-        .10
-    );
-
-    box-shadow:
-        0 0 0 8px rgba(
-            255,
-            255,
-            255,
-            .02
-        ),
-        0 0 50px rgba(
-            0,
-            220,
-            255,
-            .28
-        ),
-        inset 0 0 80px rgba(
-            0,
-            0,
-            0,
-            .9
-        );
-
-    animation:
-        recordSpin 7s
-        linear
-        infinite;
-
-    animation-play-state: paused;
-}
-
-.record.playing {
-    animation-play-state: running;
-}
-
-@keyframes recordSpin {
-
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-
-/* record rainbow ring */
-
-.ring {
-
-    position: absolute;
-
-    width: 94%;
-    height: 94%;
-
-    border-radius: 50%;
-
-    border: 2px solid transparent;
-
-    background:
-        linear-gradient(#050509,#050509)
-        padding-box,
-        conic-gradient(
-            #00eaff,
-            #7b3cff,
-            #ff00c8,
-            #00eaff
-        ) border-box;
-
-    opacity: .85;
-
-    animation:
-        ringSpin 5s
-        linear
-        infinite;
-}
-
-@keyframes ringSpin {
-
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(-360deg);
-    }
-}
-
-
-/* center */
-
-.center {
-
-    position: absolute;
-
-    width: 105px;
-    height: 105px;
-
-    border-radius: 50%;
-
-    background:
-        radial-gradient(
-            circle,
-            #181827,
-            #05050a 65%
-        );
-
-    border: 3px solid rgba(
-        255,
-        255,
-        255,
-        .12
-    );
-
-    box-shadow:
-        0 0 30px
-        rgba(0,234,255,.45),
-        inset 0 0 25px
-        rgba(255,0,200,.25);
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    z-index: 5;
-}
-
-.centerIcon {
-
-    font-size: 32px;
-
-    filter:
-        drop-shadow(
-            0 0 8px
-            rgba(0,234,255,.9)
-        );
-}
-
-
-/* =========================================================
-   SONG INFO
-   ========================================================= */
-
-.songInfo {
-
-    margin-top: 30px;
-}
-
-.songTitle {
-
-    font-size: clamp(
-        25px,
-        5vw,
-        38px
-    );
-
-    font-weight: 900;
-
-    line-height: 1.15;
-
-    white-space: nowrap;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-    padding: 0 10px;
-
-    background:
-        linear-gradient(
-            90deg,
-            #ffffff,
-            #6defff,
-            #c77dff,
-            #ffffff
-        );
-
-    -webkit-background-clip: text;
-
-    color: transparent;
-
-    background-size: 250% auto;
-
-    animation:
-        titleMove 4s
-        linear
-        infinite;
-
-    text-shadow:
-        0 0 25px
-        rgba(0,234,255,.15);
-}
-
-@keyframes titleMove {
-
-    to {
-        background-position:
-            250% center;
-    }
-}
-
-.subtitle {
-
-    margin-top: 8px;
-
-    color: #6f7081;
-
-    font-size: 11px;
-
-    letter-spacing: 4px;
-
-    text-transform: uppercase;
-}
-
-
-/* =========================================================
-   VISUALIZER
-   ========================================================= */
-
-.visualizer {
-
-    height: 85px;
-
-    margin-top: 18px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    gap: 4px;
-
-    overflow: hidden;
-}
-
-.bar {
-
-    width: 4px;
-
-    min-height: 5px;
-
-    height: 8px;
-
-    border-radius: 20px;
-
-    background:
-        linear-gradient(
-            to top,
-            #00eaff,
-            #7c3cff,
-            #ff00c8
-        );
-
-    box-shadow:
-        0 0 8px
-        rgba(0,234,255,.5);
-
-    transition:
-        height .08s
-        linear;
-}
-
-
-/* =========================================================
-   PROGRESS
-   ========================================================= */
-
-.progressArea {
-
-    margin-top: 10px;
-}
-
-.timeRow {
-
-    display: flex;
-
-    justify-content: space-between;
-
-    color: #77788b;
-
-    font-size: 10px;
-
-    margin-bottom: 7px;
-}
-
-.progress {
-
-    width: 100%;
-
-    height: 5px;
-
-    border-radius: 20px;
-
-    background: rgba(
-        255,
-        255,
-        255,
-        .08
-    );
-
-    cursor: pointer;
-
-    overflow: hidden;
-}
-
-.progressFill {
-
-    width: 0%;
-
-    height: 100%;
-
-    border-radius: 20px;
-
-    background:
-        linear-gradient(
-            90deg,
-            #00eaff,
-            #7a4cff,
-            #ff00c8
-        );
-
-    box-shadow:
-        0 0 15px
-        rgba(0,234,255,.8);
-}
-
-
-/* =========================================================
-   CONTROLS
-   ========================================================= */
-
-.controls {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    gap: 22px;
-
-    margin-top: 24px;
-}
-
-.control {
-
-    width: 48px;
-    height: 48px;
-
-    border-radius: 50%;
-
-    border: 1px solid rgba(
-        255,
-        255,
-        255,
-        .10
-    );
-
-    background: rgba(
-        255,
-        255,
-        255,
-        .04
-    );
-
-    color: white;
-
-    font-size: 18px;
-
-    cursor: pointer;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    transition: .2s;
-}
-
-.control:hover {
-
-    transform: scale(1.08);
-
-    border-color:
-        rgba(0,234,255,.6);
-
-    box-shadow:
-        0 0 20px
-        rgba(0,234,255,.3);
-}
-
-.play {
-
-    width: 68px;
-    height: 68px;
-
-    border: none;
-
-    background:
-        linear-gradient(
-            135deg,
-            #00eaff,
-            #713cff,
-            #ff00c8
-        );
-
-    box-shadow:
-        0 0 25px
-        rgba(0,234,255,.45),
-        0 0 50px
-        rgba(255,0,200,.2);
-
-    font-size: 25px;
-}
-
-.play:hover {
-
-    transform: scale(1.10);
-
-    box-shadow:
-        0 0 35px
-        rgba(0,234,255,.65),
-        0 0 70px
-        rgba(255,0,200,.35);
-}
-
-
-/* =========================================================
-   PLAYLIST
-   ========================================================= */
-
-.playlist {
-
-    position: relative;
-
-    z-index: 5;
-
-    width: min(
-        700px,
-        94vw
-    );
-
-    margin: 28px auto 0;
-
-    padding: 12px;
-
-    border-radius: 18px;
-
-    background:
-        rgba(
-            255,
-            255,
-            255,
-            .035
-        );
-
-    border: 1px solid rgba(
-        255,
-        255,
-        255,
-        .07
-    );
-
-    backdrop-filter: blur(18px);
-
-    max-height: 190px;
-
-    overflow-y: auto;
-}
-
-.playlistTitle {
-
-    padding: 5px 8px 10px;
-
-    color: #656678;
-
-    font-size: 9px;
-
-    letter-spacing: 3px;
-
-    text-align: left;
-}
-
-.track {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 12px;
-
-    padding: 10px 12px;
-
-    margin: 3px 0;
-
-    border-radius: 11px;
-
-    cursor: pointer;
-
-    color: #a3a4b5;
-
-    font-size: 12px;
-
-    transition: .2s;
-}
-
-.track:hover {
-
-    background:
-        rgba(
-            255,
-            255,
-            255,
-            .06
-        );
-
-    color: white;
-}
-
-.track.active {
-
-    color: white;
-
-    background:
-        linear-gradient(
-            90deg,
-            rgba(0,234,255,.12),
-            rgba(122,60,255,.08),
-            rgba(255,0,200,.08)
-        );
-
-    box-shadow:
-        inset 2px 0 0
-        #00eaff;
-}
-
-.trackNumber {
-
-    width: 22px;
-
-    color: #565768;
-
-    font-size: 10px;
-}
-
-.track.active .trackNumber {
-
-    color: #00eaff;
-}
-
-.trackName {
-
-    flex: 1;
-
-    overflow: hidden;
-
-    white-space: nowrap;
-
-    text-overflow: ellipsis;
-}
-
-
-/* =========================================================
-   FULLSCREEN
-   ========================================================= */
-
-.fullscreen {
-
-    position: absolute;
-
-    right: 25px;
-
-    top: 70px;
-
-    z-index: 20;
-
-    width: 40px;
-    height: 40px;
-
-    border-radius: 50%;
-
-    border: 1px solid rgba(
-        255,
-        255,
-        255,
-        .10
-    );
-
-    background:
-        rgba(
-            255,
-            255,
-            255,
-            .04
-        );
-
-    color: #77788a;
-
-    cursor: pointer;
-}
-
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media (max-width: 600px) {
-
-    .scene {
-        min-height: 850px;
-    }
-
-    .topbar {
-        padding:
-            18px
-            18px
-            0;
-    }
-
-    .player {
-        margin-top: 18px;
-    }
-
-    .recordWrap {
-        width: 76vw;
-    }
-
-    .center {
-        width: 82px;
-        height: 82px;
-    }
-
-    .centerIcon {
-        font-size: 25px;
-    }
-
-    .controls {
-        gap: 14px;
-    }
-
-    .control {
-        width: 43px;
-        height: 43px;
-    }
-
-    .play {
-        width: 62px;
-        height: 62px;
-    }
-
-    .playlist {
-        margin-top: 20px;
-        max-height: 145px;
-    }
-
-    .fullscreen {
-        top: 65px;
-        right: 15px;
-    }
-}
-
 </style>
-
 </head>
-
-
 <body>
+<div class="stage">
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+<div class="noise"></div>
 
-<div class="scene">
-
-    <div class="glow one"></div>
-    <div class="glow two"></div>
-    <div class="glow three"></div>
-
-
-    <div class="topbar">
-
-        <div class="logo">
-            NEON MUSIC
-        </div>
-
-        <div class="live">
-            <span class="liveDot"></span>
-            AUDIO VISUALIZER
-        </div>
-
-    </div>
-
-
-    <button
-        class="fullscreen"
-        onclick="goFullscreen()"
-        title="Fullscreen"
-    >
-        ⛶
-    </button>
-
-
-    <main class="player">
-
-
-        <!-- RECORD -->
-
-        <div class="recordWrap">
-
-            <div class="recordGlow"></div>
-
-            <div
-                id="record"
-                class="record"
-            >
-
-                <div class="ring"></div>
-
-            </div>
-
-            <div class="center">
-
-                <div class="centerIcon">
-                    🎧
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- SONG -->
-
-        <div class="songInfo">
-
-            <div
-                id="songTitle"
-                class="songTitle"
-            >
-                NEON MUSIC
-            </div>
-
-            <div class="subtitle">
-                NOW PLAYING
-            </div>
-
-        </div>
-
-
-        <!-- VISUALIZER -->
-
-        <div
-            id="visualizer"
-            class="visualizer"
-        >
-        </div>
-
-
-        <!-- PROGRESS -->
-
-        <div class="progressArea">
-
-            <div class="timeRow">
-
-                <span id="currentTime">
-                    0:00
-                </span>
-
-                <span id="duration">
-                    0:00
-                </span>
-
-            </div>
-
-            <div
-                id="progress"
-                class="progress"
-            >
-
-                <div
-                    id="progressFill"
-                    class="progressFill"
-                >
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- CONTROLS -->
-
-        <div class="controls">
-
-            <button
-                id="prevBtn"
-                class="control"
-            >
-                ⏮
-            </button>
-
-            <button
-                id="playBtn"
-                class="control play"
-            >
-                ▶
-            </button>
-
-            <button
-                id="nextBtn"
-                class="control"
-            >
-                ⏭
-            </button>
-
-        </div>
-
-
-        <!-- PLAYLIST -->
-
-        <div class="playlist">
-
-            <div class="playlistTitle">
-                PLAYLIST
-            </div>
-
-            <div id="playlist"></div>
-
-        </div>
-
-
-    </main>
-
+<div class="top">
+  <div class="brand">
+    <img id="logo" class="logo" alt="logo">
+    <div class="brandtxt">NEON VISION</div>
+  </div>
+  <div class="status"><span class="dot"></span>LIVE AUDIO VISUALIZER</div>
 </div>
 
+<button class="fs" onclick="fullscreen()">⛶</button>
+
+<div class="content">
+  <div class="kicker">MUSIC • LIGHT • MOTION</div>
+
+  <div class="discbox">
+    <div class="halo"></div>
+    <div class="halo2"></div>
+    <div id="disc" class="disc"></div>
+    <img id="cover" class="cover" alt="cover">
+    <div class="center"></div>
+  </div>
+
+  <div id="title" class="title">NEON MUSIC</div>
+  <div class="artist">NOW PLAYING</div>
+
+  <div id="wave" class="wave"></div>
+
+  <div class="times">
+    <span id="now">0:00</span>
+    <span id="total">0:00</span>
+  </div>
+
+  <div id="progress" class="progress">
+    <div id="fill" class="fill"></div>
+  </div>
+
+  <div class="controls">
+    <button id="prev" class="btn">⏮</button>
+    <button id="play" class="btn play">▶</button>
+    <button id="next" class="btn">⏭</button>
+  </div>
+
+  <div class="playlist">
+    <div class="pltitle">YOUR MUSIC</div>
+    <div id="tracks"></div>
+  </div>
+</div>
+
+<div class="visualText">NEON VISION MUSIC EXPERIENCE</div>
+</div>
 
 <script>
+const songs = __SONGS__;
+const logoSrc = __LOGO__;
 
-/* =========================================================
-   SONG DATA
-   ========================================================= */
-
-const songs = __SONGS_DATA__;
-
-let currentIndex = 0;
-
-let audio = new Audio();
-
+let index = 0;
+const audio = new Audio();
 audio.preload = "auto";
 
-let audioContext = null;
+const disc = document.getElementById("disc");
+const cover = document.getElementById("cover");
+const title = document.getElementById("title");
+const play = document.getElementById("play");
+const tracks = document.getElementById("tracks");
+const now = document.getElementById("now");
+const total = document.getElementById("total");
+const fill = document.getElementById("fill");
+const progress = document.getElementById("progress");
+const wave = document.getElementById("wave");
 
-let analyser = null;
+if (logoSrc) {
+  document.getElementById("logo").src = logoSrc;
+  cover.src = logoSrc;
+}
 
-let sourceNode = null;
+const bars = [];
+for(let i=0;i<56;i++){
+  const b=document.createElement("div");
+  b.className="bar";
+  wave.appendChild(b);
+  bars.push(b);
+}
 
-let connected = false;
+let ctx=null, analyser=null, source=null, connected=false;
 
+function safe(t){
+  return String(t).replace(/[&<>"']/g,m=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
 
-/* =========================================================
-   ELEMENTS
-   ========================================================= */
+function fmt(v){
+  if(!v || isNaN(v)) return "0:00";
+  let m=Math.floor(v/60);
+  let s=Math.floor(v%60);
+  return m+":"+String(s).padStart(2,"0");
+}
 
-co
+function analyserSetup(){
+  if(connected) return;
+  try{
+    ctx=new (window.AudioContext||window.webkitAudioContext)();
+    analyser=ctx.createAnalyser();
+    analyser.fftSize=128;
+    source=ctx.createMediaElementSource(audio);
+    source.connect(analyser);
+    analyser.connect(ctx.destination);
+    connected=true;
+  }catch(e){console.log(e)}
+}
+
+function draw(){
+  requestAnimationFrame(draw);
+  if(analyser){
+    const data=new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    bars.forEach((b,i)=>{
+      const n=data[Math.floor(i*data.length/bars.length)]||0;
+      b.style.height=Math.max(5,Math.min(72,n*.34))+"px";
+    });
+  }else{
+    bars.forEach((b,i)=>{
+      b.style.height=(7+Math.abs(Math.sin(Date.now()/250+i*.45))*18)+"px";
+    });
+  }
+}
+draw();
+
+function render(){
+  tracks.innerHTML="";
+  songs.forEach((s,i)=>{
+    const d=document.createElement("div");
+    d.className="track"+(i===index?" active":"");
+    d.innerHTML='<span class="num">'+String(i+1).padStart(2,"0")+
+      '</span><span class="name">'+safe(s.name)+'</span>';
+    d.onclick=()=>{load(i);playAudio()};
+    tracks.appendChild(d);
+  });
+}
+
+function load(i){
+  index=(i+songs.length)%songs.length;
+  audio.src=songs[index].src;
+  title.textContent=songs[index].name;
+  now.textContent="0:00";
+  total.textContent="0:00";
+  fill.style.width="0%";
+  render();
+}
+
+async function playAudio(){
+  analyserSetup();
+  try{
+    if(ctx && ctx.state==="suspended") await ctx.resume();
+    await audio.play();
+    play.textContent="❚❚";
+    disc.classList.add("playing");
+  }catch(e){console.log(e)}
+}
+
+function pauseAudio(){
+  audio.pause();
+  play.textContent="▶";
+  disc.classList.remove("playing");
+}
+
+play.onclick=()=>audio.paused?playAudio():pauseAudio();
+document.getElementById("prev").onclick=()=>{load(index-1);playAudio()};
+document.getElementById("next").onclick=()=>{load(index+1);playAudio()};
+
+audio.addEventListener("ended",()=>{load(index+1);playAudio()});
+
+audio.addEventListener("loadedmetadata",()=>{
+  total.textContent=fmt(audio.duration);
+});
+
+audio.addEventListener("timeupdate",()=>{
+  now.textContent=fmt(audio.currentTime);
+  if(audio.duration){
+    fill.style.width=(audio.currentTime/audio.duration*100)+"%";
+  }
+});
+
+progress.onclick=(e)=>{
+  if(!audio.duration)return;
+  const r=progress.getBoundingClientRect();
+  audio.currentTime=((e.clientX-r.left)/r.width)*audio.duration;
+};
+
+function fullscreen(){
+  const el=document.querySelector(".stage");
+  if(!document.fullscreenElement){
+    if(el.requestFullscreen)el.requestFullscreen();
+  }else{
+    document.exitFullscreen();
+  }
+}
+
+load(0);
+</script>
+</body>
+</html>
+'''
+
+page = page.replace("__SONGS__", songs_json)
+page = page.replace("__LOGO__", logo_json)
+
+components.html(page, height=980, scrolling=False)
