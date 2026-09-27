@@ -6,7 +6,7 @@ import json
 import html
 
 st.set_page_config(
-    page_title="NEON VISION MUSIC",
+    page_title="อยู่นิ้งๆไม่เจ็บตัว VISION MUSIC",
     page_icon="🎧",
     layout="wide",
     initial_sidebar_state="collapsed",
