@@ -1343,4 +1343,3 @@ animation-duration:2.2s
 .stage.fx-calm .musicPulse{
 animation-duration:1s
 }
-
