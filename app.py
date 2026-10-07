@@ -1342,992 +1342,1087 @@ animation-duration:2.2s
 
 .stage.fx-calm .musicPulse{
 animation-duration:1s
-}
+            }
 @media(max-height:820px){
-.top{padding-top:10px}
-.logo{width:42px;height:42px}
-.content{margin-top:0}
-.kicker{margin:1px 0 4px}
-.discbox{width:min(270px,35vh,68vw)}
-.title{margin-top:5px;font-size:25px}
-.artist{margin-top:2px}
-.waveWrap{height:86px;margin-top:4px}
-.controls{margin-top:8px}
-.effects{margin-top:5px}
-.playlist{max-height:92px;margin-top:5px}
-.fs{
-top:10px;
-right:10px;
-min-width:112px;
-height:44px
-}
-}
-
-@media(max-width:600px){
 
 .stage{
-height:100vh
+min-height:100vh;
+height:100vh;
 }
 
-.top{
-padding:10px 13px 0
+.topbar{
+padding:10px 14px;
 }
 
-.brandtxt{
-font-size:12px
+.brand{
+font-size:14px;
 }
 
-.status{
-display:none
+.brand small{
+font-size:9px;
 }
 
-.content{
-width:94vw;
-height:calc(100% - 58px)
+.logoWrap{
+width:120px;
+height:120px;
 }
 
-.discbox{
-width:min(280px,36vh,70vw)
+.logoWrap img{
+max-width:105px;
+max-height:105px;
 }
 
-.waveWrap{
-height:92px
+.songTitle{
+font-size:clamp(22px,4vw,38px);
 }
 
-.pulseLine{
-stroke-width:3.5
+.songArtist{
+font-size:12px;
 }
 
-.pulseGlow{
-stroke-width:9
+.musicCore{
+width:170px;
+height:170px;
+}
+
+.headphones{
+width:150px;
+}
+
+.pulseBox{
+height:145px;
 }
 
 .controls{
-gap:12px
-}
-
-.btn{
-width:43px;
-height:43px
-}
-
-.play{
-width:61px;
-height:61px
-}
-
-.playlist{
-max-height:105px
-}
-
-.fxpanel{
-grid-template-columns:1fr
-}
-
-.waveWrap{
-height:104px
-}
-
-.fs{
-top:9px;
-right:9px;
-min-width:108px;
-height:42px;
-font-size:9px
+padding-bottom:10px;
 }
 
 }
 
-#stage:fullscreen{
+/* =========================
+   EXTRA TEXT SHINE
+   ========================= */
+
+.shineText{
+background:
+linear-gradient(
+110deg,
+#ffffff 0%,
+#ffffff 22%,
+#5cf2ff 38%,
+#ffffff 50%,
+#ff5cf4 65%,
+#ffffff 82%,
+#ffffff 100%
+);
+
+background-size:220% 100%;
+-webkit-background-clip:text;
+background-clip:text;
+color:transparent;
+
+animation:textShine 3.2s linear infinite;
+
+text-shadow:
+0 0 12px rgba(92,242,255,.28),
+0 0 28px rgba(255,92,244,.18);
+}
+
+@keyframes textShine{
+
+0%{
+background-position:220% 0;
+}
+
+100%{
+background-position:-220% 0;
+}
+
+}
+
+/* =========================
+   FULLSCREEN
+   ========================= */
+
+html.fullscreenMode,
+body.fullscreenMode{
+overflow:hidden !important;
+background:#02030a !important;
+}
+
+.fullscreenMode .stage{
+position:fixed !important;
+inset:0 !important;
+width:100vw !important;
+height:100vh !important;
+min-height:100vh !important;
+z-index:999999 !important;
+overflow:hidden !important;
+}
+
+.fullscreenMode .topbar{
+position:absolute;
+top:0;
+left:0;
+right:0;
+z-index:100;
+}
+
+.fullscreenMode .mainArea{
 height:100vh;
-width:100vw
 }
 
-#stage:fullscreen .content{
-width:min(760px,94vw);
-height:100%;
-margin:0 auto;
-padding-top:4px;
-justify-content:flex-start
+.fullscreenMode .fullBtn{
+z-index:1000;
 }
 
-#stage:fullscreen .discbox{
-width:min(360px,34vh,72vw)
-}
 
-#stage:fullscreen .waveWrap{
-height:min(150px,16vh);
-margin-top:6px
-}
-
-#stage:fullscreen .playlist{
-max-height:min(145px,14vh)
-}
-
-#stage:fullscreen .controls{
-margin-top:8px
-}
-
-#stage:fullscreen .effects{
-margin-top:5px
-}
-
-#stage:fullscreen .fxpanel{
-margin-top:5px
-}
-
-@media (display-mode:fullscreen){
-#stage{
-height:100vh;
-width:100vw
-}
-}
-
-@media(prefers-reduced-motion:reduce){
-*,*::before,*::after{
-animation-duration:.001ms!important;
-transition:none!important
-}
-}
+/* =========================
+   END EXTRA CSS
+   ========================= */
 
 </style>
 
-</head>
+<div class="stage" id="stage">
 
-<body>
+  <div class="ambient a1"></div>
+  <div class="ambient a2"></div>
+  <div class="ambient a3"></div>
 
-<div id="stage" class="stage">
+  <div class="particles" id="particles"></div>
 
-<div class="blob b1"></div>
-<div class="blob b2"></div>
-<div class="blob b3"></div>
+  <div class="topbar">
 
-<div class="noise"></div>
+    <div class="brand shineText">
+      NEON VISION
+      <small>♫ MUSIC • LIGHT • MOTION ♫</small>
+    </div>
 
-<div class="top">
+    <button class="fullBtn" id="fullscreenBtn">
+      ⛶ FULL SCREEN
+    </button>
 
-<div class="brand">
+  </div>
 
-<img
-id="logo"
-class="logo"
-alt="logo"
->
 
-<div class="brandtxt">
-NEON VISION
+  <div class="mainArea">
+
+    <div class="logoArea">
+
+      <div class="logoGlow"></div>
+
+      <div class="logoWrap">
+
+        <img
+          id="mainLogo"
+          src=""
+          alt="Logo"
+        >
+
+      </div>
+
+      <div class="logoCaption shineText">
+        YOUR MUSIC
+      </div>
+
+    </div>
+
+
+    <div class="playerArea">
+
+      <div class="musicCore" id="musicCore">
+
+        <div class="coreRing ring1"></div>
+        <div class="coreRing ring2"></div>
+        <div class="coreRing ring3"></div>
+
+        <div class="coreLight"></div>
+
+        <div class="coreSymbol">
+          ♫
+        </div>
+
+        <div class="coreText">
+          MUSIC
+        </div>
+
+      </div>
+
+
+      <div class="headphones">
+
+        <svg
+          viewBox="0 0 220 150"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+
+          <defs>
+
+            <linearGradient
+              id="headGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+
+              <stop
+                offset="0%"
+                stop-color="#5cf2ff"
+              />
+
+              <stop
+                offset="48%"
+                stop-color="#8b5cff"
+              />
+
+              <stop
+                offset="100%"
+                stop-color="#ff4df2"
+              />
+
+            </linearGradient>
+
+            <filter id="headGlow">
+
+              <feGaussianBlur
+                stdDeviation="4"
+                result="blur"
+              />
+
+              <feMerge>
+
+                <feMergeNode
+                  in="blur"
+                />
+
+                <feMergeNode
+                  in="SourceGraphic"
+                />
+
+              </feMerge>
+
+            </filter>
+
+          </defs>
+
+
+          <path
+            d="M35 92
+               C35 40 65 18 110 18
+               C155 18 185 40 185 92"
+            fill="none"
+            stroke="url(#headGradient)"
+            stroke-width="12"
+            stroke-linecap="round"
+            filter="url(#headGlow)"
+          />
+
+
+          <path
+            d="M35 91
+               C35 42 67 24 110 24
+               C153 24 185 42 185 91"
+            fill="none"
+            stroke="#ffffff"
+            stroke-opacity=".45"
+            stroke-width="2"
+          />
+
+
+          <rect
+            x="18"
+            y="76"
+            width="42"
+            height="58"
+            rx="18"
+            fill="#111526"
+            stroke="url(#headGradient)"
+            stroke-width="5"
+            filter="url(#headGlow)"
+          />
+
+
+          <rect
+            x="160"
+            y="76"
+            width="42"
+            height="58"
+            rx="18"
+            fill="#111526"
+            stroke="url(#headGradient)"
+            stroke-width="5"
+            filter="url(#headGlow)"
+          />
+
+
+          <rect
+            x="27"
+            y="88"
+            width="23"
+            height="35"
+            rx="10"
+            fill="#5cf2ff"
+            opacity=".8"
+          />
+
+
+          <rect
+            x="170"
+            y="88"
+            width="23"
+            height="35"
+            rx="10"
+            fill="#ff5cf4"
+            opacity=".8"
+          />
+
+        </svg>
+
+      </div>
+
+
+      <div class="musicInfo">
+
+        <div
+          class="songTitle shineText"
+          id="songTitle"
+        >
+          NEON MUSIC
+        </div>
+
+        <div
+          class="songArtist"
+          id="songArtist"
+        >
+          MUSIC EXPERIENCE
+        </div>
+
+      </div>
+
+
+      <div class="pulseBox">
+
+        <svg
+          id="pulseSvg"
+          viewBox="0 0 1000 220"
+          preserveAspectRatio="none"
+        >
+
+          <defs>
+
+            <linearGradient
+              id="pulseGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="0%"
+            >
+
+              <stop
+                offset="0%"
+                stop-color="#5cf2ff"
+              />
+
+              <stop
+                offset="25%"
+                stop-color="#6a7dff"
+              />
+
+              <stop
+                offset="50%"
+                stop-color="#ffffff"
+              />
+
+              <stop
+                offset="72%"
+                stop-color="#ff5cf4"
+              />
+
+              <stop
+                offset="100%"
+                stop-color="#ff4d8d"
+              />
+
+            </linearGradient>
+
+            <filter
+              id="pulseGlow"
+              x="-20%"
+              y="-100%"
+              width="140%"
+              height="300%"
+            >
+
+              <feGaussianBlur
+                stdDeviation="5"
+                result="blur"
+              />
+
+              <feMerge>
+
+                <feMergeNode
+                  in="blur"
+                />
+
+                <feMergeNode
+                  in="SourceGraphic"
+                />
+
+              </feMerge>
+
+            </filter>
+
+          </defs>
+
+
+          <path
+            id="pulseGlowPath"
+            d=""
+            fill="none"
+            stroke="url(#pulseGradient)"
+            stroke-width="10"
+            opacity=".42"
+            filter="url(#pulseGlow)"
+          />
+
+
+          <path
+            id="pulsePath"
+            d=""
+            fill="none"
+            stroke="url(#pulseGradient)"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+
+        </svg>
+
+      </div>
+
+
+      <div class="progressArea">
+
+        <div class="progressTrack">
+
+          <div
+            class="progressFill"
+            id="progressFill"
+          ></div>
+
+        </div>
+
+        <div class="timeRow">
+
+          <span id="currentTime">
+            0:00
+          </span>
+
+          <span id="duration">
+            0:00
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="controls">
+
+        <button
+          class="controlBtn"
+          id="prevBtn"
+        >
+          ⏮
+        </button>
+
+        <button
+          class="playBtn"
+          id="playBtn"
+        >
+          ▶
+        </button>
+
+        <button
+          class="controlBtn"
+          id="nextBtn"
+        >
+          ⏭
+        </button>
+
+      </div>
+
+
+      <div class="effects">
+
+        <div class="effectTitle shineText">
+          EFFECT MODE
+        </div>
+
+        <div class="effectButtons">
+
+          <button
+            class="effectBtn active"
+            data-fx="cyber"
+          >
+            CYBER
+          </button>
+
+          <button
+            class="effectBtn"
+            data-fx="rainbow"
+          >
+            RAINBOW
+          </button>
+
+          <button
+            class="effectBtn"
+            data-fx="laser"
+          >
+            LASER
+          </button>
+
+          <button
+            class="effectBtn"
+            data-fx="gold"
+          >
+            GOLD
+          </button>
+
+          <button
+            class="effectBtn"
+            data-fx="calm"
+          >
+            CALM
+          </button>
+
+        </div>
+
+
+        <div class="sliders">
+
+          <label>
+            PUNCH
+            <input
+              id="punch"
+              type="range"
+              min="0.5"
+              max="2.5"
+              step="0.05"
+              value="1.45"
+            >
+          </label>
+
+
+          <label>
+            GLOW
+            <input
+              id="glow"
+              type="range"
+              min="0"
+              max="2"
+              step="0.05"
+              value="1"
+            >
+          </label>
+
+
+          <label>
+            SHAKE
+            <input
+              id="shake"
+              type="range"
+              min="0"
+              max="18"
+              step="1"
+              value="8"
+            >
+          </label>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div class="playlist">
+
+      <div class="playlistTitle shineText">
+        PLAYLIST
+      </div>
+
+      <div
+        class="playlistItems"
+        id="playlistItems"
+      ></div>
+
+    </div>
+
+  </div>
+
 </div>
 
-</div>
-
-<div class="status">
-
-<span class="dot"></span>
-
-LIVE AUDIO VISUALIZER
-
-</div>
-
-</div>
-
-<button
-id="fs"
-class="fs"
-type="button"
-title="เต็มหน้าจอ"
->
-<span class="fsIcon">⛶</span>
-<span>FULL SCREEN</span>
-</button>
-
-<div class="content">
-
-<div class="kicker">
-♫ MUSIC • LIGHT • MOTION ♫
-</div>
-
-<div class="discbox">
-
-<div class="halo"></div>
-
-<div class="halo2"></div>
-
-<div
-id="disc"
-class="core"
-></div>
-
-<canvas
-id="fxCanvas"
-class="fxCanvas"
-></canvas>
-
-<div
-id="beatFlash"
-class="beatFlash"
-></div>
-
-<img
-id="cover"
-class="cover"
-alt="cover"
->
-
-<div class="center">
-
-<span class="musicMark">
-♫
-</span>
-
-<span class="musicPulse"></span>
-
-</div>
-
-<div
-class="headphone"
-aria-label="Music headphones"
->
-
-<svg
-viewBox="0 0 116 72"
-role="img"
-aria-label="Headphones"
->
-
-<defs>
-
-<linearGradient
-id="hpGrad"
-x1="0"
-y1="0"
-x2="1"
-y2="1"
->
-
-<stop
-offset="0"
-stop-color="#00eaff"
-/>
-
-<stop
-offset=".5"
-stop-color="#8a4dff"
-/>
-
-<stop
-offset="1"
-stop-color="#ff00c8"
-/>
-
-</linearGradient>
-
-</defs>
-
-<path
-class="hp-head"
-d="M18 43a40 40 0 0 1 80 0"
-/>
-
-<path
-class="hp-glow"
-d="M23 42a35 35 0 0 1 70 0"
-/>
-
-<rect
-class="hp-ear"
-x="8"
-y="38"
-width="25"
-height="27"
-rx="10"
-/>
-
-<rect
-class="hp-inner"
-x="14"
-y="43"
-width="13"
-height="17"
-rx="6"
-/>
-
-<rect
-class="hp-ear"
-x="83"
-y="38"
-width="25"
-height="27"
-rx="10"
-/>
-
-<rect
-class="hp-inner"
-x="89"
-y="43"
-width="13"
-height="17"
-rx="6"
-/>
-
-</svg>
-
-</div>
-
-</div>
-
-<div
-id="title"
-class="title"
->
-NEON MUSIC
-</div>
-
-<div class="artist">
-♫ MUSIC EXPERIENCE ♫
-</div>
-
-<div class="waveWrap">
-
-<div class="centerLine"></div>
-
-<div
-id="wave"
-class="wave"
->
-
-<svg
-id="pulseSvg"
-class="pulseSvg"
-viewBox="0 0 1000 140"
-preserveAspectRatio="none"
->
-
-<defs>
-
-<linearGradient
-id="pulseGrad"
-x1="0"
-y1="0"
-x2="1"
-y2="0"
->
-
-<stop
-offset="0"
-stop-color="#00eaff"
-/>
-
-<stop
-offset=".28"
-stop-color="#4b8cff"
-/>
-
-<stop
-offset=".5"
-stop-color="#ffffff"
-/>
-
-<stop
-offset=".72"
-stop-color="#ff35cf"
-/>
-
-<stop
-offset="1"
-stop-color="#00eaff"
-/>
-
-</linearGradient>
-
-</defs>
-
-<path
-id="pulseGlow"
-class="pulseGlow"
-/>
-
-<path
-id="pulseLine"
-class="pulseLine"
-/>
-
-<path
-id="pulseCore"
-class="pulseCore"
-/>
-
-<circle
-id="pulseDot"
-class="pulseDot"
-cx="500"
-cy="70"
-r="3"
-/>
-
-</svg>
-
-</div>
-
-</div>
-
-<div class="times">
-
-<span id="now">
-0:00
-</span>
-
-<span id="total">
-0:00
-</span>
-
-</div>
-
-<div
-id="progress"
-class="progress"
->
-
-<div
-id="fill"
-class="fill"
-></div>
-
-</div>
-
-<div class="controls">
-
-<button
-id="prev"
-class="btn"
-type="button"
->
-⏮
-</button>
-
-<button
-id="play"
-class="btn play"
-type="button"
->
-▶
-</button>
-
-<button
-id="next"
-class="btn"
-type="button"
->
-⏭
-</button>
-
-</div>
-
-<div class="effects">
-
-<button
-class="fx active"
-data-fx="cyber"
-type="button"
->
-CYBER
-</button>
-
-<button
-class="fx"
-data-fx="rainbow"
-type="button"
->
-RAINBOW
-</button>
-
-<button
-class="fx"
-data-fx="laser"
-type="button"
->
-LASER
-</button>
-
-<button
-class="fx"
-data-fx="gold"
-type="button"
->
-GOLD
-</button>
-
-<button
-class="fx"
-data-fx="calm"
-type="button"
->
-CALM
-</button>
-
-</div>
-
-<div class="fxpanel">
-
-<div class="sliderBox">
-
-<label>
-PUNCH
-<b id="punchVal">85</b>
-</label>
-
-<input
-id="punch"
-type="range"
-min="20"
-max="160"
-value="85"
->
-
-</div>
-
-<div class="sliderBox">
-
-<label>
-GLOW
-<b id="glowVal">70</b>
-</label>
-
-<input
-id="glow"
-type="range"
-min="0"
-max="120"
-value="70"
->
-
-</div>
-
-<div class="sliderBox">
-
-<label>
-SHAKE
-<b id="shakeVal">75</b>
-</label>
-
-<input
-id="shake"
-type="range"
-min="0"
-max="130"
-value="75"
->
-
-</div>
-
-</div>
-
-<div class="playlist">
-
-<div class="pltitle">
-YOUR MUSIC
-</div>
-
-<div id="tracks"></div>
-
-</div>
-
-</div>
-
-<div class="visualText">
-NEON VISION MUSIC EXPERIENCE
-</div>
-
-</div>
 
 <script>
 
-const songs=__SONGS__;
+const songs = __SONGS__;
 
-const logoSrc=__LOGO__;
+const logoSrc = __LOGO__;
 
-let index=0;
-
-const audio=new Audio();
-
-audio.preload="auto";
-
-const stage=
+const stage =
 document.getElementById("stage");
 
-const disc=
-document.getElementById("disc");
+const audio =
+new Audio();
 
-const cover=
-document.getElementById("cover");
+audio.preload = "metadata";
 
-const title=
-document.getElementById("title");
+audio.crossOrigin = "anonymous";
 
-const play=
-document.getElementById("play");
 
-const tracks=
-document.getElementById("tracks");
+let currentIndex = 0;
 
-const now=
-document.getElementById("now");
+let playing = false;
 
-const total=
-document.getElementById("total");
+let analyser = null;
 
-const fill=
-document.getElementById("fill");
+let audioCtx = null;
 
-const progress=
-document.getElementById("progress");
+let sourceNode = null;
 
-const wave=
-document.getElementById("wave");
+let animationId = null;
 
-const canvas=
-document.getElementById("fxCanvas");
+let punchValue = 1.45;
 
-const flash=
-document.getElementById("beatFlash");
+let glowValue = 1;
 
-const ctx2=
-canvas.getContext("2d");
+let shakeValue = 8;
 
-if(logoSrc){
+let effectMode = "cyber";
 
-document.getElementById(
-"logo"
-).src=logoSrc;
 
-cover.src=logoSrc;
+const mainLogo =
+document.getElementById("mainLogo");
+
+if(mainLogo && logoSrc){
+
+mainLogo.src = logoSrc;
 
 }
 
-const pulseLine=
-document.getElementById(
-"pulseLine"
-);
 
-const pulseGlow=
-document.getElementById(
-"pulseGlow"
-);
+function cleanName(path){
 
-const pulseCore=
-document.getElementById(
-"pulseCore"
-);
+let name =
+path.split("/").pop();
 
-const pulseDot=
-document.getElementById(
-"pulseDot"
-);
+name =
+name.replace(/\.[^/.]+$/,"");
 
-let ctx=null;
-let analyser=null;
-let source=null;
-let connected=false;
+name =
+name.replace(/[_-]+/g," ");
 
-let energy=0;
-let peak=0;
-let lastBeat=0;
-
-let particles=[];
-
-let punch=.85;
-let glow=.70;
-let shake=.75;
-
-function safe(t){
-
-return String(t).replace(
-/[&<>"']/g,
-m=>({
-"&":"&amp;",
-"<":"&lt;",
-">":"&gt;",
-'"':"&quot;",
-"'":"&#039;"
-}[m])
-);
+return name;
 
 }
 
-function fmt(v){
 
-if(
-!v ||
-isNaN(v)
-)
+function formatTime(sec){
+
+if(!isFinite(sec))
 return "0:00";
 
-const m=
-Math.floor(v/60);
+let m =
+Math.floor(sec/60);
 
-const s=
-Math.floor(v%60);
+let s =
+Math.floor(sec%60);
 
-return m+":"+
-String(s).padStart(
-2,
-"0"
-);
+return m + ":" +
+String(s).padStart(2,"0");
 
 }
 
-function analyserSetup(){
 
-if(connected)
-return;
+function renderPlaylist(){
 
-try{
-
-ctx=
-new(
-window.AudioContext||
-window.webkitAudioContext
-)();
-
-analyser=
-ctx.createAnalyser();
-
-analyser.fftSize=512;
-
-analyser.smoothingTimeConstant=.08;
-
-source=
-ctx.createMediaElementSource(
-audio
+const box =
+document.getElementById(
+"playlistItems"
 );
 
-source.connect(analyser);
+box.innerHTML = "";
 
-analyser.connect(
-ctx.destination
-);
+songs.forEach(
+(song,index)=>{
 
-connected=true;
+const item =
+document.createElement("button");
 
-}catch(e){
+item.className =
+"playlistItem";
 
-console.log(e);
+if(index === currentIndex)
+item.classList.add("selected");
 
-}
+item.innerHTML =
+`
+<span class="trackNo">
+${String(index+1).padStart(2,"0")}
+</span>
 
-}
+<span class="trackName">
+${cleanName(song)}
+</span>
 
-function resizeCanvas(){
+<span class="trackPlay">
+${index === currentIndex && playing ? "♫" : "▶"}
+</span>
+`;
 
-const r=
-canvas.getBoundingClientRect();
+item.onclick = () => {
 
-const d=
-devicePixelRatio||1;
+currentIndex = index;
 
-canvas.width=
-Math.max(
-1,
-Math.floor(
-r.width*d
-)
-);
+loadSong(true);
 
-canvas.height=
-Math.max(
-1,
-Math.floor(
-r.height*d
-)
-);
+};
 
-ctx2.setTransform(
-d,
-0,
-0,
-d,
-0,
-0
-);
-
-}
-
-window.addEventListener(
-"resize",
-resizeCanvas
-);
-
-resizeCanvas();
-
-function spawn(
-count=3,
-pow=1
-){
-
-const w=
-canvas.clientWidth;
-
-const h=
-canvas.clientHeight;
-
-const cx=w/2;
-const cy=h*.48;
-
-for(
-let i=0;
-i<count;
-i++
-){
-
-const a=
-Math.random()*
-Math.PI*2;
-
-const s=
-(.6+
-Math.random()*2.2)*
-pow;
-
-particles.push({
-
-x:cx,
-y:cy,
-
-vx:
-Math.cos(a)*s,
-
-vy:
-Math.sin(a)*s,
-
-r:
-1+
-Math.random()*2.6,
-
-life:1,
-
-h:
-Math.random()*360
+box.appendChild(item);
 
 });
 
 }
 
-if(
-particles.length>180
-){
 
-particles.splice(
+function loadSong(autoPlay=false){
+
+if(!songs.length)
+return;
+
+audio.src =
+songs[currentIndex];
+
+audio.load();
+
+document.getElementById(
+"songTitle"
+).textContent =
+cleanName(
+songs[currentIndex]
+);
+
+document.getElementById(
+"songArtist"
+).textContent =
+"♫ MUSIC EXPERIENCE ♫";
+
+renderPlaylist();
+
+if(autoPlay){
+
+audio.play()
+.then(()=>{
+
+playing = true;
+
+updatePlayButton();
+
+startAudio();
+
+})
+.catch(()=>{});
+
+}
+
+}
+
+
+function updatePlayButton(){
+
+const btn =
+document.getElementById(
+"playBtn"
+);
+
+btn.textContent =
+playing ? "❚❚" : "▶";
+
+}
+
+
+function setupAudio(){
+
+if(audioCtx)
+return;
+
+audioCtx =
+new (window.AudioContext ||
+window.webkitAudioContext)();
+
+analyser =
+audioCtx.createAnalyser();
+
+analyser.fftSize =
+2048;
+
+analyser.smoothingTimeConstant =
+0.68;
+
+sourceNode =
+audioCtx.createMediaElementSource(
+audio
+);
+
+sourceNode.connect(analyser);
+
+analyser.connect(
+audioCtx.destination
+);
+
+}
+
+
+async function playAudio(){
+
+setupAudio();
+
+if(audioCtx.state === "suspended")
+await audioCtx.resume();
+
+await audio.play();
+
+playing = true;
+
+updatePlayButton();
+
+startAudio();
+
+renderPlaylist();
+
+}
+
+
+function pauseAudio(){
+
+audio.pause();
+
+playing = false;
+
+updatePlayButton();
+
+renderPlaylist();
+
+}
+
+
+document.getElementById(
+"playBtn"
+).onclick = () => {
+
+if(!songs.length)
+return;
+
+if(playing)
+pauseAudio();
+
+else
+playAudio();
+
+};
+
+
+document.getElementById(
+"prevBtn"
+).onclick = () => {
+
+if(!songs.length)
+return;
+
+currentIndex =
+(currentIndex - 1 + songs.length)
+% songs.length;
+
+loadSong(playing);
+
+};
+
+
+document.getElementById(
+"nextBtn"
+).onclick = () => {
+
+if(!songs.length)
+return;
+
+currentIndex =
+(currentIndex + 1)
+% songs.length;
+
+loadSong(playing);
+
+};
+
+
+audio.addEventListener(
+"ended",
+()=>{
+
+currentIndex =
+(currentIndex + 1)
+% songs.length;
+
+loadSong(true);
+
+}
+);
+
+
+audio.addEventListener(
+"timeupdate",
+()=>{
+
+const percent =
+audio.duration
+?
+(audio.currentTime /
+audio.duration) * 100
+:
+0;
+
+document.getElementById(
+"progressFill"
+).style.width =
+percent + "%";
+
+document.getElementById(
+"currentTime"
+).textContent =
+formatTime(
+audio.currentTime
+);
+
+});
+
+
+audio.addEventListener(
+"loadedmetadata",
+()=>{
+
+document.getElementById(
+"duration"
+).textContent =
+formatTime(
+audio.duration
+);
+
+});
+
+
+document.querySelector(
+".progressTrack"
+).onclick =
+(e)=>{
+
+if(!audio.duration)
+return;
+
+const rect =
+e.currentTarget
+.getBoundingClientRect();
+
+const ratio =
+(e.clientX - rect.left) /
+rect.width;
+
+audio.currentTime =
+ratio * audio.duration;
+
+};
+
+
+function buildPulse(values){
+
+const count = 180;
+
+const center = 90;
+
+let d = "";
+
+for(let i=0;i<count;i++){
+
+const x =
+(i/(count-1))*1000;
+
+const distance =
+Math.abs(i-center) /
+center;
+
+const centerPower =
+Math.max(
 0,
-particles.length-180
+1 - distance
 );
+
+const raw =
+values[
+Math.floor(
+(i/count)*values.length
+)
+] || 0;
+
+const noise =
+(Math.random()-.5)
+* 5;
+
+let amp =
+raw *
+(18 +
+centerPower*92)
+*
+punchValue;
+
+amp += noise;
+
+if(centerPower > .72){
+
+amp *=
+1.35 +
+Math.random()*.85;
+
+}
+
+const y =
+110 -
+amp;
+
+if(i===0){
+
+d +=
+`M ${x} ${y}`;
+
+}else{
+
+d +=
+` L ${x} ${y}`;
 
 }
 
 }
 
-function drawParticles(){
-
-const w=
-canvas.clientWidth;
-
-const h=
-canvas.clientHeight;
-
-ctx2.clearRect(
-0,
-0,
-w,
-h
-);
-
-ctx2.globalCompositeOperation=
-"lighter";
-
-for(
-let i=
-particles.length-1;
-
-i>=0;
-
-i--
-){
-
-const p=
-particles[i];
-
-p.x+=p.vx;
-p.y+=p.vy;
-
-p.vx*=.985;
-p.vy*=.985;
-
-p.life-=.014;
-
-if(
-p.life<=0 ||
-p.x<0 ||
-p.x>w ||
-p.y<0 ||
-p.y>h
-){
-
-particles.splice(
-i,
-1
-);
-
-continue;
+return d;
 
 }
 
-ctx2.beginPath();
 
-ctx2.arc(
-p.x,
-p.y,
-p.r*p.life,
-0,
-Math.PI*2
-);
+function buildWaveFromAudio(){
 
-ctx2.fillStyle=
-`hsla(
-${p.h},
-100%,
-65%,
-${p.life*.72}
-)`;
+if(!analyser)
+return "";
 
-ctx2.shadowBlur=10;
-
-ctx2.shadowColor=
-`hsl(
-${p.h}
-100%
-60%
-)`;
-
-ctx2.fill();
-
-}
-
-ctx2.shadowBlur=0;
-
-ctx2.globalCompositeOperation=
-"source-over";
-
-}
-
-function draw(){
-
-requestAnimationFrame(
-draw
-);
-
-let data=null;
-
-if(analyser){
-
-data=
+const data =
 new Uint8Array(
 analyser.frequencyBinCount
 );
@@ -2336,839 +2431,485 @@ analyser.getByteFrequencyData(
 data
 );
 
-}
+const values = [];
 
-const t=
-performance.now()/1000;
-
-let bass=0;
-let mid=0;
-let high=0;
-
-if(data){
+const center =
+Math.floor(
+data.length * .48
+);
 
 for(
 let i=0;
-i<Math.min(
-14,
-data.length
-);
-i++
-)
-bass+=data[i];
-
-bass/=
-Math.max(
-1,
-Math.min(
-14,
-data.length
-)
-)*255;
-
-for(
-let i=14;
-i<70 &&
-i<data.length;
-i++
-)
-mid+=data[i];
-
-mid/=
-Math.max(
-1,
-Math.min(
-56,
-Math.max(
-0,
-data.length-14
-)
-)
-)*255;
-
-for(
-let i=70;
-i<150 &&
-i<data.length;
-i++
-)
-high+=data[i];
-
-high/=
-Math.max(
-1,
-Math.min(
-80,
-Math.max(
-0,
-data.length-70
-)
-)
-)*255;
-
-}else{
-
-bass=
-.16+
-Math.abs(
-Math.sin(t*3.2)
-)*.28;
-
-mid=
-.18+
-Math.abs(
-Math.sin(t*4.8)
-)*.22;
-
-high=
-.14+
-Math.abs(
-Math.sin(t*7.1)
-)*.18;
-
-}
-
-energy=
-Math.min(
-1,
-bass*.68+
-mid*.23+
-high*.09
-);
-
-const kick=
-Math.max(
-0,
-bass-.24
-)*punch;
-
-peak=
-Math.max(
-peak*.88,
-energy
-);
-
-// เส้นชีพจร
-const pts=[];
-const N=220;
-const cy=70;
-const phase=t*2.6;
-
-for(
-let i=0;
-i<=N;
+i<180;
 i++
 ){
 
-const x=
-i/N*1000;
+const p =
+i/179;
 
-const u=
-i/N;
-
-const dist=
-Math.abs(u-.5)*2;
-
-let audioAmp=
-5+
-energy*4;
-
-if(data){
-
-const fi=
+const offset =
 Math.floor(
-u*
-(data.length-1)
-);
-
-const v=
-(data[fi]||0)/255;
-
-audioAmp+=
-Math.pow(v,.7)*
-(
-8+
-18*(1-dist)
-);
-
-}else{
-
-audioAmp+=
-Math.abs(
 Math.sin(
-t*5+
-i*.13
-)
-)*5;
-
-}
-
-const repeat=
-(
-(i+
-Math.floor(
-phase*20
-))%52
-)/52;
-
-let pulse=0;
-
-if(
-repeat>.37 &&
-repeat<.43
-)
-pulse+=
-Math.sin(
-(repeat-.37)/
-.06*
-Math.PI
-)*8;
-
-if(
-repeat>=.43 &&
-repeat<.465
-)
-pulse-=
-Math.sin(
-(repeat-.43)/
-.025*
-Math.PI
-)*28;
-
-if(
-repeat>=.465 &&
-repeat<.505
-)
-pulse+=
-Math.sin(
-(repeat-.465)/
-.04*
-Math.PI
-)*12;
-
-if(
-repeat>=.505 &&
-repeat<.55
-)
-pulse-=
-Math.sin(
-(repeat-.505)/
-.045*
-Math.PI
-)*7;
-
-const centerBoost=
-Math.exp(
--Math.pow(
-(u-.5)/.16,
-2
-)
+p*Math.PI
+) * 240
 );
 
-const spike=
-pulse*
-(
-1+
-kick*1.7+
-energy*.9
-)*
-(
-.28+
-centerBoost*1.35
-);
-
-const ripple=
-Math.sin(
-t*12+
-i*.45
-)*
-energy*
-3*
-(.25+
-centerBoost
-);
-
-const jitter=
-(Math.random()-.5)*
-(1+
-shake*2.2);
-
-const y=
-cy+
-jitter+
-ripple+
-(
-Math.sin(
-i*.9+
-t*7
-)*
-audioAmp*
-.08
-)-
-spike;
-
-pts.push(
-`${x.toFixed(1)},${y.toFixed(1)}`
-);
-
-}
-
-const dPath=
-"M"+
-pts.join(" L");
-
-pulseLine.setAttribute(
-"d",
-dPath
-);
-
-pulseGlow.setAttribute(
-"d",
-dPath
-);
-
-pulseCore.setAttribute(
-"d",
-dPath
-);
-
-pulseDot.setAttribute(
-"cy",
-String(
-cy-
-(
-kick*40+
-energy*8
-)
-)
-);
-
-pulseDot.setAttribute(
-"r",
-String(
-2.5+
-energy*3+
-kick*5
-)
-);
-
-const snap=
-1+
-energy*.08+
-kick*.25;
-
-disc.style.transform=
-`scale(${snap.toFixed(3)})`;
-
-cover.style.transform=
-`scale(${
-(
-1+
-energy*.16+
-kick*.2
-).toFixed(3)
-})`;
-
-const beat=
-bass>.50 &&
-performance.now()-
-lastBeat>105;
-
-if(beat){
-
-lastBeat=
-performance.now();
-
-spawn(
-16,
-1.25+bass
-);
-
-flash.style.opacity=
-String(
+const index =
 Math.min(
-.30,
-.07+bass*.25
-)
-);
-
-}else{
-
-flash.style.opacity=
-String(
+data.length-1,
 Math.max(
 0,
-Number(
-flash.style.opacity||0
-)-.045
+center-offset
 )
 );
 
-}
+let v =
+data[index]/255;
 
-if(
-Math.random()<.38
-){
-
-spawn(
-1,
-Math.max(
-.35,
-energy*1.6
-)
+const centerWeight =
+Math.pow(
+Math.sin(p*Math.PI),
+1.7
 );
 
+v *=
+0.22 +
+centerWeight*1.75;
+
+values.push(v);
+
 }
 
-drawParticles();
+return buildPulse(values);
 
 }
 
-draw();
 
-function render(){
+function drawPulse(){
 
-tracks.innerHTML="";
+if(!analyser){
 
-songs.forEach(
-(s,i)=>{
-
-const d=
-document.createElement(
-"div"
+requestAnimationFrame(
+drawPulse
 );
 
-d.className=
-"track"+
-(
-i===index
-?" active"
-:""
-);
-
-d.innerHTML=
-'<span class="num">'+
-String(i+1).padStart(
-2,
-"0"
-)+
-'</span>'+
-'<span class="name">'+
-safe(s.name)+
-'</span>';
-
-d.addEventListener(
-"click",
-()=>{
-
-load(i);
-playAudio();
-
-}
-);
-
-tracks.appendChild(d);
-
-}
-);
-
-}
-
-function load(i){
-
-index=
-(i+songs.length)%
-songs.length;
-
-audio.src=
-songs[index].src;
-
-title.textContent=
-songs[index].name;
-
-now.textContent=
-"0:00";
-
-total.textContent=
-"0:00";
-
-fill.style.width=
-"0%";
-
-render();
-
-}
-
-async function playAudio(){
-
-analyserSetup();
-
-try{
-
-if(
-ctx &&
-ctx.state==="suspended"
-){
-
-await ctx.resume();
-
-}
-
-await audio.play();
-
-play.textContent=
-"❚❚";
-
-disc.classList.add(
-"playing"
-);
-
-}catch(e){
-
-console.log(e);
-
-}
-
-}
-
-function pauseAudio(){
-
-audio.pause();
-
-play.textContent=
-"▶";
-
-disc.classList.remove(
-"playing"
-);
-
-}
-
-play.addEventListener(
-"click",
-()=>
-audio.paused
-?playAudio()
-:pauseAudio()
-);
-
-document.getElementById(
-"prev"
-).addEventListener(
-"click",
-()=>{
-
-load(index-1);
-playAudio();
-
-}
-);
-
-document.getElementById(
-"next"
-).addEventListener(
-"click",
-()=>{
-
-load(index+1);
-playAudio();
-
-}
-);
-
-audio.addEventListener(
-"ended",
-()=>{
-
-load(index+1);
-playAudio();
-
-}
-);
-
-audio.addEventListener(
-"loadedmetadata",
-()=>{
-
-total.textContent=
-fmt(audio.duration);
-
-}
-);
-
-audio.addEventListener(
-"timeupdate",
-()=>{
-
-now.textContent=
-fmt(audio.currentTime);
-
-if(audio.duration)
-
-fill.style.width=
-(
-audio.currentTime/
-audio.duration*
-100
-)+"%";
-
-}
-);
-
-progress.addEventListener(
-"click",
-e=>{
-
-if(!audio.duration)
 return;
 
-const r=
-progress.getBoundingClientRect();
-
-audio.currentTime=
-Math.max(
-0,
-Math.min(
-1,
-(
-e.clientX-r.left
-)/
-r.width
-)
-)*
-audio.duration;
-
 }
+
+const path =
+buildWaveFromAudio();
+
+if(path){
+
+document.getElementById(
+"pulsePath"
+).setAttribute(
+"d",
+path
 );
 
+document.getElementById(
+"pulseGlowPath"
+).setAttribute(
+"d",
+path
+);
+
+}
+
+const data =
+new Uint8Array(
+analyser.frequencyBinCount
+);
+
+analyser.getByteFrequencyData(
+data
+);
+
+let bass = 0;
+
+for(
+let i=0;
+i<Math.min(80,data.length);
+i++
+){
+
+bass += data[i];
+
+}
+
+bass /=
+Math.min(
+80,
+data.length
+);
+
+const power =
+bass/255;
+
+const core =
+document.getElementById(
+"musicCore"
+);
+
+if(core){
+
+const scale =
+1 +
+power*.20*punchValue;
+
+core.style.transform =
+`scale(${scale})`;
+
+}
+
+const shake =
+power *
+shakeValue;
+
+stage.style.setProperty(
+"--shake",
+shake + "px"
+);
+
+const glow =
+0.7 +
+power *
+glowValue;
+
+stage.style.setProperty(
+"--audioGlow",
+glow
+);
+
+if(power > .72){
+
+stage.classList.add(
+"beat"
+);
+
+}else{
+
+stage.classList.remove(
+"beat"
+);
+
+}
+
+animationId =
+requestAnimationFrame(
+drawPulse
+);
+
+}
+
+
+function startAudio(){
+
+if(animationId)
+cancelAnimationFrame(
+animationId
+);
+
+drawPulse();
+
+}
+
+
 document.querySelectorAll(
-".fx"
+".effectBtn"
 ).forEach(
-btn=>
+btn=>{
 
-btn.addEventListener(
-"click",
-()=>{
+btn.onclick = ()=>{
 
-const fx=
+document.querySelectorAll(
+".effectBtn"
+).forEach(
+b=>b.classList.remove(
+"active"
+)
+);
+
+btn.classList.add(
+"active"
+);
+
+effectMode =
 btn.dataset.fx;
 
 stage.classList.remove(
+"fx-cyber",
 "fx-rainbow",
 "fx-laser",
 "fx-gold",
 "fx-calm"
 );
 
-if(
-fx!=="cyber"
-)
-
 stage.classList.add(
-"fx-"+fx
+"fx-" + effectMode
 );
 
-document.querySelectorAll(
-".fx"
-).forEach(
-x=>
-x.classList.toggle(
-"active",
-x===btn
-)
-);
+};
 
-}
-)
-);
+});
 
-const fsBtn=
+
 document.getElementById(
-"fs"
+"punch"
+).oninput =
+(e)=>{
+
+punchValue =
+parseFloat(
+e.target.value
 );
+
+};
+
+
+document.getElementById(
+"glow"
+).oninput =
+(e)=>{
+
+glowValue =
+parseFloat(
+e.target.value
+);
+
+};
+
+
+document.getElementById(
+"shake"
+).oninput =
+(e)=>{
+
+shakeValue =
+parseFloat(
+e.target.value
+);
+
+};
+
 
 async function toggleFullscreen(){
 
-const el=
-document.getElementById(
-"stage"
-);
-
 try{
 
-if(
-!document.fullscreenElement
-){
-
-if(
-document.documentElement.requestFullscreen
-){
+if(!document.fullscreenElement){
 
 await document.documentElement
 .requestFullscreen();
 
-}else if(
-el.requestFullscreen
-){
-
-await el.requestFullscreen();
-
-}else{
-
-el.classList.add(
-"forceFull"
+document.documentElement
+.classList.add(
+"fullscreenMode"
 );
 
-}
+document.body
+.classList.add(
+"fullscreenMode"
+);
 
-}else if(
-document.exitFullscreen
-){
+}else{
 
 await document.exitFullscreen();
 
-}else{
+document.documentElement
+.classList.remove(
+"fullscreenMode"
+);
 
-el.classList.remove(
-"forceFull"
+document.body
+.classList.remove(
+"fullscreenMode"
 );
 
 }
 
-}catch(e){
-
-el.classList.toggle(
-"forceFull"
-);
-
-console.log(
-"fullscreen",
-e
-);
+}catch(e){}
 
 }
 
-}
 
-fsBtn.addEventListener(
-"click",
-toggleFullscreen
-);
+document.getElementById(
+"fullscreenBtn"
+).onclick =
+toggleFullscreen;
+
 
 document.addEventListener(
 "fullscreenchange",
 ()=>{
 
-const on=
+const active =
 !!document.fullscreenElement;
 
-fsBtn.innerHTML=
-'<span class="fsIcon">⛶</span><span>'+
-(
-on
-?
-'EXIT FULL SCREEN'
-:
-'FULL SCREEN'
-)+
-'</span>';
-
-}
+document.documentElement
+.classList.toggle(
+"fullscreenMode",
+active
 );
 
-window.addEventListener(
+document.body
+.classList.toggle(
+"fullscreenMode",
+active
+);
+
+document.getElementById(
+"fullscreenBtn"
+).textContent =
+active
+?
+"✕ EXIT FULL SCREEN"
+:
+"⛶ FULL SCREEN";
+
+});
+
+
+document.addEventListener(
 "keydown",
-e=>{
+(e)=>{
 
-if(
-e.key.toLowerCase()==="f" &&
-!e.ctrlKey &&
-!e.altKey
-){
-
-e.preventDefault();
+if(e.key.toLowerCase()==="f"){
 
 toggleFullscreen();
 
 }
 
+if(e.code==="Space"){
+
+e.preventDefault();
+
+if(playing)
+pauseAudio();
+else
+playAudio();
+
 }
+
+if(e.key==="ArrowRight"){
+
+currentIndex =
+(currentIndex + 1)
+% songs.length;
+
+loadSong(playing);
+
+}
+
+if(e.key==="ArrowLeft"){
+
+currentIndex =
+(currentIndex - 1 + songs.length)
+% songs.length;
+
+loadSong(playing);
+
+}
+
+});
+
+
+function createParticles(){
+
+const box =
+document.getElementById(
+"particles"
 );
 
-function bindSlider(
-id,
-setter,
-valId
+if(!box)
+return;
+
+for(
+let i=0;
+i<42;
+i++
 ){
 
-const el=
-document.getElementById(
-id
+const p =
+document.createElement(
+"span"
 );
 
-const out=
-document.getElementById(
-valId
-);
+p.className =
+"particle";
 
-el.addEventListener(
-"input",
-()=>{
+p.style.left =
+Math.random()*100 +
+"%";
 
-const v=
-Number(
-el.value
-);
+p.style.top =
+Math.random()*100 +
+"%";
 
-setter(v);
+p.style.animationDelay =
+(Math.random()*5) +
+"s";
 
-out.textContent=
-v;
+p.style.animationDuration =
+(3+Math.random()*6) +
+"s";
+
+box.appendChild(p);
 
 }
-);
 
 }
 
-bindSlider(
-"punch",
-v=>punch=v/100,
-"punchVal"
-);
 
-bindSlider(
-"glow",
-v=>glow=v/100,
-"glowVal"
-);
+if(songs.length){
 
-bindSlider(
-"shake",
-v=>shake=v/100,
-"shakeVal"
-);
+loadSong(false);
 
-load(0);
+}else{
+
+document.getElementById(
+"songTitle"
+).textContent =
+"NO MP3 FOUND";
+
+document.getElementById(
+"songArtist"
+).textContent =
+"PUT .MP3 FILES BESIDE app.py";
+
+}
+
+
+createParticles();
+
+stage.classList.add(
+"fx-cyber"
+);
 
 </script>
 
-</body>
-
-</html>
 '''
 
 page = page.replace(
-    "__SONGS__",
-    songs_json
+"__SONGS__",
+json.dumps(
+songs,
+ensure_ascii=False
+)
 )
 
 page = page.replace(
-    "__LOGO__",
-    logo_json
+"__LOGO__",
+json.dumps(
+logo_src,
+ensure_ascii=False
+)
 )
 
 components.html(
-    page,
-    height=980,
-    scrolling=False
+page,
+height=980,
+scrolling=False
 )
