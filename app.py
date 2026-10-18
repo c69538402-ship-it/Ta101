@@ -984,10 +984,3 @@ if __name__ == "__main__":
     )
 
     render_music_player(logo_path="logo1.jpg")
-2. เชื่อมกับ app.py
-
-เพิ่มโค้ดนี้ในไฟล์หลักตรงตำแหน่งที่คุณต้องการให้เครื่องเล่นปรากฏ โดยไม่ต้องลบส่วนอื่นของแอปครับ
-
-from music import render_music_player
-
-render_music_player(logo_path="logo1.jpg")
