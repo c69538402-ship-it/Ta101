@@ -968,11 +968,11 @@ loadTrack(0);
 </html>
 """
 
-    components.html(
+        components.html(
         player_html.replace("__TRACKS__", payload),
         height=1040,
         scrolling=True
-    )
+)
 
 
 # เปิดไฟล์นี้โดยตรงก็ได้
