@@ -1,4 +1,3 @@
-
 # SYNAPSE NEON MUSIC PLAYER
 # Streamlit music player
 # วางไฟล์นี้ไว้โฟลเดอร์เดียวกับ app.py และ logo1.jpg
@@ -213,7 +212,7 @@ def render_music_player(
         left, center, right = st.columns([1, 2, 1])
 
         with center:
-            st.image(str(logo), use_container_width=True)
+            st.image(str(logo), width="stretch")
 
     else:
         st.warning(
