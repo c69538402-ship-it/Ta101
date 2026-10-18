@@ -195,12 +195,13 @@ with col3:
                 0, len(playlist) - 1
             )
         elif st.session_state.play_mode == "เล่นซ้ำเพลงเดียว (Repeat One)":
-            pass  /ก
+            pass  # เล่นเพลงเดิมซ้ำ ไม่ต้องเปลี่ยน index
         else:
             st.session_state.current_index = (
                 st.session_state.current_index + 1
             ) % len(playlist)
         st.rerun()
+        
 
 # หมายเหตุการเชื่อมต่อกับ หน้าหลัก.py
 st.markdown("---")
