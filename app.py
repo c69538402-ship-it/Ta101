@@ -896,4 +896,98 @@ $("toggle").addEventListener("click", () => {
 });
 
 $("prev").addEventListener("click", () => {
-    lo
+    loadTrack(index - 1, true);
+});
+
+$("next").addEventListener("click", nextTrack);
+
+$("restart").addEventListener("click", () => {
+    audio.currentTime = 0;
+    playAudio();
+});
+
+$("pick").addEventListener("change", () => {
+    loadTrack(Number($("pick").value), true);
+});
+
+$("search").addEventListener("input", drawPlaylist);
+
+audio.addEventListener("ended", nextTrack);
+
+audio.addEventListener("timeupdate", () => {
+    if (!seeking && audio.duration > 0) {
+        $("seek").value = Math.round(
+            audio.currentTime / audio.duration * 1000
+        );
+    }
+
+    $("elapsed").textContent = formatTime(audio.currentTime);
+    $("duration").textContent = formatTime(audio.duration);
+});
+
+$("seek").addEventListener("input", () => {
+    seeking = true;
+});
+
+$("seek").addEventListener("change", () => {
+    if (audio.duration > 0) {
+        audio.currentTime =
+            Number($("seek").value) / 1000 * audio.duration;
+    }
+    seeking = false;
+});
+
+$("volume").addEventListener("input", event => {
+    audio.volume = Number(event.target.value) / 100;
+    $("volvalue").textContent = event.target.value + "%";
+});
+
+audio.volume = 0.8;
+
+// ปรับแสงของแผงมิกเซอร์
+["bass", "mid", "treble", "glow"].forEach(id => {
+    $(id).addEventListener("input", event => {
+        $(id + "val").textContent = event.target.value + "%";
+
+        if (id === "glow") {
+            const value = Number(event.target.value) / 100;
+
+            panel.style.boxShadow =
+                "0 0 " + (8 + value * 24) +
+                "px rgba(0,220,255," + (value * 0.35) + ")," +
+                "inset 0 0 28px rgba(140,55,255," +
+                (value * 0.14) + ")";
+        }
+    });
+});
+
+renderPlaylist();
+loadTrack(0);
+</script>
+</body>
+</html>
+"""
+
+    components.html(
+        player_html.replace("__TRACKS__", payload),
+        height=1040,
+        scrolling=True
+    )
+
+
+# เปิดไฟล์นี้โดยตรงก็ได้
+if __name__ == "__main__":
+    st.set_page_config(
+        page_title="SYNAPSE Music Player",
+        page_icon="🎧",
+        layout="wide"
+    )
+
+    render_music_player(logo_path="logo1.jpg")
+2. เชื่อมกับ app.py
+
+เพิ่มโค้ดนี้ในไฟล์หลักตรงตำแหน่งที่คุณต้องการให้เครื่องเล่นปรากฏ โดยไม่ต้องลบส่วนอื่นของแอปครับ
+
+from music import render_music_player
+
+render_music_player(logo_path="logo1.jpg")
