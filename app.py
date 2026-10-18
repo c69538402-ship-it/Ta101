@@ -968,12 +968,10 @@ loadTrack(0);
 </html>
 """
 
-        components.html(
+            st.iframe(
         player_html.replace("__TRACKS__", payload),
         height=1040,
-        scrolling=True
-)
-
+            )
 
 # เปิดไฟล์นี้โดยตรงก็ได้
 if __name__ == "__main__":
