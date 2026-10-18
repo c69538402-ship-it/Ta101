@@ -1,7 +1,3 @@
-# SYNAPSE NEON MUSIC PLAYER
-# Streamlit music player
-# วางไฟล์นี้ไว้โฟลเดอร์เดียวกับ app.py และ logo1.jpg
-
 from pathlib import Path
 import base64
 import html
@@ -98,10 +94,6 @@ def get_track(item):
 
     except Exception:
         return None
-
-from music import render_music_player
-
-render_music_player(logo_path="logo1.jpg")
 
 def find_tracks(songs=None, folder="."):
     """ค้นหาเพลงจากรายการที่ส่งเข้ามาและโฟลเดอร์ใน Repository"""
