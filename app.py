@@ -21,7 +21,6 @@ st.markdown(
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
-    /* กล่องครอบโลโก้และหัวข้อพร้อมแสงนีออน */
     .neon-header {
         text-align: center;
         padding: 20px;
@@ -48,13 +47,11 @@ st.markdown(
         margin-top: 5px;
     }
 
-    /* สไตล์เครื่องเล่นและปุ่มควบคุม */
     .stAudio {
         box-shadow: 0 0 15px rgba(0, 195, 255, 0.4);
         border-radius: 10px;
     }
     
-    /* ปรับแต่ง Sidebar ให้เข้ากับธีม */
     [data-testid="stSidebar"] {
         background-color: #030712;
         border-right: 1px solid rgba(147, 51, 234, 0.3);
@@ -87,35 +84,23 @@ with col_logo2:
         )
     else:
         st.warning(
-            "⚠️ ไม่พบไฟล์ 'logo1.jpg' กรุณานำไฟล์รูปมาไว้ที่โฟลเดอร์เดียวกัน"
+            "⚠️ ไม่พบไฟล์ 'logo1.jpg' กรุณาตรวจสอบชื่อไฟล์ใน GitHub อีกครั้ง"
         )
 
 # ---------------------------------------------------------
-# จำลองการดึงเพลงจากหน้าหลัก.py (หรือไฟล์เพลงในเครื่อง)
+# ดึงรายชื่อไฟล์เพลง .mp3 จากโฟลเดอร์ปัจจุบันโดยอัตโนมัติ
 # ---------------------------------------------------------
-# หมายเหตุ: คุณสามารถปรับเปลี่ยนให้ import ตัวแปรรายชื่อเพลงมาจากหน้าหลัก.py ได้โดยตรง
-# เช่น: from หน้าหลัก import music_list
-try:
-    from หน้าหลัก import music_list  # พยายามดึงจากหน้าหลัก.py
-except ImportError:
-    # หากยังไม่มีไฟล์ หน้าหลัก.py หรือกำลังทดสอบ จะใช้รายการสำรองนี้แทน
-    music_list = {
-        "Synapse Healing Wave.mp3": "เพลงที่ 1: คลื่นเสียงบำบัดรักษาความผ่อนคลาย",
-        "Deep Space Meditation.mp3": "เพลงที่ 2: ดนตรีสมาธิท่องอวกาศนีออน",
-        "Cosmic Energy Recovery.mp3": (
-            "เพลงที่ 3: พลังงานจักรวาลฟื้น 1 ฟูร่างกาย"
-        ),
-    }
-
-# ตรวจสอบว่ามีไฟล์เพลงจริงไหม หรือสร้างรายชื่อจำลองสำหรับการแสดงผล
-playlist = list(music_list.keys())
+playlist = [f for f in os.listdir(".") if f.endswith(".mp3")]
+playlist.sort()  # เรียงลำดับชื่อเพลงตามตัวอักษร
 
 if not playlist:
-    st.error("❌ไม่พบรายชื่อเพลงในระบบ กรุณาตรวจสอบไฟล์ หน้าหลัก.py")
+    st.error(
+        "❌ ไม่พบไฟล์เพลงนามสกุล .mp3 ในโฟลเดอร์ กรุณาอัปโหลดเพลงเข้ามาเพิ่ม"
+    )
     st.stop()
 
 # ---------------------------------------------------------
-# ระบบจัดการสถานะ (Session State) สำหรับควบคุมโหมดการเล่น
+# ระบบจัดการสถานะ (Session State)
 # ---------------------------------------------------------
 if "current_index" not in st.session_state:
     st.session_state.current_index = 0
@@ -123,12 +108,9 @@ if "play_mode" not in st.session_state:
     st.session_state.play_mode = "เล่นต่อเนื่อง (Continuous)"
 
 # ---------------------------------------------------------
-# แผงควบคุมด้านข้าง (Sidebar) สำหรับเลือกโหมดเพลง
+# เมนูด้านข้าง (Sidebar) สำหรับเลือกโหมดและเลือกเพลง
 # ---------------------------------------------------------
-st.sidebar.markdown(
-    "### 🎛️ ควบคุมโหมดการเล่น",
-    help="เลือกรูปแบบการเล่นเพลงที่คุณต้องการ",
-)
+st.sidebar.markdown("### 🎛️ ควบคุมโหมดการเล่น")
 st.session_state.play_mode = st.sidebar.radio(
     "เลือกรูปแบบ:",
     [
@@ -140,39 +122,40 @@ st.session_state.play_mode = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 🎶 รายการเพลงทั้งหมด")
-selected_song_from_list = st.sidebar.selectbox(
-    "เลือกเพลงตรง:",
+st.sidebar.markdown("### 🎶 รายการเพลงทั้งหมดในระบบ")
+
+# เลือกเพลงจากรายชื่อใน Sidebar (ตัดนามสกุล .mp3 ออกเพื่อให้แสดงผลสวยงาม)
+selected_song = st.sidebar.selectbox(
+    "เลือกเพลง:",
     playlist,
-    format_func=lambda x: music_list.get(x, x),
+    format_func=lambda x: x.replace(".mp3", ""),
+    index=st.session_state.current_index,
 )
 
-# อัปเดต index ถ้าผู้ใช้เลือกจาก Sidebar
-if selected_song_from_list != playlist[st.session_state.current_index]:
-    st.session_state.current_index = playlist.index(selected_song_from_list)
+# อัปเดต index ทันทีถ้าผู้ใช้กดเลือกจาก Sidebar
+if selected_song != playlist[st.session_state.current_index]:
+    st.session_state.current_index = playlist.index(selected_song)
 
 # ---------------------------------------------------------
 # ส่วนแสดงผลเครื่องเล่นเพลงหลัก
 # ---------------------------------------------------------
-current_song = playlist[st.session_state.current_index]
-song_title = music_list.get(current_song, current_song)
+current_song_filename = playlist[st.session_state.current_index]
+display_name = current_song_filename.replace(".mp3", "")
 
-st.markdown(f"### 🎧 กำลังเล่น: **{song_title}**")
+st.markdown(f"### 🎧 กำลังเล่น: **{display_name}**")
 st.markdown(
-    f"<p style='color: #00c3ff;'>โหมดปัจจุบัน: {st.session_state.play_mode}</p>",
+    f"<p style='color: #00c3ff;'>โหมดปัจจุบัน: {st.session_state.play_mode} | เพลงที่ {st.session_state.current_index + 1} จาก {len(playlist)}</p>",
     unsafe_allow_html=True,
 )
 
-# ตรวจสอบว่ามีไฟล์เสียงอยู่จริงหรือไม่เพื่อป้องกัน Error
-if os.path.exists(current_song):
-    st.audio(current_song, format="audio/mp3")
+# เล่นไฟล์เสียงผ่าน Streamlit Audio
+if os.path.exists(current_song_filename):
+    st.audio(current_song_filename, format="audio/mp3")
 else:
-    st.info(
-        f"💡 (โหมดจำลอง) ไม่พบไฟล์เสียงจริง `{current_song}` ในเครื่อง แต่ระบบจำลองพร้อมเล่นแล้ว คุณสามารถวางไฟล์ `.mp3` จริงชื่อตรงกันในโฟลเดอร์ได้เลย"
-    )
+    st.error(f"❌ ไม่พบไฟล์เสียง: {current_song_filename}")
 
 # ---------------------------------------------------------
-# ปุ่มควบคุมถัดไป / ก่อนหน้า พร้อมลูกเล่นตามโหมด
+# ปุ่มควบคุม (ก่อนหน้า, สุ่ม, ถัดไป)
 # ---------------------------------------------------------
 col1, col2, col3 = st.columns(3)
 
@@ -195,16 +178,21 @@ with col3:
                 0, len(playlist) - 1
             )
         elif st.session_state.play_mode == "เล่นซ้ำเพลงเดียว (Repeat One)":
-            pass  # เล่นเพลงเดิมซ้ำ ไม่ต้องเปลี่ยน index
-        else:
+            pass  # เล่นเพลงเดิมซ้ำ ไม่เปลี่ยน index
+        elif st.session_state.play_mode == "วนซ้ำทั้งหมด (Loop All)":
             st.session_state.current_index = (
                 st.session_state.current_index + 1
             ) % len(playlist)
+        else:  # เล่นต่อเนื่อง (หยุดเมื่อหมดลิสต์ หรือวนกลับ)
+            if st.session_state.current_index < len(playlist) - 1:
+                st.session_state.current_index += 1
+            else:
+                st.session_state.current_index = (
+                    0  # วนกลับเพลงแรกถ้าจบเพลย์ลิสต์
+                )
         st.rerun()
-        
 
-# หมายเหตุการเชื่อมต่อกับ หน้าหลัก.py
 st.markdown("---")
 st.caption(
-    "💡 **คำแนะนำเพิ่มเติม:** โค้ดนี้ถูกออกแบบให้ดึงตัวแปร `music_list` มาจากไฟล์ `หน้าหลัก.py` โดยอัตโนมัติ หากใน `หน้าหลัก.py` มีการอัปโหลดเพลงใหม่เข้ามา รายชื่อในเครื่องเล่นนี้ก็จะอัปเดตตามทันทีครับ"
-)
+    "💡 โค้ดนี้ดึงไฟล์ `.mp3` และรูป `logo1.jpg` จากโฟลเดอร์หลักใน GitHub ของคุณมาแสดงผลและเล่นเพลงแบบอัตโนมัติเรียบร้อยแล้วครับ"
+    )
