@@ -1,254 +1,162 @@
+
+# ============================================================
 # SYNAPSE NEON MUSIC PLAYER
-# Streamlit music player
-# วางไฟล์นี้ไว้โฟลเดอร์เดียวกับ app.py และ logo1.jpg
+# PART 1 OF 3
+# ============================================================
 
 from pathlib import Path
 import base64
-import html
 import json
 import mimetypes
 
 import streamlit as st
 import streamlit.components.v1 as components
 
+st.set_page_config(
+    page_title="SYNAPSE NEON MUSIC PLAYER",
+    page_icon="🎧",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+BASE_DIR = Path(__file__).resolve().parent
+LOGO_PATH = BASE_DIR / "logo1.jpg"
+
 AUDIO_EXTENSIONS = {
-    ".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"
+    ".mp3", ".wav", ".ogg", ".m4a",
+    ".aac", ".opus", ".flac"
 }
 
 
-def get_track(item):
-    """อ่านเพลงจากไฟล์ใน GitHub, UploadedFile หรือ URL"""
-
-    try:
-        if isinstance(item, dict):
-            title = (
-                item.get("title")
-                or item.get("name")
-                or item.get("ชื่อเพลง")
-                or "เพลงไม่มีชื่อ"
-            )
-
-            url = item.get("url") or item.get("src")
-
-            if url:
-                return {
-                    "title": str(title),
-                    "src": str(url)
-                }
-
-            item = (
-                item.get("path")
-                or item.get("file_path")
-                or item.get("file")
-                or item.get("audio")
-                or item.get("uploaded_file")
-                or item.get("data")
-            )
-
-            if item is None:
-                return None
-
-        if isinstance(item, (str, Path)):
-            path = Path(item)
-
-            if (
-                not path.is_file()
-                or path.suffix.lower() not in AUDIO_EXTENSIONS
-            ):
-                return None
-
-            filename = path.name
-            raw = path.read_bytes()
-
-        elif isinstance(item, (bytes, bytearray)):
-            filename = "เพลง.mp3"
-            raw = bytes(item)
-
-        elif hasattr(item, "getvalue"):
-            filename = getattr(item, "name", "เพลง.mp3")
-            raw = item.getvalue()
-
-        elif hasattr(item, "read"):
-            filename = getattr(item, "name", "เพลง.mp3")
-
-            try:
-                item.seek(0)
-            except Exception:
-                pass
-
-            raw = item.read()
-
-            try:
-                item.seek(0)
-            except Exception:
-                pass
-
-        else:
-            return None
-
-        mime = mimetypes.guess_type(filename)[0] or "audio/mpeg"
-
-        return {
-            "title": Path(filename).stem,
-            "src": (
-                f"data:{mime};base64,"
-                f"{base64.b64encode(raw).decode('ascii')}"
-            )
-        }
-
-    except Exception:
-        return None
+def load_logo():
+    if LOGO_PATH.is_file():
+        mime = mimetypes.guess_type(str(LOGO_PATH))[0] or "image/jpeg"
+        encoded = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
+        return f"data:{mime};base64,{encoded}"
+    return ""
 
 
-def find_tracks(songs=None, folder="."):
-    """ค้นหาเพลงจากรายการที่ส่งเข้ามาและโฟลเดอร์ใน Repository"""
-
-    candidates = []
-
-    if songs is not None:
-        if isinstance(songs, (list, tuple)):
-            candidates.extend(songs)
-        else:
-            candidates.append(songs)
-
-    root = Path(folder)
-    seen_paths = set()
-
-    # ค้นหา MP3 ในโฟลเดอร์หลักและโฟลเดอร์ย่อยที่กำหนด
-    for directory in (
-        root,
-        root / "music",
-        root / "songs",
-        root / "audio"
-    ):
-        if directory.is_dir():
-            for path in sorted(
-                directory.iterdir(),
-                key=lambda p: p.name.casefold()
-            ):
-                if (
-                    path.is_file()
-                    and path.suffix.lower() in AUDIO_EXTENSIONS
-                    and str(path.resolve()) not in seen_paths
-                ):
-                    seen_paths.add(str(path.resolve()))
-                    candidates.append(path)
-
+def load_tracks():
     tracks = []
-    seen_tracks = set()
 
-    for item in candidates:
-        track = get_track(item)
+    for path in sorted(BASE_DIR.iterdir(), key=lambda p: p.name.lower()):
+        if not path.is_file():
+            continue
 
-        if track and track.get("src"):
-            key = (track["title"], len(track["src"]))
+        if path.suffix.lower() not in AUDIO_EXTENSIONS:
+            continue
 
-            if key not in seen_tracks:
-                seen_tracks.add(key)
-                tracks.append(track)
+        try:
+            raw = path.read_bytes()
+            if not raw:
+                continue
+
+            mime = mimetypes.guess_type(path.name)[0] or "audio/mpeg"
+            encoded = base64.b64encode(raw).decode("ascii")
+
+            tracks.append({
+                "title": path.stem,
+                "filename": path.name,
+                "src": f"data:{mime};base64,{encoded}",
+            })
+
+        except OSError:
+            continue
 
     return tracks
 
 
-def render_music_player(
-    songs=None,
-    logo_path="logo1.jpg",
-    title="SYNAPSE",
-    folder="."
-):
-    """แสดงเครื่องเล่นเพลง SYNAPSE ใน Streamlit"""
+tracks = load_tracks()
+logo_src = load_logo()
 
-    st.markdown(
-        """
-        <style>
-        .stApp {
-            background:
-                radial-gradient(
-                    ellipse at 8% 12%,
-                    #00c4ff20, transparent 32%
-                ),
-                radial-gradient(
-                    ellipse at 94% 32%,
-                    #ec00ff1e, transparent 30%
-                ),
-                linear-gradient(
-                    135deg, #030611, #080c20 52%, #090416
-                );
-        }
+st.markdown(
+    """
+    <style>
+    #MainMenu, footer, header, [data-testid="stToolbar"] {
+        visibility: hidden;
+    }
 
-        .synapse-title {
-            text-align: center;
-            font-size: clamp(28px, 5vw, 48px);
-            font-weight: 950;
-            letter-spacing: 3px;
-            color: #fff;
-            text-shadow:
-                0 0 8px #00eaff,
-                0 0 22px #007bff,
-                0 0 38px #e500ff;
-        }
+    .stApp {
+        background:
+            radial-gradient(ellipse at 15% 10%, #241044 0%, transparent 40%),
+            radial-gradient(ellipse at 85% 30%, #003b50 0%, transparent 40%),
+            linear-gradient(145deg, #05030d, #080a19 55%, #10051d);
+        color: #f8f7ff;
+    }
 
-        .synapse-sub {
-            text-align: center;
-            color: #9cfaff;
-            letter-spacing: 3px;
-            font-size: 12px;
-            margin-bottom: 1rem;
-        }
+    [data-testid="stMainBlockContainer"] {
+        max-width: 1100px;
+        padding-top: 1rem;
+    }
 
-        div[data-testid="stImage"] img {
-            filter: drop-shadow(0 0 12px #00d2ff88);
-            border-radius: 18px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
+    h1, h2, h3, p, label {
+        color: #f8f7ff;
+    }
+
+    .synapse-title {
+        text-align: center;
+        font-size: clamp(30px, 6vw, 58px);
+        font-weight: 900;
+        letter-spacing: 7px;
+        color: #ffffff;
+        text-shadow:
+            0 0 8px #00eaff,
+            0 0 20px #00eaff,
+            0 0 45px #9a36ff;
+        margin-bottom: 0;
+    }
+
+    .synapse-subtitle {
+        text-align: center;
+        color: #9dfaff;
+        font-size: 12px;
+        letter-spacing: 4px;
+        margin-bottom: 22px;
+    }
+
+    div[data-testid="stButton"] button {
+        border: 1px solid #00eaff;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #151c38, #24103c);
+        color: white;
+        box-shadow: 0 0 12px #00eaff44;
+        font-weight: bold;
+    }
+
+    div[data-testid="stButton"] button:hover {
+        border-color: #ff38d1;
+        color: white;
+        box-shadow: 0 0 22px #ff38d177;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    '<div class="synapse-title">SYNAPSE</div>'
+    '<div class="synapse-subtitle">'
+    'SOUND & VISUAL THERAPY • NEON AUDIO EXPERIENCE'
+    '</div>',
+    unsafe_allow_html=True,
+)
+
+if not logo_src:
+    st.info("ไม่พบ logo1.jpg กรุณาวางไฟล์ไว้ข้าง app.py")
+
+if not tracks:
+    st.warning(
+        "ไม่พบไฟล์เพลง กรุณาวาง MP3 หรือไฟล์เสียง "
+        "ไว้ในโฟลเดอร์เดียวกับ app.py"
     )
+ 
+# ============================================================
+# PART 2 OF 3 — PLAYER HTML / CSS
+# วางต่อจากช่วงที่ 1 ทันที
+# ============================================================
 
-    # โลโก้
-    logo = Path(logo_path)
-
-    if logo.is_file():
-        left, center, right = st.columns([1, 2, 1])
-
-        with center:
-            st.image(str(logo), width="stretch")
-
-    else:
-        st.warning(
-            f"ไม่พบไฟล์ {logo_path} "
-            "กรุณาวาง logo1.jpg ไว้โฟลเดอร์เดียวกับ app.py"
-        )
-
-    st.markdown(
-        f'<div class="synapse-title">{html.escape(title)}</div>'
-        '<div class="synapse-sub">'
-        'SOUND & VISUAL THERAPY • NEON AUDIO EXPERIENCE'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    # โหลดรายการเพลง
-    tracks = find_tracks(songs=songs, folder=folder)
-
-    if not tracks:
-        st.error(
-            "ยังไม่พบไฟล์เพลง กรุณาวาง MP3 ไว้ในโฟลเดอร์หลัก "
-            "หรือในโฟลเดอร์ music/"
-        )
-
-        st.code(
-            'from music import render_music_player\n'
-            'render_music_player(logo_path="logo1.jpg")',
-            language="python"
-        )
-
-        return
-
-    payload = json.dumps(
-        tracks,
-        ensure_ascii=False
-    ).replace("</", "<\\/")
+if tracks:
+    tracks_json = json.dumps(tracks, ensure_ascii=False)
 
     player_html = r"""
 <!DOCTYPE html>
@@ -256,734 +164,1074 @@ def render_music_player(
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
-:root {
-    color-scheme: dark;
-    --cyan: #00eaff;
-    --pink: #ff22d6;
-    --violet: #863dff;
-}
-
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
     margin: 0;
+    padding: 10px 4px 25px;
     background: transparent;
-    color: #f5f8ff;
-    font-family: Arial, sans-serif;
+    color: #fff;
+    font-family: Arial, Tahoma, sans-serif;
 }
 
-.panel {
-    padding: 18px;
-    border-radius: 24px;
-    border: 1px solid #00eaff9c;
-    background:
-        radial-gradient(ellipse at 0 0, #152c65, transparent 42%),
-        radial-gradient(ellipse at 100% 100%, #3a124e, transparent 45%),
-        linear-gradient(145deg, #030714, #080d20 60%, #100719);
-    box-shadow:
-        0 0 18px #00d9ff36,
-        inset 0 0 28px #8c37ff1b;
+:root {
+    --cyan: #00f5ff;
+    --pink: #ff31d2;
+    --purple: #a64dff;
+    --green: #5dffbd;
+}
+
+.player {
+    max-width: 1050px;
+    margin: auto;
+    padding: 20px;
     overflow: hidden;
+    border: 1px solid #00eaff88;
+    border-radius: 26px;
+    background:
+        radial-gradient(ellipse at 50% 0%, #25205a99, transparent 55%),
+        linear-gradient(145deg, #090d20, #100a21 65%, #071522);
+    box-shadow: 0 0 22px #00eaff22, inset 0 0 45px #6d31ff12;
 }
 
-.top {
+.topbar {
     display: flex;
     align-items: center;
-    gap: 9px;
-    margin-bottom: 15px;
-}
-
-.live {
-    width: 10px;
-    height: 10px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: #67ffbd;
-    box-shadow: 0 0 12px #67ffbd;
-    animation: blink 1.3s infinite alternate;
-}
-
-@keyframes blink {
-    to { opacity: .35; }
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #ffffff18;
+    padding-bottom: 14px;
 }
 
 .brand {
-    color: #9afaff;
-    font-size: 11px;
-    letter-spacing: 2px;
-    font-weight: 900;
-}
-
-.status {
-    margin-left: auto;
-    color: #aab8d9;
-    font-size: 10px;
-}
-
-.layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 15px;
-}
-
-.nowbox {
-    padding: 15px;
-    border: 1px solid #863dff88;
-    border-radius: 18px;
-    background: #080b1bc9;
-    box-shadow: inset 0 0 18px #5b2aff16;
-}
-
-.eyebrow {
-    color: #ff82eb;
-    font-size: 10px;
-    letter-spacing: 2px;
-    margin-bottom: 8px;
-}
-
-.song {
-    color: white;
-    font-size: clamp(19px, 4vw, 27px);
-    font-weight: 900;
-    line-height: 1.4;
-    overflow-wrap: anywhere;
-    text-shadow: 0 0 8px #00dfff, 0 0 20px #743aff;
-}
-
-.subline {
-    text-align: center;
-    color: #9cadd2;
-    font-size: 11px;
-    margin-top: 7px;
-}
-
-.visual {
-    height: 90px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 4px;
-    margin: 12px 0;
+    gap: 12px;
 }
 
-.bar {
-    width: 4px;
-    height: var(--h);
-    max-height: 78px;
-    border-radius: 8px;
-    background: linear-gradient(
-        0deg, #783bff, #00f0ff, #ff32d7
+.logo, .logo-placeholder {
+    width: 66px;
+    height: 66px;
+    object-fit: cover;
+    border-radius: 17px;
+    border: 1px solid var(--cyan);
+    box-shadow: 0 0 15px #00eaff88, 0 0 28px #a64dff55;
+}
+
+.logo-placeholder {
+    display: grid;
+    place-items: center;
+    font-size: 34px;
+}
+
+.brand-name {
+    font-size: 19px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-shadow: 0 0 12px var(--cyan);
+}
+
+.brand-desc {
+    margin-top: 5px;
+    color: #9ba9d7;
+    font-size: 10px;
+    letter-spacing: 2px;
+}
+
+.live {
+    color: var(--green);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px var(--green);
+}
+
+.visual-area {
+    margin: 18px 0;
+    padding: 12px;
+    border: 1px solid #ffffff12;
+    border-radius: 20px;
+    background: #03061188;
+    overflow: hidden;
+}
+
+.visual-top, .visual-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    color: #9ca8cf;
+    font-size: 10px;
+    letter-spacing: 1px;
+}
+
+#visualizer {
+    width: 100%;
+    height: 145px;
+    display: block;
+}
+
+.main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+}
+
+.panel {
+    padding: 16px;
+    border: 1px solid #a64dff55;
+    border-radius: 20px;
+    background: rgba(13, 16, 39, .92);
+    min-width: 0;
+    box-shadow: inset 0 0 25px #a64dff09;
+}
+
+.panel-heading {
+    color: var(--cyan);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+}
+
+.deck {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.vinyl-wrap {
+    width: min(64vw, 235px);
+    aspect-ratio: 1;
+    position: relative;
+    display: grid;
+    place-items: center;
+    margin: 5px auto 20px;
+}
+
+.vinyl {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: repeating-radial-gradient(
+        circle at center,
+        #11131b 0px,
+        #242638 2px,
+        #080a11 4px,
+        #171a28 6px
     );
-    box-shadow: 0 0 10px #00dfff;
-    animation: beat var(--speed) ease-in-out infinite alternate;
+    border: 2px solid #4a4565;
+    box-shadow: inset 0 0 25px #000, 0 0 20px #00eaff20;
+    position: relative;
+    animation: spin 5s linear infinite;
     animation-play-state: paused;
 }
 
-.playing .bar {
-    animation-play-state: running;
+.vinyl.playing { animation-play-state: running; }
+
+.vinyl::before {
+    content: "";
+    position: absolute;
+    inset: 10%;
+    border-radius: 50%;
+    border: 1px solid #ffffff12;
+    box-shadow: 0 0 0 10px #ffffff04, 0 0 0 22px #ffffff04;
 }
 
-@keyframes beat {
-    from {
-        transform: scaleY(.22);
-        opacity: .5;
-    }
-    to {
-        transform: scaleY(1);
-        opacity: 1;
-    }
+.vinyl-label {
+    position: absolute;
+    width: 34%;
+    aspect-ratio: 1;
+    top: 33%;
+    left: 33%;
+    border-radius: 50%;
+    background: conic-gradient(#00eaff, #8b37ff, #ff31d2, #00eaff);
+    border: 4px solid #0c0d18;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
 }
 
-.seek {
+.vinyl-label img {
     width: 100%;
-    accent-color: #00eaff;
-    cursor: pointer;
+    height: 100%;
+    object-fit: cover;
 }
 
-.times {
+.vinyl-hole {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #f5f5ff;
+    box-shadow: 0 0 8px white;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.track-title {
+    width: 100%;
+    text-align: center;
+    font-size: clamp(15px, 2.5vw, 21px);
+    font-weight: 800;
+    overflow-wrap: anywhere;
+    text-shadow: 0 0 12px #00eaff66;
+    margin: 3px 0 5px;
+}
+
+.track-subtitle {
+    text-align: center;
+    color: #929fc7;
+    font-size: 11px;
+    margin-bottom: 14px;
+}
+
+.progress { width: 100%; }
+
+.time-row {
     display: flex;
     justify-content: space-between;
-    color: #9badd2;
     font-size: 11px;
-    margin-top: 5px;
+    color: #b7c4eb;
+    margin: 7px 0;
+}
+
+input[type=range] {
+    width: 100%;
+    accent-color: var(--cyan);
+    cursor: pointer;
 }
 
 .controls {
     display: flex;
+    align-items: center;
     justify-content: center;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin: 16px 0;
-}
-
-button {
-    cursor: pointer;
-    color: white;
-    border: 1px solid #00eaff9c;
-    background: linear-gradient(135deg, #101a3a, #16102d);
-    border-radius: 14px;
-    padding: 10px 13px;
-    transition: .2s;
-}
-
-button:hover {
-    border-color: #ff27d8;
-    box-shadow: 0 0 17px #ff27d855;
-    transform: translateY(-1px);
-}
-
-.mainbtn {
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
-    font-size: 22px;
-    background: linear-gradient(
-        135deg, #00cfff, #763dff 60%, #ed28d5
-    );
-    box-shadow: 0 0 18px #00cfff77;
-}
-
-.opts {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
-label {
-    display: block;
-    color: #9badd2;
-    font-size: 10px;
-    margin-bottom: 6px;
-}
-
-select {
-    width: 100%;
-    padding: 10px;
-    color: white;
-    background: #0c1430;
-    border: 1px solid #00dfff86;
-    border-radius: 12px;
-}
-
-.vol {
-    display: flex;
-    align-items: center;
     gap: 9px;
-    margin: 14px 0;
-    color: #aab9d8;
-    font-size: 12px;
+    margin: 16px 0 10px;
+    flex-wrap: wrap;
 }
 
-.vol input {
-    flex: 1;
-    accent-color: #ff27d8;
-}
-
-.listhead {
-    display: flex;
-    justify-content: space-between;
-    color: #91faff;
-    font-weight: 900;
-    font-size: 11px;
-    letter-spacing: 2px;
-    margin: 17px 0 8px;
-}
-
-.search {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid #753fff9c;
-    background: #080d20;
+.ctrl {
+    min-width: 40px;
+    height: 40px;
+    border-radius: 13px;
+    border: 1px solid #a64dff88;
     color: white;
-    margin-bottom: 9px;
+    background: #15152e;
+    cursor: pointer;
+    font-size: 17px;
 }
 
-.playlist {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 230px;
-    overflow-y: auto;
+.ctrl:hover, .ctrl.active {
+    border-color: var(--cyan);
+    box-shadow: 0 0 15px #00eaff66;
+    color: var(--cyan);
 }
 
-.track {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    text-align: left;
-    padding: 10px;
-    border: 1px solid #243259;
-    background: #080e22;
-    border-radius: 11px;
+.ctrl.play {
+    width: 58px;
+    height: 52px;
+    border-color: var(--cyan);
+    background: linear-gradient(135deg, #07566c, #64268c);
+    font-size: 22px;
+    box-shadow: 0 0 20px #00eaff44;
 }
 
-.track.active {
-    border-color: #ff2bd6;
-    background: #21113b;
-    box-shadow: 0 0 13px #ff27d52c;
-}
-
-.num {
-    min-width: 23px;
-    color: #00eaff;
-    font-size: 11px;
-}
-
-.trackname {
-    flex: 1;
-    overflow-wrap: anywhere;
-    font-size: 12px;
-}
-
-.playingtag {
-    font-size: 9px;
-    color: #ff7ce8;
-}
-
-.mixer {
-    border: 1px solid #ff29d580;
-    border-radius: 17px;
-    padding: 14px;
-    margin-top: 14px;
-    background: linear-gradient(120deg, #0a1024, #130a26);
-    box-shadow: inset 0 0 20px #ff22d610;
-}
-
-.mixhead {
-    color: #ff8bf0;
-    letter-spacing: 3px;
-    font-weight: 900;
-    font-size: 12px;
+.mode-label {
+    text-align: center;
+    color: #9dfaff;
+    font-size: 10px;
+    letter-spacing: 1px;
     margin-bottom: 12px;
 }
 
-.mixgrid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-}
+.eq-row { margin: 16px 0; }
 
-.mixitem {
-    text-align: center;
-    color: #aebcdb;
-    font-size: 10px;
-}
-
-.mixitem input {
-    width: 100%;
-    accent-color: #ff29d8;
-}
-
-.mixval {
-    color: #8cfaff;
-    font-size: 10px;
-}
-
-.speakerrow {
+.eq-head {
     display: flex;
     justify-content: space-between;
-    margin-top: 12px;
-    color: #8cfaff;
+    gap: 8px;
     font-size: 12px;
+    margin-bottom: 7px;
 }
 
-.note {
+.eq-value { color: var(--cyan); }
+
+.speaker-row {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 0 4px;
+}
+
+.speaker {
+    width: 64px;
+    height: 98px;
+    border-radius: 15px;
+    border: 1px solid #a64dff88;
+    background: linear-gradient(145deg, #18182b, #090b17);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    box-shadow: 0 0 15px #a64dff22;
+}
+
+.speaker-cone {
+    border: 3px solid #00eaff;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #a64dff, #10101d 65%);
+    box-shadow: 0 0 12px #00eaff66;
+    animation: pulse 1.3s ease-in-out infinite alternate;
+}
+
+.speaker-small {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #ff31d2;
+    box-shadow: 0 0 10px #ff31d266;
+}
+
+.speaker-label {
+    color: #a2afd7;
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+
+@keyframes pulse {
+    from { transform: scale(.92); }
+    to { transform: scale(1.04); }
+}
+
+.playlist { margin-top: 16px; }
+
+.playlist-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: #9ca9d4;
+    font-size: 11px;
+    margin-bottom: 10px;
+}
+
+.track-list {
+    max-height: 230px;
+    overflow-y: auto;
+    scrollbar-color: #7138ac #0c1020;
+    scrollbar-width: thin;
+}
+
+.track-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 10px;
+    margin-bottom: 6px;
+    text-align: left;
+    color: #dbe2ff;
+    background: #ffffff05;
+    border: 1px solid #ffffff12;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.track-item:hover {
+    border-color: #00eaff66;
+    background: #00eaff0b;
+}
+
+.track-item.selected {
+    border-color: #00eaffaa;
+    background: linear-gradient(90deg, #00eaff14, #a64dff18);
+    box-shadow: inset 3px 0 #00eaff;
+}
+
+.track-number { color: #8b9ac7; min-width: 22px; font-size: 10px; }
+.track-name { flex: 1; }
+.track-status { color: #00eaff; font-size: 10px; }
+
+#notice {
+    color: #ffbbeb;
+    font-size: 11px;
+    min-height: 16px;
+    margin-top: 6px;
+}
+
+.bottom-line {
     text-align: center;
-    color: #667ba6;
+    color: #6e7ca7;
     font-size: 10px;
-    margin-top: 14px;
+    letter-spacing: 2px;
+    margin-top: 18px;
 }
 
-@media (min-width: 650px) {
-    .layout {
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
-    }
-}
-
-@media (max-width: 420px) {
-    .panel { padding: 12px; }
-    .opts { grid-template-columns: 1fr; }
-    .controls { gap: 7px; }
-    .mixgrid { gap: 5px; }
+@media (max-width: 600px) {
+    .player { padding: 12px; border-radius: 20px; }
+    .main-grid { grid-template-columns: 1fr; }
+    .panel { padding: 13px; }
+    .logo, .logo-placeholder { width: 54px; height: 54px; }
+    .brand-name { font-size: 16px; }
+    #visualizer { height: 115px; }
 }
 </style>
 </head>
 
 <body>
-<div class="panel" id="panel">
-<div class="top">
-    <span class="live"></span>
-    <span class="brand">SYNAPSE • SOUND & VISUAL THERAPY</span>
-    <span class="status" id="status">READY</span>
+<div class="player" id="player">
+
+    <div class="topbar">
+        <div class="brand">
+            <div id="logoBox"></div>
+            <div>
+                <div class="brand-name">SYNAPSE</div>
+                <div class="brand-desc">NEON AUDIO EXPERIENCE</div>
+            </div>
+        </div>
+        <div class="live">● AUDIO SYSTEM ONLINE</div>
+    </div>
+
+    <div class="visual-area">
+        <div class="visual-top">
+            <span>LIVE AUDIO SPECTRUM</span>
+            <span id="visualStatus">READY TO PLAY</span>
+        </div>
+        <canvas id="visualizer"></canvas>
+        <div class="visual-bottom">
+            <span>LOW FREQUENCY</span>
+            <span>REAL-TIME WAVEFORM</span>
+            <span>HIGH FREQUENCY</span>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <div class="panel">
+            <div class="panel-heading">◉ TURNTABLE / NOW PLAYING</div>
+
+            <div class="deck">
+                <div class="vinyl-wrap">
+                    <div class="vinyl" id="vinyl">
+                        <div class="vinyl-label" id="vinylLabel">
+                            <div class="vinyl-hole"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-title" id="trackTitle">เตรียมเพลง...</div>
+                <div class="track-subtitle" id="trackSubtitle">SYNAPSE NEON PLAYER</div>
+
+                <audio id="audio" preload="metadata"></audio>
+
+                <div class="progress">
+                    <input id="seek" type="range" min="0" max="1000" value="0">
+                    <div class="time-row">
+                        <span id="currentTime">00:00</span>
+                        <span id="duration">00:00</span>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="ctrl" id="shuffleBtn" title="สุ่มเพลง">🔀</button>
+                    <button class="ctrl" id="prevBtn" title="เพลงก่อนหน้า">⏮</button>
+                    <button class="ctrl play" id="playBtn" title="เล่น/หยุด">▶</button>
+                    <button class="ctrl" id="nextBtn" title="เพลงถัดไป">⏭</button>
+                    <button class="ctrl" id="modeBtn" title="โหมดเล่น">🔁</button>
+                </div>
+
+                <div class="mode-label" id="modeLabel">โหมดเล่นต่อเนื่อง</div>
+
+                <div class="eq-row">
+                    <div class="eq-head">
+                        <span>🔊 MASTER VOLUME</span>
+                        <span class="eq-value" id="volumeVal">75%</span>
+                    </div>
+                    <input id="volume" type="range" min="0" max="100" value="75">
+                </div>
+
+                <div class="speaker-row">
+                    <div class="speaker">
+                        <div class="speaker-small"></div>
+                        <div class="speaker-cone"></div>
+                        <div class="speaker-label">LEFT</div>
+                    </div>
+                    <div style="text-align:center">
+                        <div style="font-size:35px;filter:drop-shadow(0 0 12px #00eaff)">🎧</div>
+                        <div style="font-size:10px;color:#9ca9d4;letter-spacing:2px">STEREO</div>
+                    </div>
+                    <div class="speaker">
+                        <div class="speaker-small"></div>
+                        <div class="speaker-cone"></div>
+                        <div class="speaker-label">RIGHT</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" id="mixerPanel">
+            <div class="panel-heading">✦ NEON AUDIO MIXER</div>
+
+            <div class="eq-row">
+                <div class="eq-head">
+                    <span>🔴 BASS / เสียงทุ้ม</span>
+                    <span class="eq-value" id="bassVal">0 dB</span>
+                </div>
+                <input id="bass" type="range" min="-12" max="12" value="0">
+            </div>
+
+            <div class="eq-row">
+                <div class="eq-head">
+                    <span>🟣 MID / เสียงกลาง</span>
+                    <span class="eq-value" id="midVal">0 dB</span>
+                </div>
+                <input id="mid" type="range" min="-12" max="12" value="0">
+            </div>
+
+            <div class="eq-row">
+                <div class="eq-head">
+                    <span>🔵 TREBLE / เสียงแหลม</span>
+                    <span class="eq-value" id="trebleVal">0 dB</span>
+                </div>
+                <input id="treble" type="range" min="-12" max="12" value="0">
+            </div>
+
+            <div class="eq-row">
+                <div class="eq-head">
+                    <span>✨ NEON GLOW / แสง</span>
+                    <span class="eq-value" id="glowVal">65%</span>
+                </div>
+                <input id="glow" type="range" min="0" max="100" value="65">
+            </div>
+
+            <div class="eq-row">
+                <div class="eq-head">
+                    <span>🌈 WAVE COLOR / สีกราฟ</span>
+                    <span class="eq-value" id="colorVal">NEON</span>
+                </div>
+                <input id="color" type="range" min="0" max="100" value="50">
+            </div>
+
+            <div class="panel-heading" style="margin-top:25px">◈ PLAYLIST / คลังเพลง</div>
+            <div class="playlist-head">
+                <span id="songCount">0 TRACKS</span>
+                <span>LOCAL MUSIC LIBRARY</span>
+            </div>
+
+            <div class="track-list" id="trackList"></div>
+            <div id="notice"></div>
+
+            <button class="ctrl" id="fullscreenBtn"
+                style="width:100%;margin-top:12px;font-size:12px">
+                ⛶ FULL SCREEN / เต็มหน้าจอ
+            </button>
+        </div>
+    </div>
+
+    <div class="bottom-line">
+        SYNAPSE • SOUND IS ENERGY • FEEL THE FREQUENCY
+    </div>
 </div>
+""" 
 
-<div class="layout">
+# ============================================================
+# PART 3 OF 3 — JAVASCRIPT + START PLAYER
+# วางต่อจากช่วงที่ 2 ทันที
+# ============================================================
 
-<section class="nowbox">
-    <div class="eyebrow">♫ NOW PLAYING / กำลังเล่น</div>
-    <div class="song" id="songTitle">เตรียมเพลง...</div>
-    <div class="subline" id="counter"></div>
-
-    <div class="visual" id="visual"></div>
-    <audio id="audio" preload="metadata"></audio>
-
-    <input class="seek" id="seek" type="range"
-           min="0" max="1000" value="0">
-
-    <div class="times">
-        <span id="elapsed">0:00</span>
-        <span id="duration">0:00</span>
-    </div>
-
-    <div class="controls">
-        <button id="prev" title="เพลงก่อนหน้า">⏮</button>
-        <button class="mainbtn" id="toggle" title="เล่น/หยุด">▶</button>
-        <button id="next" title="เพลงถัดไป">⏭</button>
-        <button id="restart" title="เริ่มเพลงนี้ใหม่">↻</button>
-    </div>
-
-    <div class="opts">
-        <div>
-            <label for="mode">PLAY MODE • โหมดเล่น</label>
-            <select id="mode">
-                <option value="continuous">▶ ต่อเนื่องตามลำดับ</option>
-                <option value="shuffle">🔀 สุ่มเพลงต่อเนื่อง</option>
-                <option value="single">■ เพลงเดียวแล้วหยุด</option>
-                <option value="repeat">🔁 วนเพลงเดิม</option>
-            </select>
-        </div>
-        <div>
-            <label for="pick">SELECT TRACK • เลือกเพลง</label>
-            <select id="pick"></select>
-        </div>
-    </div>
-
-    <div class="vol">
-        <span>🔊</span>
-        <span>VOLUME</span>
-        <input id="volume" type="range" min="0" max="100" value="80">
-        <span id="volvalue">80%</span>
-    </div>
-</section>
-
-<section>
-    <div class="listhead">
-        <span>♫ PLAYLIST</span>
-        <span id="total"></span>
-    </div>
-
-    <input class="search" id="search"
-           placeholder="⌕ ค้นหาชื่อเพลง..." autocomplete="off">
-
-    <div class="playlist" id="playlist"></div>
-
-    <div class="mixer">
-        <div class="mixhead">〰 NEON MIXER</div>
-        <div class="mixgrid">
-            <div class="mixitem">
-                BASS
-                <input id="bass" type="range" min="0" max="100" value="65">
-                <div class="mixval" id="bassval">65%</div>
-            </div>
-            <div class="mixitem">
-                MID
-                <input id="mid" type="range" min="0" max="100" value="50">
-                <div class="mixval" id="midval">50%</div>
-            </div>
-            <div class="mixitem">
-                TREBLE
-                <input id="treble" type="range" min="0" max="100" value="75">
-                <div class="mixval" id="trebleval">75%</div>
-            </div>
-            <div class="mixitem">
-                GLOW
-                <input id="glow" type="range" min="0" max="100" value="80">
-                <div class="mixval" id="glowval">80%</div>
-            </div>
-        </div>
-        <div class="speakerrow">
-            <span>🔊 SPEAKER MODE</span>
-            <span id="speakerstate">NEON ON</span>
-        </div>
-    </div>
-</section>
-
-</div>
-<div class="note">NEON AUDIO EXPERIENCE • เลือกเพลงแล้วกด ▶ เพื่อเริ่มฟัง</div>
-</div>
-
+    player_html += r"""
 <script>
-const tracks = __TRACKS__;
+const TRACKS = __TRACKS_JSON__;
+const LOGO_SRC = __LOGO_SRC__;
+
 const $ = id => document.getElementById(id);
 const audio = $("audio");
-const panel = $("panel");
+const vinyl = $("vinyl");
+const player = $("player");
+const canvas = $("visualizer");
+const ctx = canvas.getContext("2d");
 
-let index = 0;
-let seeking = false;
+let currentIndex = 0;
+let mode = "all";
+let isSeeking = false;
+let audioContext = null;
+let analyser = null;
+let sourceNode = null;
+let bassFilter = null;
+let midFilter = null;
+let trebleFilter = null;
+let frequencyData = null;
+let timeData = null;
+let colorShift = 0;
 
-// สร้างกราฟเสียงหลากสี
-for (let i = 0; i < 43; i++) {
-    const bar = document.createElement("span");
-    bar.className = "bar";
-    bar.style.setProperty(
-        "--h",
-        (8 + Math.abs(Math.sin(i * 1.55)) * 70) + "px"
-    );
-    bar.style.setProperty("--speed", (0.25 + (i % 9) * 0.075) + "s");
-    bar.style.animationDelay = (-i * 0.05) + "s";
-    $("visual").appendChild(bar);
+const modes = [
+    {id: "all", label: "โหมดเล่นต่อเนื่อง", icon: "🔁"},
+    {id: "shuffle", label: "โหมดสุ่มเพลง", icon: "🔀"},
+    {id: "one", label: "โหมดวนเพลงเดียว", icon: "🔂"}
+];
+
+function setupLogo() {
+    const box = $("logoBox");
+
+    if (LOGO_SRC) {
+        const img = document.createElement("img");
+        img.className = "logo";
+        img.src = LOGO_SRC;
+        img.alt = "SYNAPSE logo";
+        box.appendChild(img);
+
+        const labelImg = img.cloneNode();
+        $("vinylLabel").prepend(labelImg);
+        labelImg.style.cssText =
+            "width:100%;height:100%;object-fit:cover;border-radius:50%;";
+    } else {
+        box.innerHTML = '<div class="logo-placeholder">🎧</div>';
+        $("vinylLabel").textContent = "S";
+    }
 }
 
-function formatTime(value) {
-    if (!Number.isFinite(value) || value < 0) return "0:00";
-    return Math.floor(value / 60) + ":" +
-        String(Math.floor(value % 60)).padStart(2, "0");
+function formatTime(seconds) {
+    if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return String(mins).padStart(2, "0") + ":" +
+        String(secs).padStart(2, "0");
 }
 
-function setStatus(value) {
-    $("status").textContent = value;
+function showNotice(message) {
+    $("notice").textContent = message;
 }
 
 function renderPlaylist() {
-    $("pick").innerHTML = "";
+    const list = $("trackList");
+    list.innerHTML = "";
+    $("songCount").textContent = TRACKS.length + " TRACKS";
 
-    tracks.forEach((track, i) => {
-        const option = document.createElement("option");
-        option.value = i;
-        option.textContent = (i + 1) + ". " + track.title;
-        $("pick").appendChild(option);
-    });
-
-    $("total").textContent = tracks.length + " TRACKS";
-    drawPlaylist();
-}
-
-function drawPlaylist() {
-    const query = $("search").value.trim().toLocaleLowerCase();
-    $("playlist").innerHTML = "";
-
-    tracks.forEach((track, i) => {
-        if (!track.title.toLocaleLowerCase().includes(query)) return;
-
+    TRACKS.forEach((track, index) => {
         const button = document.createElement("button");
-        button.className = "track" + (i === index ? " active" : "");
+        button.className = "track-item" +
+            (index === currentIndex ? " selected" : "");
+        button.type = "button";
 
         const number = document.createElement("span");
-        number.className = "num";
-        number.textContent = String(i + 1).padStart(2, "0");
+        number.className = "track-number";
+        number.textContent = String(index + 1).padStart(2, "0");
 
         const name = document.createElement("span");
-        name.className = "trackname";
+        name.className = "track-name";
         name.textContent = track.title;
 
-        const tag = document.createElement("span");
-        tag.className = "playingtag";
-        tag.textContent = i === index ? "NOW PLAYING" : "▶";
+        const status = document.createElement("span");
+        status.className = "track-status";
+        status.textContent =
+            index === currentIndex && !audio.paused ? "▶" : "♫";
 
-        button.append(number, name, tag);
-        button.addEventListener("click", () => {
-            loadTrack(i);
-            playAudio();
-        });
-
-        $("playlist").appendChild(button);
+        button.append(number, name, status);
+        button.addEventListener("click", () => loadTrack(index, true));
+        list.appendChild(button);
     });
 }
 
-function loadTrack(i, autoplay = false) {
-    if (!tracks.length) return;
+function initAudioGraph() {
+    if (audioContext) {
+        if (audioContext.state === "suspended") audioContext.resume();
+        return;
+    }
 
-    index = (i + tracks.length) % tracks.length;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+        showNotice("เบราว์เซอร์นี้ไม่รองรับ EQ");
+        return;
+    }
 
-    audio.src = tracks[index].src;
+    try {
+        audioContext = new AudioContextClass();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.78;
+
+        bassFilter = audioContext.createBiquadFilter();
+        bassFilter.type = "lowshelf";
+        bassFilter.frequency.value = 250;
+
+        midFilter = audioContext.createBiquadFilter();
+        midFilter.type = "peaking";
+        midFilter.frequency.value = 1000;
+        midFilter.Q.value = 0.8;
+
+        trebleFilter = audioContext.createBiquadFilter();
+        trebleFilter.type = "highshelf";
+        trebleFilter.frequency.value = 3500;
+
+        sourceNode = audioContext.createMediaElementSource(audio);
+        sourceNode.connect(bassFilter);
+        bassFilter.connect(midFilter);
+        midFilter.connect(trebleFilter);
+        trebleFilter.connect(analyser);
+        analyser.connect(audioContext.destination);
+
+        frequencyData = new Uint8Array(analyser.frequencyBinCount);
+        timeData = new Uint8Array(analyser.fftSize);
+        showNotice("");
+    } catch (error) {
+        showNotice("เริ่มระบบ EQ ไม่สำเร็จ");
+    }
+}
+
+function loadTrack(index, autoplay = false) {
+    if (!TRACKS.length) return;
+
+    currentIndex = (index + TRACKS.length) % TRACKS.length;
+    audio.src = TRACKS[currentIndex].src;
     audio.load();
 
-    $("songTitle").textContent = tracks[index].title;
-    $("counter").textContent =
-        "TRACK " + (index + 1) + " / " + tracks.length;
+    $("trackTitle").textContent = TRACKS[currentIndex].title;
+    $("trackSubtitle").textContent =
+        "TRACK " + String(currentIndex + 1).padStart(2, "0") +
+        " / " + String(TRACKS.length).padStart(2, "0");
 
-    $("pick").value = String(index);
+    $("currentTime").textContent = "00:00";
+    $("duration").textContent = "00:00";
     $("seek").value = 0;
-    $("elapsed").textContent = "0:00";
-    $("duration").textContent = "0:00";
 
-    drawPlaylist();
+    renderPlaylist();
 
     if (autoplay) {
-        playAudio();
+        initAudioGraph();
+        audio.play().then(updatePlayState).catch(() => {
+            showNotice("แตะปุ่มเล่นอีกครั้งเพื่อเริ่มเสียงเพลง");
+            updatePlayState();
+        });
     } else {
-        setStatus("READY");
-        $("toggle").textContent = "▶";
-        panel.classList.remove("playing");
+        updatePlayState();
     }
 }
 
-async function playAudio() {
-    try {
-        await audio.play();
-        $("toggle").textContent = "Ⅱ";
-        setStatus("PLAYING");
-        panel.classList.add("playing");
-    } catch (error) {
-        setStatus("กด ▶ เพื่อเล่น");
-        $("toggle").textContent = "▶";
-    }
+function updatePlayState() {
+    const playing = !audio.paused;
+
+    $("playBtn").textContent = playing ? "❚❚" : "▶";
+    $("visualStatus").textContent = playing
+        ? "● PLAYING LIVE" : "READY / PAUSED";
+
+    vinyl.classList.toggle("playing", playing);
+    renderPlaylist();
+
+    $("shuffleBtn").classList.toggle("active", mode === "shuffle");
+    $("modeBtn").classList.toggle("active", mode === "one");
+
+    const currentMode = modes.find(m => m.id === mode) || modes[0];
+    $("modeBtn").textContent = currentMode.icon;
+    $("modeLabel").textContent = currentMode.label;
 }
 
-function pauseAudio() {
-    audio.pause();
-    $("toggle").textContent = "▶";
-    setStatus("PAUSED");
-    panel.classList.remove("playing");
+function playAudio() {
+    initAudioGraph();
+
+    if (audioContext && audioContext.state === "suspended") {
+        audioContext.resume();
+    }
+
+    if (audio.paused) {
+        audio.play().then(updatePlayState).catch(() => {
+            showNotice("เล่นเพลงไม่ได้ กรุณาลองเลือกเพลงใหม่");
+        });
+    } else {
+        audio.pause();
+        updatePlayState();
+    }
 }
 
 function nextTrack() {
-    const mode = $("mode").value;
-
-    if (mode === "single") {
-        audio.pause();
-        audio.currentTime = 0;
-        $("seek").value = 0;
-        $("toggle").textContent = "▶";
-        setStatus("FINISHED");
-        panel.classList.remove("playing");
-        return;
-    }
-
-    if (mode === "repeat") {
-        audio.currentTime = 0;
-        playAudio();
-        return;
-    }
-
-    let next = index;
-
-    if (mode === "shuffle" && tracks.length > 1) {
-        do {
-            next = Math.floor(Math.random() * tracks.length);
-        } while (next === index);
-    } else {
-        next = index + 1;
-    }
-
-    if (next >= tracks.length) {
-        if (mode === "continuous") {
-            next = 0;
-        } else {
-            audio.pause();
-            audio.currentTime = 0;
-            setStatus("PLAYLIST END");
-            panel.classList.remove("playing");
-            return;
+    if (mode === "shuffle" && TRACKS.length > 1) {
+        let next = currentIndex;
+        while (next === currentIndex) {
+            next = Math.floor(Math.random() * TRACKS.length);
         }
+        loadTrack(next, true);
+    } else {
+        loadTrack(currentIndex + 1, true);
     }
-
-    loadTrack(next, true);
 }
 
-// ปุ่มควบคุมเพลง
-$("toggle").addEventListener("click", () => {
-    if (audio.paused) playAudio();
-    else pauseAudio();
-});
+function previousTrack() {
+    if (audio.currentTime > 3) {
+        audio.currentTime = 0;
+    } else if (mode === "shuffle" && TRACKS.length > 1) {
+        let prev = currentIndex;
+        while (prev === currentIndex) {
+            prev = Math.floor(Math.random() * TRACKS.length);
+        }
+        loadTrack(prev, true);
+    } else {
+        loadTrack(currentIndex - 1, true);
+    }
+}
 
-$("prev").addEventListener("click", () => {
-    loadTrack(index - 1, true);
-});
+function onTrackEnded() {
+    if (mode === "one") {
+        audio.currentTime = 0;
+        audio.play().catch(updatePlayState);
+    } else if (mode === "shuffle" && TRACKS.length > 1) {
+        nextTrack();
+    } else if (currentIndex < TRACKS.length - 1) {
+        loadTrack(currentIndex + 1, true);
+    } else {
+        loadTrack(0, false);
+    }
+}
 
-$("next").addEventListener("click", nextTrack);
+function drawVisualizer() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.max(1, rect.width);
+    const height = Math.max(1, rect.height);
 
-$("restart").addEventListener("click", () => {
-    audio.currentTime = 0;
-    playAudio();
-});
+    if (canvas.width !== Math.floor(width * dpr) ||
+        canvas.height !== Math.floor(height * dpr)) {
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+    }
 
-$("pick").addEventListener("change", () => {
-    loadTrack(Number($("pick").value), true);
-});
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
 
-$("search").addEventListener("input", drawPlaylist);
+    const active = !audio.paused && analyser;
 
-audio.addEventListener("ended", nextTrack);
+    if (active) {
+        analyser.getByteFrequencyData(frequencyData);
+        analyser.getByteTimeDomainData(timeData);
+    }
 
-audio.addEventListener("timeupdate", () => {
-    if (!seeking && audio.duration > 0) {
-        $("seek").value = Math.round(
-            audio.currentTime / audio.duration * 1000
+    const glow = Number($("glow").value) / 100;
+    const hueShift = Number($("color").value) * 2.4;
+    colorShift = (colorShift + 0.25) % 360;
+
+    ctx.beginPath();
+
+    for (let i = 0; i < width; i++) {
+        let sample = 128;
+
+        if (active && timeData.length) {
+            const idx = Math.min(
+                timeData.length - 1,
+                Math.floor(i / width * timeData.length)
+            );
+            sample = timeData[idx];
+        } else {
+            sample = 128 + Math.sin(i * 0.055 + colorShift * 0.03) * 3;
+        }
+
+        const y = height / 2 + ((sample - 128) / 128) * height * 0.38;
+        if (i === 0) ctx.moveTo(i, y);
+        else ctx.lineTo(i, y);
+    }
+
+    const waveGradient = ctx.createLinearGradient(0, 0, width, 0);
+    waveGradient.addColorStop(0, "#00eaff");
+    waveGradient.addColorStop(
+        0.5,
+        "hsl(" + ((200 + hueShift + colorShift) % 360) + ",100%,65%)"
+    );
+    waveGradient.addColorStop(1, "#ff31d2");
+
+    ctx.strokeStyle = waveGradient;
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 12 * glow;
+    ctx.shadowColor = "#00eaff";
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    const count = 54;
+    const gap = 3;
+    const barWidth = Math.max(1, (width - gap * (count - 1)) / count);
+    const baseline = height - 5;
+
+    for (let i = 0; i < count; i++) {
+        let value;
+
+        if (active && frequencyData) {
+            const idx = Math.floor(i / count * frequencyData.length);
+            value = frequencyData[idx] / 255;
+        } else {
+            value = 0.05 +
+                Math.abs(Math.sin(i * 0.33 + colorShift * 0.03)) * 0.08;
+        }
+
+        const barHeight = Math.max(3, value * height * 0.75);
+        const x = i * (barWidth + gap);
+        const gradient = ctx.createLinearGradient(
+            0, baseline - barHeight, 0, baseline
         );
+
+        gradient.addColorStop(0, "#ff31d2");
+        gradient.addColorStop(0.5, "#a64dff");
+        gradient.addColorStop(1, "#00eaff");
+
+        ctx.fillStyle = gradient;
+        ctx.shadowBlur = 8 * glow;
+        ctx.shadowColor = "#a64dff";
+        ctx.fillRect(x, baseline - barHeight, barWidth, barHeight);
     }
 
-    $("elapsed").textContent = formatTime(audio.currentTime);
-    $("duration").textContent = formatTime(audio.duration);
+    ctx.shadowBlur = 0;
+    requestAnimationFrame(drawVisualizer);
+}
+
+
+// ปุ่มควบคุม
+$("playBtn").addEventListener("click", playAudio);
+$("prevBtn").addEventListener("click", previousTrack);
+$("nextBtn").addEventListener("click", nextTrack);
+
+$("shuffleBtn").addEventListener("click", () => {
+    mode = mode === "shuffle" ? "all" : "shuffle";
+    updatePlayState();
 });
 
-$("seek").addEventListener("input", () => {
-    seeking = true;
-});
-
-$("seek").addEventListener("change", () => {
-    if (audio.duration > 0) {
-        audio.currentTime =
-            Number($("seek").value) / 1000 * audio.duration;
-    }
-    seeking = false;
+$("modeBtn").addEventListener("click", () => {
+    const index = modes.findIndex(m => m.id === mode);
+    mode = modes[(index + 1) % modes.length].id;
+    updatePlayState();
 });
 
 $("volume").addEventListener("input", event => {
     audio.volume = Number(event.target.value) / 100;
-    $("volvalue").textContent = event.target.value + "%";
+    $("volumeVal").textContent = event.target.value + "%";
 });
 
-audio.volume = 0.8;
+function setEQ(filter, value) {
+    if (filter && audioContext) {
+        filter.gain.setTargetAtTime(
+            Number(value), audioContext.currentTime, 0.03
+        );
+    }
+}
 
+["bass", "mid", "treble"].forEach(id => {
+    $(id).addEventListener("input", () => {
+        if (!audioContext) initAudioGraph();
 
+        const filter = id === "bass" ? bassFilter :
+            id === "mid" ? midFilter : trebleFilter;
 
-    (logo_path="logo1.jpg")
-
-    // ปรับแสงของแผงมิกเซอร์
-    ["bass", "mid", "treble", "glow"].forEach(id => {
-        $(id).addEventListener("input", event => {
-            $(id + "val").textContent = event.target.value + "%";
-
-            if (id === "glow") {
-                const value = Number(event.target.value) / 100;
-
-                panel.style.boxShadow =
-                    "0 0 " + (8 + value * 24) +
-                    "px rgba(0,220,255," + (value * 0.35) + ")," +
-                    "inset 0 0 28px rgba(140,55,255," +
-                    (value * 0.14) + ")";
-            }
-        });
+        setEQ(filter, $(id).value);
+        $(id + "Val").textContent = $(id).value + " dB";
     });
+});
 
-    renderPlaylist();
-    loadTrack(0);
+$("glow").addEventListener("input", event => {
+    const value = Number(event.target.value) / 100;
+    $("glowVal").textContent = event.target.value + "%";
+
+    player.style.boxShadow =
+        "0 0 " + (12 + value * 32) +
+        "px rgba(0,220,255," + (value * 0.35) + ")," +
+        "inset 0 0 40px rgba(140,55,255," + (value * 0.14) + ")";
+
+    document.querySelectorAll(".speaker").forEach(speaker => {
+        speaker.style.boxShadow =
+            "0 0 " + (5 + value * 20) +
+            "px rgba(0,234,255," + value + ")";
+    });
+});
+
+$("color").addEventListener("input", event => {
+    const value = Number(event.target.value);
+    $("colorVal").textContent =
+        value < 34 ? "CYAN" : value < 67 ? "PURPLE" : "RAINBOW";
+});
+
+$("seek").addEventListener("input", () => {
+    isSeeking = true;
+});
+
+$("seek").addEventListener("change", event => {
+    if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        audio.currentTime =
+            Number(event.target.value) / 1000 * audio.duration;
+    }
+    isSeeking = false;
+});
+
+audio.addEventListener("timeupdate", () => {
+    $("currentTime").textContent = formatTime(audio.currentTime);
+
+    if (!isSeeking && Number.isFinite(audio.duration) && audio.duration > 0) {
+        $("seek").value =
+            Math.round(audio.currentTime / audio.duration * 1000);
+    }
+});
+
+audio.addEventListener("loadedmetadata", () => {
+    $("duration").textContent = formatTime(audio.duration);
+});
+
+audio.addEventListener("play", updatePlayState);
+audio.addEventListener("pause", updatePlayState);
+audio.addEventListener("ended", onTrackEnded);
+
+audio.addEventListener("error", () => {
+    showNotice("ไฟล์เพลงนี้เล่นไม่ได้ หรือรูปแบบไฟล์ไม่รองรับ");
+});
+
+$("fullscreenBtn").addEventListener("click", () => {
+    if (!document.fullscreenElement) {
+        const result = player.requestFullscreen?.();
+        if (result && result.catch) {
+            result.catch(() => showNotice("เบราว์เซอร์ไม่อนุญาตเต็มหน้าจอ"));
+        }
+    } else {
+        document.exitFullscreen?.();
+    }
+});
+
+setupLogo();
+audio.volume = 0.75;
+
+if (TRACKS.length) {
+    loadTrack(0, false);
+} else {
+    $("trackTitle").textContent = "ยังไม่พบเพลง";
+    $("trackSubtitle").textContent = "เพิ่มไฟล์เพลงในโฟลเดอร์แอป";
+    $("trackList").textContent = "ไม่พบไฟล์เสียง";
+}
+
+drawVisualizer();
 </script>
 </body>
 </html>
 """
 
-    components.html(
-            player_html.replace("__TRACKS__", payload),
-            height=1040,
-            scrolling=True
-        )
-
-
-# เปิดไฟล์นี้โดยตรงก็ได้
-if __name__ == "__main__":
-    st.set_page_config(
-        page_title="SYNAPSE Music Player",
-        page_icon="🎧",
-        layout="wide"
+    player_html = (
+        player_html
+        .replace("__TRACKS_JSON__", tracks_json)
+        .replace("__LOGO_SRC__", logo_src)
     )
 
-    render_music_player(logo_path="logo1.jpg")
+    components.html(
+        player_html,
+        height=1120,
+        scrolling=True,
+    )
+
+
+# ส่วนท้ายของแอป
+st.markdown(
+    """
+    <div style="
+        text-align:center;
+        color:#8492bd;
+        font-size:11px;
+        letter-spacing:2px;
+        padding:10px 0 20px;
+    ">
+        SYNAPSE NEON MUSIC PLAYER • MADE FOR MUSIC LOVERS
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
