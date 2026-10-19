@@ -14,7 +14,7 @@ layout="wide",
 initial_sidebar_state="collapsed",
 )
 
-BASE_DIR = Path(**file**).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent
 
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac"}
 LOGO_NAMES = {"logo.jpg", "logo.jpeg", "logo.png", "logo1.jpg", "logo1.jpeg", "logo1.png"}
