@@ -39,11 +39,14 @@ def find_audio_files():
         key=lambda p: (str(p.parent).lower(), p.name.lower())
     )
 
+
 def encode_file(path):
-mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
-with open(path, "rb") as file:
-encoded = base64.b64encode(file.read()).decode("ascii")
-return f"data:{mime};base64,{encoded}"
+    mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+
+    with open(path, "rb") as file:
+        encoded = base64.b64encode(file.read()).decode("ascii")
+
+    return f"data:{mime};base64,{encoded}"
 
 def find_logo():
 for name in ["logo.jpg", "logo1.jpg", "logo.jpeg", "logo1.jpeg",
