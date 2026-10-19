@@ -477,7 +477,6 @@ canvas {
 """
 
 
-<CodeBlock language="python" editable>
 html += r"""
 <style>
 .controls {
