@@ -1,4 +1,3 @@
-
 # SYNAPSE NEON MUSIC PLAYER
 # Streamlit music player
 # วางไฟล์นี้ไว้ในโฟลเดอร์เดียวกับ app.py และไฟล์เพลง
