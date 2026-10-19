@@ -5,9 +5,9 @@ import json
 import mimetypes
 import streamlit as st
 
-# ==================================================
+# ==========================================
 # TA101 NEON MUSIC PLAYER
-# ==================================================
+# ==========================================
 BASE_DIR = Path(__file__).resolve().parent
 
 st.set_page_config(
@@ -22,6 +22,7 @@ AUDIO_EXTENSIONS = {
 }
 
 tracks = []
+
 for path in sorted(BASE_DIR.iterdir(), key=lambda p: p.name.lower()):
     if path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
         try:
@@ -48,121 +49,181 @@ if logo_path.exists():
 if not tracks:
     st.title("🎧 TA101 NEON MUSIC")
     if logo_path.exists():
-        st.image(str(logo_path), width=220)
-    st.error(
-        "ยังไม่พบไฟล์เพลง กรุณาวางไฟล์ MP3 "
+        st.image(str(logo_path), width=260)
+    st.warning(
+        "ยังไม่พบไฟล์เพลง กรุณาวางไฟล์ MP3 หรือไฟล์เสียง "
         "ไว้ในโฟลเดอร์เดียวกับ app.py"
     )
     st.stop()
-
-# ==================================================
-# HTML / CSS / JAVASCRIPT PLAYER
-# ==================================================
 
 html = r"""<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
 
 :root {
     --cyan: #00f6ff;
     --pink: #ff00d9;
     --purple: #9b4dff;
     --green: #39ff88;
-    --bg: #070711;
 }
 
 body {
     margin: 0;
-    padding: 14px;
-    color: white;
+    padding: 10px;
+    color: #ffffff;
     font-family: Arial, "Noto Sans Thai", sans-serif;
     background:
-      radial-gradient(ellipse at 15% 0%, #351064 0%, transparent 42%),
-      radial-gradient(ellipse at 100% 60%, #082f53 0%, transparent 40%),
-      #05050d;
+        radial-gradient(ellipse at 10% 0%, #351064 0%, transparent 42%),
+        radial-gradient(ellipse at 100% 60%, #082f53 0%, transparent 40%),
+        #05050d;
 }
-
-* { scrollbar-width: thin; scrollbar-color: #873cff #111; }
 
 .shell {
-    max-width: 1100px;
-    margin: auto;
-    border: 1px solid #703bff;
-    border-radius: 24px;
-    padding: 20px;
-    background: linear-gradient(145deg, #111124ee, #080813f5);
-    box-shadow: 0 0 25px #6c24ff42, inset 0 0 30px #00d9ff09;
+    width: 100%;
+    max-width: 1150px;
+    margin: 0 auto;
+    padding: 18px;
+    border: 1px solid #713cff;
+    border-radius: 25px;
+    background: linear-gradient(145deg, #111124f5, #070710f8);
+    box-shadow:
+        0 0 25px #6c24ff45,
+        inset 0 0 28px #00d9ff0b;
 }
+
+/* ===== HEADER / LOGO ===== */
 
 .header {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    flex-wrap: wrap;
-    gap: 20px;
+    gap: 15px;
     text-align: center;
-    margin-bottom: 18px;
+    padding: 25px 12px;
+    margin-bottom: 22px;
+    border: 1px solid #00f6ff99;
+    border-radius: 25px;
+    background:
+        radial-gradient(ellipse at center, #7100ff35, transparent 70%),
+        linear-gradient(135deg, #111126, #080812);
+    box-shadow:
+        0 0 18px #00f6ff50,
+        0 0 35px #ff00d925,
+        inset 0 0 25px #6900ff25;
 }
 
 .logo {
-    width: 125px;
-    height: 125px;
+    display: block;
+    width: min(65vw, 300px);
+    height: min(65vw, 300px);
     object-fit: contain;
-    border-radius: 20px;
-    filter: drop-shadow(0 0 14px #00eaff);
-    display: none;
+    border-radius: 24px;
+    border: 2px solid var(--cyan);
+    padding: 5px;
+    background: #090916;
+    box-shadow: 0 0 15px var(--cyan), 0 0 35px var(--purple);
+    animation: logoGlow 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes logoGlow {
+    from {
+        box-shadow: 0 0 10px var(--cyan), 0 0 25px var(--purple);
+    }
+    to {
+        box-shadow:
+            0 0 22px var(--cyan),
+            0 0 45px var(--pink),
+            0 0 65px var(--purple);
+    }
 }
 
 .brand {
-    font-size: clamp(30px, 6vw, 62px);
+    font-size: clamp(32px, 7vw, 68px);
     font-weight: 1000;
-    letter-spacing: 3px;
-    color: white;
-    text-shadow: 0 0 8px white, 0 0 20px var(--cyan),
-                 0 0 40px var(--pink);
-    animation: brandGlow 2s ease-in-out infinite alternate;
+    letter-spacing: 2px;
+    line-height: 1.2;
+    color: #ffffff;
+    background: linear-gradient(
+        90deg,
+        #00f6ff,
+        #ffffff,
+        #ff00d9,
+        #a86bff,
+        #00f6ff
+    );
+    background-size: 300% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: textShine 4s linear infinite;
+    filter: drop-shadow(0 0 12px #00eaff);
 }
 
-@keyframes brandGlow {
-    from { filter: hue-rotate(0deg); }
-    to { filter: hue-rotate(90deg); }
+@keyframes textShine {
+    from { background-position: 0% center; }
+    to { background-position: 300% center; }
 }
 
 .subtitle {
+    margin-top: 10px;
     color: var(--cyan);
-    font-size: 12px;
-    letter-spacing: 4px;
-    margin-top: 7px;
+    font-size: clamp(11px, 3vw, 17px);
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-shadow: 0 0 8px var(--cyan), 0 0 18px var(--purple);
+    animation: subtitleGlow 1.8s ease-in-out infinite alternate;
 }
+
+@keyframes subtitleGlow {
+    from { opacity: 0.7; }
+    to {
+        opacity: 1;
+        text-shadow: 0 0 12px var(--cyan), 0 0 28px var(--pink);
+    }
+}
+
+/* ===== LAYOUT ===== */
 
 .grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
     gap: 18px;
 }
 
 .panel {
     min-width: 0;
-    padding: 18px;
-    margin-bottom: 16px;
-    border: 1px solid #4a3686;
-    border-radius: 20px;
-    background: linear-gradient(145deg, #17172c, #0b0b17);
-    box-shadow: 0 0 17px #4b1a8640;
+    padding: 20px;
+    margin-bottom: 18px;
+    border: 1px solid #9b4dff99;
+    border-radius: 22px;
+    background:
+        radial-gradient(ellipse at top left, #00f6ff12, transparent 60%),
+        linear-gradient(145deg, #17172c, #080812);
+    box-shadow:
+        0 0 15px #6900ff40,
+        inset 0 0 18px #00f6ff09;
 }
 
 .heading {
     color: var(--cyan);
-    font-size: 16px;
-    font-weight: 900;
+    font-size: clamp(16px, 3vw, 21px);
+    font-weight: 1000;
     letter-spacing: 1px;
-    margin-bottom: 15px;
-    text-shadow: 0 0 12px #00eaff80;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #00f6ff55;
+    text-shadow: 0 0 8px var(--cyan), 0 0 18px var(--purple);
 }
+
+/* ===== NEON DISC ===== */
 
 .disc-wrap {
     display: flex;
@@ -180,7 +241,7 @@ body {
     align-items: center;
     justify-content: center;
     background:
-      repeating-radial-gradient(circle, #171725 0 3px, #090910 4px 7px);
+        repeating-radial-gradient(circle, #171725 0 3px, #090910 4px 7px);
     box-shadow: 0 0 18px #c000ff, 0 0 45px #00d9ff40;
     position: relative;
 }
@@ -194,7 +255,7 @@ body {
     position: absolute;
     inset: 12%;
     border-radius: 50%;
-    border: 1px solid #00eaff55;
+    border: 1px solid #00eaff66;
 }
 
 .disc-center {
@@ -215,7 +276,7 @@ body {
     font-weight: 900;
     font-size: 20px;
     overflow-wrap: anywhere;
-    text-shadow: 0 0 12px #00eaff;
+    text-shadow: 0 0 12px var(--cyan), 0 0 20px var(--purple);
     margin: 4px 0 8px;
 }
 
@@ -227,6 +288,8 @@ body {
     overflow-wrap: anywhere;
 }
 
+/* ===== AUDIO VISUALIZER ===== */
+
 canvas {
     display: block;
     width: 100%;
@@ -234,23 +297,30 @@ canvas {
     border: 1px solid #332e64;
     border-radius: 14px;
     background: #060610;
+    box-shadow: inset 0 0 15px #6500ff22, 0 0 10px #00eaff20;
 }
+
+/* ===== SPEAKERS / HEADPHONES ===== */
 
 .speakers {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    margin: 18px 0 4px;
-    gap: 14px;
+    gap: 16px;
+    margin: 25px 0 12px;
 }
 
 .speaker {
-    width: 65px;
-    height: 80px;
-    border-radius: 13px;
-    border: 2px solid #00d9ff;
-    background: linear-gradient(140deg, #282844, #080811);
-    box-shadow: 0 0 14px #00d9ff60;
+    width: 76px;
+    height: 92px;
+    flex-shrink: 0;
+    border-radius: 16px;
+    border: 2px solid var(--cyan);
+    background: linear-gradient(145deg, #242441, #080811);
+    box-shadow:
+        0 0 12px var(--cyan),
+        0 0 25px #00f6ff55,
+        inset 0 0 15px #ff00d925;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -258,75 +328,223 @@ canvas {
 
 .speaker::before {
     content: "";
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    border: 4px solid #bb5bff;
-    background: radial-gradient(circle, #05050c 25%, #00eaff 28%,
-                #17172b 45%, #a100ff 49%, #090913 65%);
-    box-shadow: 0 0 12px #c000ff;
+    border: 4px solid var(--pink);
+    background:
+        radial-gradient(circle, #ffffff 0 5%, #00f6ff 8% 20%,
+        #141429 24% 40%, #a000ff 45% 53%, #090913 58%);
+    box-shadow: 0 0 12px var(--pink), inset 0 0 10px var(--cyan);
 }
 
 .headphone {
-    font-size: 53px;
-    filter: drop-shadow(0 0 10px #ff00d9);
+    font-size: clamp(45px, 10vw, 72px);
+    line-height: 1;
+    filter: drop-shadow(0 0 8px var(--pink)) drop-shadow(0 0 18px var(--cyan));
+    animation: headphoneGlow 1.8s ease-in-out infinite alternate;
 }
 
+@keyframes headphoneGlow {
+    from { filter: drop-shadow(0 0 7px var(--pink)); }
+    to {
+        filter: drop-shadow(0 0 14px var(--cyan))
+                drop-shadow(0 0 22px var(--pink));
+    }
+}
+</style>
+</head>
+
+<body>
+<div class="shell" id="playerApp">
+
+    <div class="header">
+        <img class="logo" id="logo" src="__LOGO_SRC__" alt="TA101 Logo">
+        <div>
+            <div class="brand">TA101 MUSIC</div>
+            <div class="subtitle">NEON SOUND EXPERIENCE</div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <section>
+            <div class="panel">
+                <div class="heading">✦ NOW PLAYING</div>
+
+                <div class="disc-wrap">
+                    <div class="disc" id="disc">
+                        <div class="disc-center"></div>
+                    </div>
+                </div>
+
+                <div class="now-title" id="nowTitle">เลือกเพลงเพื่อเริ่มฟัง</div>
+                <div class="now-file" id="nowFile"></div>
+
+                <canvas id="visualizer"></canvas>
+
+                <div class="speakers">
+                    <div class="speaker"></div>
+                    <div class="headphone">🎧</div>
+                    <div class="speaker"></div>
+                </div>
+
+                <div class="controls">
+                    <button id="shuffleBtn">🔀 สุ่ม</button>
+                    <button id="prevBtn">⏮</button>
+                    <button class="play" id="playBtn">▶</button>
+                    <button id="nextBtn">⏭</button>
+                    <button id="repeatBtn">🔁 ซ้ำ: ปิด</button>
+                </div>
+
+                <div class="status" id="status">● พร้อมเล่นเพลง</div>
+            </div>
+
+            <div class="panel">
+                <div class="heading">🎚️ SOUND CONTROL</div>
+
+                <label for="volume">
+                    🔊 ระดับเสียง <span id="volumeValue">80%</span>
+                </label>
+                <input id="volume" type="range" min="0" max="100" value="80">
+
+                <div class="eq-row">
+                    <span>BASS</span>
+                    <input id="bass" type="range" min="-12" max="12" value="0">
+                    <span id="bassValue">0</span>
+                </div>
+
+                <div class="eq-row">
+                    <span>MID</span>
+                    <input id="mid" type="range" min="-12" max="12" value="0">
+                    <span id="midValue">0</span>
+                </div>
+
+                <div class="eq-row">
+                    <span>TREBLE</span>
+                    <input id="treble" type="range" min="-12" max="12" value="0">
+                    <span id="trebleValue">0</span>
+                </div>
+
+                <div class="small" style="margin-top:12px">
+                    ปรับเสียงผ่านฟิลเตอร์เสียงของเบราว์เซอร์
+                </div>
+
+                <div class="controls">
+                    <button id="resetEq">↺ รีเซ็ต EQ</button>
+                    <button id="fullscreenBtn">⛶ เต็มหน้าจอ</button>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="panel">
+                <div class="heading">📃 PLAYLIST</div>
+                <div class="small" id="trackCount"></div>
+                <div style="height:10px"></div>
+                <div class="track-list" id="playlist"></div>
+            </div>
+
+            <div class="panel">
+                <div class="heading">⚙️ PLAYBACK SETTINGS</div>
+
+                <label for="playMode">โหมดเมื่อเพลงจบ</label>
+                <select id="playMode">
+                    <option value="continuous">เล่นเพลงถัดไปอัตโนมัติ</option>
+                    <option value="repeat">เล่นเพลงเดิมซ้ำ</option>
+                    <option value="stop">หยุดเมื่อเพลงจบ</option>
+                </select>
+
+                <label for="colorMode">ธีมกราฟเสียง</label>
+                <select id="colorMode">
+                    <option value="rainbow">Rainbow — สีรุ้ง</option>
+                    <option value="cyan">Cyber Cyan — ฟ้า</option>
+                    <option value="pink">Neon Pink — ชมพู</option>
+                    <option value="green">Laser Green — เขียว</option>
+                </select>
+
+                <div class="small info">
+                    • กราฟเสียงตอบสนองต่อเสียงเพลงจริง<br>
+                    • เล่นเพลงต่อเนื่องตามโหมดที่เลือก<br>
+                    • สุ่มเพลงจากรายการที่มี<br>
+                    • ปรับเบส กลาง แหลม และระดับเสียงได้
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="footer">TA101 • NEON MUSIC PLAYER • FEEL THE BEAT</div>
+</div>
+"""
+
+## ท่อนที่ 2/2
+
+นำโค้ดท่อนนี้ไปวาง **ต่อท้ายท่อนที่ 1** ใน `app.py` ครับ
+
+<CodeBlock language="python" editable>
+html += r"""
+<style>
 .controls {
     display: flex;
     justify-content: center;
     align-items: center;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 9px;
     margin: 18px 0;
 }
 
 button {
-    color: white;
-    border: 1px solid #6950ff;
-    border-radius: 13px;
-    padding: 11px 15px;
-    background: linear-gradient(135deg, #271746, #15152e);
+    color: #ffffff;
+    border: 1px solid #7e4dff;
+    border-radius: 14px;
+    padding: 11px 14px;
+    background: linear-gradient(135deg, #241342, #101025);
     font-size: 14px;
-    font-weight: 800;
+    font-weight: 900;
     cursor: pointer;
-    box-shadow: 0 0 10px #5b23ff30;
-    transition: .18s ease;
+    box-shadow: 0 0 12px #7300ff40;
+    transition: all 0.2s ease;
 }
 
 button:hover {
     border-color: var(--cyan);
-    box-shadow: 0 0 17px #00d9ff80;
-    transform: translateY(-1px);
+    box-shadow: 0 0 12px var(--cyan), 0 0 24px #ff00d975;
+    transform: translateY(-2px);
 }
 
 button.active {
-    background: linear-gradient(135deg, #007b91, #6a1cb3);
-    border-color: #00f6ff;
-    box-shadow: 0 0 14px #00eaff60;
+    border-color: var(--cyan);
+    background: linear-gradient(135deg, #007c91, #7915b9);
+    box-shadow: 0 0 16px var(--cyan);
 }
 
 .play {
-    min-width: 70px;
-    font-size: 23px;
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
+    width: 62px;
+    height: 62px;
     padding: 0;
-    background: linear-gradient(135deg, #7b18ff, #ed00c8);
-    box-shadow: 0 0 22px #c000ff80;
+    border-radius: 50%;
+    font-size: 24px;
+    background: linear-gradient(135deg, #8a22ff, #ff00c8);
+    box-shadow: 0 0 16px var(--pink), 0 0 30px #00f6ff55;
+}
+
+.status {
+    color: var(--green);
+    text-align: center;
+    font-size: 12px;
+    margin-top: 12px;
+    overflow-wrap: anywhere;
 }
 
 label {
     display: block;
-    color: #c8c7f0;
+    color: #d2d0f4;
     font-size: 13px;
-    margin: 15px 0 6px;
+    margin: 15px 0 7px;
 }
 
-input[type=range] {
+input[type="range"] {
     width: 100%;
-    accent-color: #00eaff;
+    accent-color: var(--cyan);
     cursor: pointer;
 }
 
@@ -340,12 +558,22 @@ select {
     font-size: 14px;
 }
 
+.eq-row {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr) 30px;
+    gap: 9px;
+    align-items: center;
+    margin-top: 13px;
+    font-size: 12px;
+    color: #d5d3f5;
+}
+
 .track-list {
-    max-height: 270px;
+    max-height: 350px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 8px;
 }
 
 .track {
@@ -373,27 +601,17 @@ select {
 
 .track-name {
     flex: 1;
+    overflow-wrap: anywhere;
 }
 
 .small {
-    font-size: 11px;
-    color: #9292b8;
+    font-size: 12px;
+    line-height: 1.9;
+    color: #a6a6c8;
 }
 
-.status {
-    color: var(--green);
-    text-align: center;
-    font-size: 12px;
-    margin-top: 12px;
-}
-
-.eq-row {
-    display: grid;
-    grid-template-columns: 65px 1fr 35px;
-    gap: 9px;
-    align-items: center;
-    font-size: 12px;
-    color: #d5d3f5;
+.info {
+    margin-top: 15px;
 }
 
 .footer {
@@ -406,137 +624,18 @@ select {
 
 @media (max-width: 720px) {
     body { padding: 5px; }
-    .shell { padding: 12px; border-radius: 17px; }
+    .shell { padding: 11px; border-radius: 17px; }
     .grid { grid-template-columns: 1fr; gap: 0; }
     .panel { padding: 14px; }
-    .logo { width: 90px; height: 90px; }
+    .logo {
+        width: min(70vw, 260px);
+        height: min(70vw, 260px);
+    }
     .brand { letter-spacing: 1px; }
     canvas { height: 125px; }
     button { padding: 10px 12px; }
 }
-
-:fullscreen {
-    overflow-y: auto;
-    background: #05050d;
-}
 </style>
-</head>
-
-<body>
-<div class="shell" id="playerApp">
-
-  <div class="header">
-    <img class="logo" id="logo" src="__LOGO_SRC__" alt="TA101 logo">
-    <div>
-      <div class="brand">TA101 MUSIC</div>
-      <div class="subtitle">NEON SOUND EXPERIENCE</div>
-    </div>
-  </div>
-
-  <div class="grid">
-    <section>
-      <div class="panel">
-        <div class="heading">✦ NOW PLAYING</div>
-
-        <div class="disc-wrap">
-          <div class="disc" id="disc">
-            <div class="disc-center"></div>
-          </div>
-        </div>
-
-        <div class="now-title" id="nowTitle">เลือกเพลงเพื่อเริ่มฟัง</div>
-        <div class="now-file" id="nowFile"></div>
-
-        <canvas id="visualizer"></canvas>
-
-        <div class="speakers">
-          <div class="speaker"></div>
-          <div class="headphone">🎧</div>
-          <div class="speaker"></div>
-        </div>
-
-        <div class="controls">
-          <button id="shuffleBtn" title="สุ่มเพลง">🔀 สุ่ม</button>
-          <button id="prevBtn" title="เพลงก่อนหน้า">⏮</button>
-          <button class="play" id="playBtn" title="เล่น / หยุด">▶</button>
-          <button id="nextBtn" title="เพลงถัดไป">⏭</button>
-          <button id="repeatBtn" title="โหมดเล่นซ้ำ">🔁 ซ้ำ: ปิด</button>
-        </div>
-
-        <div class="status" id="status">● พร้อมเล่นเพลง</div>
-      </div>
-
-      <div class="panel">
-        <div class="heading">🎚️ SOUND CONTROL</div>
-
-        <label for="volume">🔊 ระดับเสียง <span id="volumeValue">80%</span></label>
-        <input id="volume" type="range" min="0" max="100" value="80">
-
-        <div class="eq-row">
-          <span>BASS</span>
-          <input id="bass" type="range" min="-12" max="12" value="0">
-          <span id="bassValue">0</span>
-        </div>
-        <div class="eq-row">
-          <span>MID</span>
-          <input id="mid" type="range" min="-12" max="12" value="0">
-          <span id="midValue">0</span>
-        </div>
-        <div class="eq-row">
-          <span>TREBLE</span>
-          <input id="treble" type="range" min="-12" max="12" value="0">
-          <span id="trebleValue">0</span>
-        </div>
-
-        <div class="small" style="margin-top:12px">
-          ปรับเสียงผ่านฟิลเตอร์เสียงของเบราว์เซอร์
-        </div>
-
-        <div class="controls">
-          <button id="resetEq">↺ รีเซ็ต EQ</button>
-          <button id="fullscreenBtn">⛶ เต็มหน้าจอ</button>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="panel">
-        <div class="heading">📃 PLAYLIST</div>
-        <div class="small" id="trackCount"></div>
-        <div style="height:10px"></div>
-        <div class="track-list" id="playlist"></div>
-      </div>
-
-      <div class="panel">
-        <div class="heading">⚙️ PLAYBACK SETTINGS</div>
-
-        <label for="playMode">โหมดเมื่อเพลงจบ</label>
-        <select id="playMode">
-          <option value="continuous">เล่นเพลงถัดไปอัตโนมัติ</option>
-          <option value="repeat">เล่นเพลงเดิมซ้ำ</option>
-          <option value="stop">หยุดเมื่อเพลงจบ</option>
-        </select>
-
-        <label for="colorMode">ธีมแสงกราฟเสียง</label>
-        <select id="colorMode">
-          <option value="rainbow">Rainbow — สีรุ้ง</option>
-          <option value="cyan">Cyber Cyan — ฟ้า</option>
-          <option value="pink">Neon Pink — ชมพู</option>
-          <option value="green">Laser Green — เขียว</option>
-        </select>
-
-        <div class="small" style="margin-top:15px;line-height:1.8">
-          • กราฟเสียงตอบสนองต่อเสียงเพลงจริง<br>
-          • เล่นเพลงต่อเนื่องเมื่อเลือกโหมดต่อเนื่อง<br>
-          • ปุ่มสุ่มเลือกเพลงจากรายการที่มี<br>
-          • ปุ่มเต็มหน้าจอขยายพื้นที่เครื่องเล่น
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <div class="footer">TA101 • NEON MUSIC PLAYER • FEEL THE BEAT</div>
-</div>
 
 <script>
 const TRACKS = __TRACKS_JSON__;
@@ -557,8 +656,6 @@ let bassFilter = null;
 let midFilter = null;
 let trebleFilter = null;
 let dataArray = null;
-let animationId = null;
-let audioConnected = false;
 
 const $ = id => document.getElementById(id);
 
@@ -589,6 +686,7 @@ function initAudioGraph() {
     }
 
     audioContext = new AudioCtx();
+
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 256;
     analyser.smoothingTimeConstant = 0.78;
@@ -616,9 +714,7 @@ function initAudioGraph() {
     gainNode.connect(analyser);
     analyser.connect(audioContext.destination);
 
-    audioConnected = true;
     dataArray = new Uint8Array(analyser.frequencyBinCount);
-
     applyVolume();
     applyEQ();
 }
@@ -626,7 +722,6 @@ function initAudioGraph() {
 function applyVolume() {
     const volume = Number($("volume").value) / 100;
     audio.volume = volume;
-    if (gainNode) gainNode.gain.value = 1;
     $("volumeValue").textContent = Math.round(volume * 100) + "%";
 }
 
@@ -651,7 +746,8 @@ function renderPlaylist() {
 
     TRACKS.forEach((track, index) => {
         const button = document.createElement("button");
-        button.className = "track" + (index === currentIndex ? " selected" : "");
+        button.className =
+            "track" + (index === currentIndex ? " selected" : "");
 
         const number = document.createElement("span");
         number.className = "track-no";
@@ -662,13 +758,15 @@ function renderPlaylist() {
         name.textContent = track.name;
 
         const icon = document.createElement("span");
-        icon.textContent = index === currentIndex && isPlaying ? "🔊" : "♫";
+        icon.textContent =
+            index === currentIndex && isPlaying ? "🔊" : "♫";
 
         button.append(number, name, icon);
         button.addEventListener("click", () => {
             currentIndex = index;
             loadTrack(true);
         });
+
         playlist.appendChild(button);
     });
 }
@@ -677,6 +775,7 @@ function loadTrack(autoplay) {
     if (!TRACKS.length) return;
 
     const track = TRACKS[currentIndex];
+
     audio.pause();
     isPlaying = false;
     audio.src = track.src;
@@ -689,8 +788,11 @@ function loadTrack(autoplay) {
 
     renderPlaylist();
 
-    if (autoplay) playTrack();
-    else setStatus("เลือกแล้ว: " + track.name);
+    if (autoplay) {
+        playTrack();
+    } else {
+        setStatus("เลือกแล้ว: " + track.name);
+    }
 }
 
 async function playTrack() {
@@ -698,17 +800,24 @@ async function playTrack() {
 
     try {
         initAudioGraph();
+
+    
         if (audioContext && audioContext.state === "suspended") {
             await audioContext.resume();
         }
-        if (!audio.src) audio.src = TRACKS[currentIndex].src;
+
+        if (!audio.src) {
+            audio.src = TRACKS[currentIndex].src;
+        }
 
         await audio.play();
+
         isPlaying = true;
         $("playBtn").textContent = "❚❚";
         $("disc").classList.add("playing");
         setStatus("กำลังเล่น: " + TRACKS[currentIndex].name);
         renderPlaylist();
+
     } catch (error) {
         isPlaying = false;
         setStatus("เล่นไม่ได้ กรุณากดเล่นอีกครั้ง");
@@ -725,20 +834,22 @@ function pauseTrack() {
     renderPlaylist();
 }
 
-function nextTrack(manual = true) {
+function nextTrack(autoplay = true) {
     if (!TRACKS.length) return;
 
     if (shuffle && TRACKS.length > 1) {
         let next = currentIndex;
+
         while (next === currentIndex) {
             next = Math.floor(Math.random() * TRACKS.length);
         }
+
         currentIndex = next;
     } else {
         currentIndex = (currentIndex + 1) % TRACKS.length;
     }
 
-    loadTrack(manual || $("playMode").value !== "stop");
+    loadTrack(autoplay);
 }
 
 function previousTrack() {
@@ -749,7 +860,9 @@ function previousTrack() {
         return;
     }
 
-    currentIndex = (currentIndex - 1 + TRACKS.length) % TRACKS.length;
+    currentIndex =
+        (currentIndex - 1 + TRACKS.length) % TRACKS.length;
+
     loadTrack(true);
 }
 
@@ -769,7 +882,8 @@ $("shuffleBtn").addEventListener("click", () => {
 
 $("repeatBtn").addEventListener("click", () => {
     repeatOne = !repeatOne;
-    $("repeatBtn").textContent = repeatOne ? "🔂 ซ้ำ: เพลงเดียว" : "🔁 ซ้ำ: ปิด";
+    $("repeatBtn").textContent =
+        repeatOne ? "🔂 ซ้ำ: เพลงเดียว" : "🔁 ซ้ำ: ปิด";
     $("repeatBtn").classList.toggle("active", repeatOne);
     audio.loop = repeatOne;
 });
@@ -782,13 +896,14 @@ audio.addEventListener("ended", () => {
     if (repeatOne) return;
 
     const mode = $("playMode").value;
+
     if (mode === "continuous") {
-        nextTrack(false);
-    } else if (mode === "stop") {
+        nextTrack(true);
+    } else if (mode === "repeat") {
+        loadTrack(true);
+    } else {
         setStatus("เพลงจบแล้ว");
         renderPlaylist();
-    } else {
-        loadTrack(true);
     }
 });
 
@@ -797,6 +912,7 @@ audio.addEventListener("error", () => {
 });
 
 $("volume").addEventListener("input", applyVolume);
+
 ["bass", "mid", "treble"].forEach(id => {
     $(id).addEventListener("input", () => {
         initAudioGraph();
@@ -812,8 +928,6 @@ $("resetEq").addEventListener("click", () => {
 });
 
 $("fullscreenBtn").addEventListener("click", async () => {
-
-    
     try {
         if (!document.fullscreenElement) {
             await $("playerApp").requestFullscreen();
@@ -824,6 +938,8 @@ $("fullscreenBtn").addEventListener("click", async () => {
         setStatus("อุปกรณ์นี้ไม่อนุญาตให้เต็มหน้าจอ");
     }
 });
+
+/* ===== กราฟเสียงนีออน ===== */
 
 const canvas = $("visualizer");
 const ctx = canvas.getContext("2d");
@@ -854,7 +970,7 @@ function drawVisualizer() {
 
     if (analyser && dataArray && isPlaying) {
         analyser.getByteFrequencyData(dataArray);
-        values = Array.from(dataArray);
+        values = dataArray;
     }
 
     const count = 54;
@@ -896,32 +1012,24 @@ function drawVisualizer() {
         ctx.fillRect(x, y, barWidth, barHeight);
     }
 
-    ctx.shadowBlur = 0;
-
-    // เส้นคลื่นเสียงตรงกลาง
+    // เส้นคลื่นตรงกลาง
     ctx.beginPath();
 
     for (let x = 0; x < width; x += 3) {
-        let amplitude = isPlaying ? 9 : 2;
+        const amplitude = isPlaying ? 9 : 2;
         let value = 0;
 
         if (values.length) {
-            const idx = Math.floor(
-                x / width * values.length
-            );
+            const idx = Math.floor(x / width * values.length);
             value = (values[idx] / 255) * amplitude;
         }
 
         const y = height / 2 +
-            Math.sin(
-                x * 0.055 + performance.now() * 0.008
-            ) * (amplitude + value);
+            Math.sin(x * 0.055 + performance.now() * 0.008) *
+            (amplitude + value);
 
-        if (x === 0) {
-            ctx.moveTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
     }
 
     ctx.strokeStyle = "#ffffff";
@@ -947,8 +1055,6 @@ html = html.replace(
     "__TRACKS_JSON__",
     json.dumps(tracks, ensure_ascii=False)
 )
-
 html = html.replace("__LOGO_SRC__", logo_src)
 
-# แสดงเครื่องเล่นเพลงใน Streamlit
-st.iframe(html, height=1150)
+st.iframe(html, height=1450)
