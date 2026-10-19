@@ -944,8 +944,10 @@ $("volume").addEventListener("input", event => {
 audio.volume = 0.8;
 
 
-    // ปรับแสงของแผงมิกเซอร์
-    ["bass", "mid", "treble", "glow"].forEach(id => {
+
+    (logo_path="logo1.jpg")
+// ปรับแสงของแผงมิกเซอร์
+["bass", "mid", "treble", "glow"].forEach(id => {
         $(id).addEventListener("input", event => {
             $(id + "val").textContent = event.target.value + "%";
 
@@ -983,4 +985,4 @@ if __name__ == "__main__":
         layout="wide"
     )
 
-    render_music_player(logo_path="logo1.jpg")
+    render_music_player
