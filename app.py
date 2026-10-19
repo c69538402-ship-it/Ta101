@@ -812,7 +812,7 @@ $("resetEq").addEventListener("click", () => {
 });
 
 $("fullscreenBtn").addEventListener("click", async () => {
-    try 
+
     
     try {
         if (!document.fullscreenElement) {
