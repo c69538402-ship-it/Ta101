@@ -1,3 +1,8 @@
+
+# SYNAPSE NEON MUSIC PLAYER
+# Streamlit music player
+# วางไฟล์นี้ไว้ในโฟลเดอร์เดียวกับ app.py และไฟล์เพลง
+
 from pathlib import Path
 import base64
 import html
@@ -8,7 +13,13 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 AUDIO_EXTENSIONS = {
-    ".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"
+    ".mp3",
+    ".wav",
+    ".ogg",
+    ".m4a",
+    ".aac",
+    ".opus",
+    ".flac",
 }
 
 
