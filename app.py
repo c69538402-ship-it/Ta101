@@ -20,20 +20,25 @@ AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac"}
 LOGO_NAMES = {"logo.jpg", "logo.jpeg", "logo.png", "logo1.jpg", "logo1.jpeg", "logo1.png"}
 
 def find_audio_files():
-files = []
-for root, dirs, filenames in os.walk(BASE_DIR):
-dirs[:] = [
-d for d in dirs
-if d not in {".git", "**pycache**", ".streamlit", "venv", ".venv"}
-]
-for filename in filenames:
-path = Path(root) / filename
-if path.suffix.lower() in AUDIO_EXTENSIONS:
-files.append(path)
 
-```
-return sorted(files, key=lambda p: (str(p.parent).lower(), p.name.lower()))
-```
+def find_audio_files():
+    files = []
+
+    for root, dirs, filenames in os.walk(BASE_DIR):
+        dirs[:] = [
+            d for d in dirs
+            if d not in {".git", "__pycache__", ".streamlit", "venv", ".venv"}
+        ]
+
+        for filename in filenames:
+            path = Path(root) / filename
+            if path.suffix.lower() in AUDIO_EXTENSIONS:
+                files.append(path)
+
+    return sorted(
+        files,
+        key=lambda p: (str(p.parent).lower(), p.name.lower())
+    )
 
 def encode_file(path):
 mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
