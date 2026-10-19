@@ -1,4 +1,4 @@
-
+import streamlit.components.v1 as components
 from pathlib import Path
 import base64
 import json
@@ -1053,4 +1053,8 @@ html = html.replace(
 )
 html = html.replace("__LOGO_SRC__", logo_src)
 
-st.iframe(html, height=1450)
+components.html(
+    html,
+    height=1450,
+    scrolling=True
+)
