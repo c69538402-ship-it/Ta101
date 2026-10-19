@@ -943,35 +943,37 @@ $("volume").addEventListener("input", event => {
 
 audio.volume = 0.8;
 
-// ปรับแสงของแผงมิกเซอร์
-["bass", "mid", "treble", "glow"].forEach(id => {
-    $(id).addEventListener("input", event => {
-        $(id + "val").textContent = event.target.value + "%";
 
-        if (id === "glow") {
-            const value = Number(event.target.value) / 100;
+    // ปรับแสงของแผงมิกเซอร์
+    ["bass", "mid", "treble", "glow"].forEach(id => {
+        $(id).addEventListener("input", event => {
+            $(id + "val").textContent = event.target.value + "%";
 
-            panel.style.boxShadow =
-                "0 0 " + (8 + value * 24) +
-                "px rgba(0,220,255," + (value * 0.35) + ")," +
-                "inset 0 0 28px rgba(140,55,255," +
-                (value * 0.14) + ")";
-        }
+            if (id === "glow") {
+                const value = Number(event.target.value) / 100;
+
+                panel.style.boxShadow =
+                    "0 0 " + (8 + value * 24) +
+                    "px rgba(0,220,255," + (value * 0.35) + ")," +
+                    "inset 0 0 28px rgba(140,55,255," +
+                    (value * 0.14) + ")";
+            }
+        });
     });
-});
 
-renderPlaylist();
-loadTrack(0);
+    renderPlaylist();
+    loadTrack(0);
 </script>
 </body>
 </html>
 """
 
         components.html(
-        player_html.replace("__TRACKS__", payload),
-        height=1040,
-        scrolling=True
-        )        
+            player_html.replace("__TRACKS__", payload),
+            height=1040,
+            scrolling=True
+        )
+
 
 # เปิดไฟล์นี้โดยตรงก็ได้
 if __name__ == "__main__":
