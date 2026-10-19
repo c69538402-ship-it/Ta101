@@ -476,9 +476,6 @@ canvas {
 </div>
 """
 
-## ท่อนที่ 2/2
-
-นำโค้ดท่อนนี้ไปวาง **ต่อท้ายท่อนที่ 1** ใน `app.py` ครับ
 
 <CodeBlock language="python" editable>
 html += r"""
