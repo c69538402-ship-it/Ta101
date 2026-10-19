@@ -1208,17 +1208,17 @@ drawVisualizer();
 """
 
     
+player_html = (
+        player_html
+        .replace("__TRACKS_JSON__", tracks_json)
+        .replace("__LOGO_SRC__", logo_src)
+    )
+
+    
 st.iframe(
     player_html,
     height=1120,
 )
-
-    components.html(
-    player_html,
-    height=1120,
-    scrolling=True
-    )
-
 
 # ส่วนท้ายของแอป
 st.markdown(
