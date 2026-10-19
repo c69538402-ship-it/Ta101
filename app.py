@@ -946,8 +946,9 @@ audio.volume = 0.8;
 
 
     (logo_path="logo1.jpg")
-// ปรับแสงของแผงมิกเซอร์
-["bass", "mid", "treble", "glow"].forEach(id => {
+
+    // ปรับแสงของแผงมิกเซอร์
+    ["bass", "mid", "treble", "glow"].forEach(id => {
         $(id).addEventListener("input", event => {
             $(id + "val").textContent = event.target.value + "%";
 
@@ -985,4 +986,4 @@ if __name__ == "__main__":
         layout="wide"
     )
 
-    render_music_player
+    render_music_player(logo_path="logo1.jpg")
