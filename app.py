@@ -971,7 +971,7 @@ audio.volume = 0.8;
 </html>
 """
 
-        components.html(
+    components.html(
             player_html.replace("__TRACKS__", payload),
             height=1040,
             scrolling=True
