@@ -1213,10 +1213,10 @@ drawVisualizer();
         .replace("__LOGO_SRC__", logo_src)
     )
 
-    components.html(
-        player_html,
-        height=1120,
-        scrolling=True,
+    components.iframe(
+    srcdoc=player_html,
+    height=1120,
+    scrolling=True
     )
 
 
