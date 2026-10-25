@@ -9,7 +9,7 @@ import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="TA101 NEON MUSIC",
-    page_icon="🎧",
+    page_icon="🎵🎧🎵",
     layout="wide",
 )
 
