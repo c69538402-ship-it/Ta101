@@ -140,7 +140,6 @@ input{width:100%;accent-color:#5cf2ff}
 </div>
 <script>
 '''
-
 const songs = __SONGS__;
 const logoSrc = __LOGO__;
 const $ = id => document.getElementById(id);
