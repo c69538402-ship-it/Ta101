@@ -139,7 +139,6 @@ input{width:100%;accent-color:#5cf2ff}
 <aside class="playlist"><h3 class="shine">♫ PLAYLIST</h3><div id="tracks"></div></aside>
 </div>
 <script>
-'''
 const songs = __SONGS__;
 const logoSrc = __LOGO__;
 const $ = id => document.getElementById(id);
@@ -147,7 +146,6 @@ const audio = new Audio();
 audio.preload = "auto";
 let idx=0, playing=false, ctx=null, analyser=null, source=null, gain=null;
 let punch=1.7, glow=1.2, shake=7, crossfading=false, raf=0;
-
 function fmt(t){return Number.isFinite(t)?Math.floor(t/60)+":"+String(Math.floor(t%60)).padStart(2,"0"):"0:00";}
 function name(s){return (s||"").replace(/\.[^/.]+$/,"").replace(/[_-]+/g," ");}
 function status(s){$("status").textContent=s;}
