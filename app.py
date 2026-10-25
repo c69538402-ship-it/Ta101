@@ -139,6 +139,7 @@ input{width:100%;accent-color:#5cf2ff}
 <aside class="playlist"><h3 class="shine">♫ PLAYLIST</h3><div id="tracks"></div></aside>
 </div>
 <script>
+'''
 const songs = __SONGS__;
 const logoSrc = __LOGO__;
 const $ = id => document.getElementById(id);
