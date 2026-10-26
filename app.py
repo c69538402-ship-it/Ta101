@@ -93,13 +93,20 @@ filter:saturate(1.35);animation:nebula-drift 28s ease-in-out infinite alternate}
 #logo-placeholder{font-family:Orbitron,sans-serif;color:var(--a);font-size:12px;text-shadow:0 0 15px var(--a);text-align:center}
 #burst{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 #burst-btn{pointer-events:auto;position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);border:1px solid var(--a);border-radius:30px;background:#060817aa;color:#fff;padding:7px 13px;font:11px Prompt,sans-serif;white-space:nowrap;box-shadow:0 0 15px var(--a);cursor:pointer}
-.visual{width:min(900px,100%);height:clamp(80px,15vh,145px);display:block;filter:drop-shadow(0 0 8px var(--a));margin-bottom:10px}
+.visual{width:min(1000px,100%);height:clamp(125px,22vh,205px);display:block;filter:drop-shadow(0 0 12px var(--a));margin-bottom:5px;overflow:visible}
 .panel{width:min(760px,100%);border:1px solid color-mix(in srgb,var(--a) 80%,white 5%);border-radius:22px;padding:clamp(14px,2.5vw,24px);background:var(--panel);backdrop-filter:blur(18px);box-shadow:0 0 25px color-mix(in srgb,var(--a) 18%,transparent),inset 0 0 24px #8a00ff0b}
 .track{display:flex;align-items:center;gap:12px;min-width:0;margin-bottom:15px}
 .thumb{width:54px;height:54px;flex:0 0 54px;border-radius:12px;border:1px solid var(--b);object-fit:cover;box-shadow:0 0 15px var(--b)}
 .tracktext{min-width:0;flex:1}
-#track-title{font-size:clamp(14px,2vw,18px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 12px var(--a)}
-#track-sub{font-size:11px;color:var(--a);margin-top:3px}
+#track-title{font-family:Orbitron,Prompt,sans-serif;font-size:clamp(15px,2.4vw,22px);font-weight:900;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:linear-gradient(90deg,#fff,var(--a),#fff,var(--b),#fff);background-size:240% auto;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 8px var(--a));animation:title-flow 5s linear infinite}
+@keyframes title-flow{to{background-position:240% center}}
+#track-sub{font-size:10px;color:var(--a);margin-top:5px;letter-spacing:2px;text-shadow:0 0 9px var(--a)}
+.mixer{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:17px;padding:12px 14px;border:1px solid #ffffff20;border-radius:15px;background:linear-gradient(120deg,#00eaff0b,#bd00ff12);box-shadow:inset 0 0 18px #00eaff09}
+.mix-channel{min-width:0}
+.mix-head{display:flex;justify-content:space-between;gap:6px;font:10px Orbitron,sans-serif;letter-spacing:1px;color:#dceaff;margin-bottom:8px}
+.mix-head b{color:var(--a);font-weight:700}
+.mix-channel input{width:100%;height:5px;accent-color:var(--a);cursor:pointer;filter:drop-shadow(0 0 4px var(--a))}
+.mixer-title{text-align:center;font:9px Orbitron,sans-serif;letter-spacing:3px;color:var(--b);margin-top:15px;text-shadow:0 0 10px var(--b)}
 #playlist{max-width:42%;border:1px solid #ffffff36;background:#080b1c;color:white;padding:8px;border-radius:9px;font:11px Prompt,sans-serif}
 .progress{height:7px;background:#ffffff22;border-radius:20px;overflow:hidden;cursor:pointer}
 #fill{height:100%;width:0%;background:linear-gradient(90deg,var(--a),var(--b),#fff);box-shadow:0 0 14px var(--a)}
@@ -116,7 +123,7 @@ filter:saturate(1.35);animation:nebula-drift 28s ease-in-out infinite alternate}
 #start p{color:#c8d4f4;max-width:480px;font-size:13px;line-height:1.8}
 #start button{margin-top:12px;padding:13px 25px;border:0;border-radius:30px;color:#fff;font:700 14px Prompt,sans-serif;background:linear-gradient(100deg,var(--a),var(--b));box-shadow:0 0 25px var(--a);cursor:pointer}
 .foot{font:9px Orbitron,sans-serif;letter-spacing:2px;color:#93a2d2;margin-top:9px;text-align:center}
-@media(max-width:560px){#stage{min-height:620px}.hud{padding:12px}.center{top:40%;width:min(78vw,360px);height:min(78vw,360px);max-height:38vh}.visual{height:75px;margin-bottom:6px}.panel{padding:13px}.thumb{width:43px;height:43px;flex-basis:43px}.controls{gap:15px}#play{width:51px;height:51px}.subtitle{letter-spacing:2px}.foot{font-size:8px}}
+@media(max-width:560px){#stage{min-height:620px}.hud{padding:12px}.center{top:38%;width:min(78vw,360px);height:min(78vw,360px);max-height:36vh}.visual{height:clamp(110px,17vh,150px);margin-bottom:4px}.panel{padding:12px}.thumb{width:43px;height:43px;flex-basis:43px}.controls{gap:15px}#play{width:51px;height:51px}.subtitle{letter-spacing:2px}.foot{font-size:8px}.mixer{gap:8px;padding:10px 8px}.mix-head{font-size:8px;letter-spacing:.4px}}
 </style>
 </head>
 <body>
@@ -127,11 +134,11 @@ filter:saturate(1.35);animation:nebula-drift 28s ease-in-out infinite alternate}
   <img id="logo" alt="TA101 logo source" style="display:none">
   <canvas id="logo-motion" aria-label="Animated TA101 logo"></canvas>
   <div id="logo-placeholder">TA101<br>NEON MUSIC</div>
-
-    <canvas id="burst"></canvas>
-  <button id="burst-btn" type="button">✦ แตกตัว / ประกอบโลโก้</button>
+  <canvas id="burst"></canvas>
+  <button id="
+  .burst-btn" type="button">✦ แตกตัว / ประกอบโลโก้</button>
  </div>
- <div class="hud">
+  <div class="hud">
   <div class="top">
    <div class="brand">TA101 • NEON MUSIC</div>
    <div class="subtitle">3D COSMIC AUDIO EXPERIENCE</div>
@@ -157,6 +164,12 @@ filter:saturate(1.35);animation:nebula-drift 28s ease-in-out infinite alternate}
     <button id="play" title="เล่น / หยุด">▶</button>
     <button class="ctrl" id="next" title="เพลงถัดไป">⏭</button>
    </div>
+   <div class="mixer-title">✦ NEON MIX CONSOLE ✦</div>
+   <div class="mixer">
+    <div class="mix-channel"><div class="mix-head"><span>VOLUME</span><b id="vol-value">80%</b></div><input id="volume" type="range" min="0" max="100" value="80" aria-label="ปรับความดัง"></div>
+    <div class="mix-channel"><div class="mix-head"><span>BASS</span><b id="bass-value">+4 dB</b></div><input id="bass" type="range" min="-12" max="12" value="4" aria-label="ปรับเสียงเบส"></div>
+    <div class="mix-channel"><div class="mix-head"><span>TREBLE</span><b id="treble-value">+2 dB</b></div><input id="treble" type="range" min="-12" max="12" value="2" aria-label="ปรับเสียงแหลม"></div>
+   </div>
    <div class="options">
     <button class="pill active" id="loop">↻ วนซ้ำรายการ</button>
     <button class="pill" id="shuffle">⤨ สุ่มเพลง</button>
@@ -181,7 +194,7 @@ const audio = new Audio();
 audio.preload = "auto";
 audio.crossOrigin = "anonymous";
 let index=0, playing=false, shuffle=false, loopList=true, single=false;
-let ctx=null, analyser=null, source=null, freq=null, waveData=null;
+let ctx=null, analyser=null, source=null, freq=null, waveData=null, bassFilter=null, trebleFilter=null, masterGain=null;
 let scene,camera,renderer,stars,core,coreMat,clock;
 const stage=$("stage");
 
@@ -213,13 +226,33 @@ function initAudio(){
  if(ctx)return;
  const AC=window.AudioContext||window.webkitAudioContext;
  if(!AC)return;
+
  ctx=new AC();
  analyser=ctx.createAnalyser();
- analyser.fftSize=256;
- analyser.smoothingTimeConstant=.78;
+ analyser.fftSize=512;
+ analyser.smoothingTimeConstant=.82;
+
  source=ctx.createMediaElementSource(audio);
- source.connect(analyser);
+
+ bassFilter=ctx.createBiquadFilter();
+ bassFilter.type="lowshelf";
+ bassFilter.frequency.value=180;
+ bassFilter.gain.value=4;
+
+ trebleFilter=ctx.createBiquadFilter();
+ trebleFilter.type="highshelf";
+ trebleFilter.frequency.value=3200;
+ trebleFilter.gain.value=2;
+
+ masterGain=ctx.createGain();
+ masterGain.gain.value=.8;
+
+ source.connect(bassFilter);
+ bassFilter.connect(trebleFilter);
+ trebleFilter.connect(masterGain);
+ masterGain.connect(analyser);
  analyser.connect(ctx.destination);
+
  freq=new Uint8Array(analyser.frequencyBinCount);
  waveData=new Uint8Array(analyser.fftSize);
 }
@@ -258,9 +291,11 @@ function loadTrack(i){
 async function playAudio(){
  if(!SONGS.length)return;
  initAudio();
+
  if(ctx && ctx.state==="suspended"){
   try{await ctx.resume()}catch(e){}
  }
+
  try{
   await audio.play();
   playing=true;
@@ -280,11 +315,13 @@ function pauseAudio(){
 
 function nextTrack(fromEnded=false){
  if(!SONGS.length)return;
+
  if(single && fromEnded){
   pauseAudio();
   audio.currentTime=0;
   return;
  }
+
  if(shuffle && SONGS.length>1){
   let n=index;
   while(n===index)n=Math.floor(Math.random()*SONGS.length);
@@ -295,20 +332,27 @@ function nextTrack(fromEnded=false){
  }else{
   loadTrack(index+1);
  }
+
  if(playing || fromEnded)playAudio();
 }
 
 $("play").onclick=()=>playing?pauseAudio():playAudio();
 $("next").onclick=()=>nextTrack(false);
+
 $("prev").onclick=()=>{
- if(audio.currentTime>3){audio.currentTime=0;return;}
+ if(audio.currentTime>3){
+  audio.currentTime=0;
+  return;
+ }
  loadTrack(index-1);
  if(playing)playAudio();
 };
+
 $("playlist").onchange=e=>{
  loadTrack(Number(e.target.value));
  playAudio();
 };
+
 $("loop").onclick=()=>{
  loopList=!loopList;
  $("loop").classList.toggle("active",loopList);
@@ -317,10 +361,12 @@ $("loop").onclick=()=>{
   $("single").classList.remove("active");
  }
 };
+
 $("shuffle").onclick=()=>{
  shuffle=!shuffle;
  $("shuffle").classList.toggle("active",shuffle);
 };
+
 $("single").onclick=()=>{
  single=!single;
  $("single").classList.toggle("active",single);
@@ -343,12 +389,14 @@ audio.addEventListener("timeupdate",()=>{
   $("elapsed").textContent=timeText(audio.currentTime);
  }
 });
+
 $("progress").onclick=e=>{
  if(audio.duration){
   const r=e.currentTarget.getBoundingClientRect();
   audio.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*audio.duration;
  }
 };
+
 $("enter").onclick=async()=>{
  initAudio();
  if(ctx&&ctx.state==="suspended"){
@@ -358,15 +406,36 @@ $("enter").onclick=async()=>{
  setTimeout(()=>$("start").style.display="none",620);
  await playAudio();
 };
+
 $("fullscreen").onclick=async()=>{
  try{
   if(!document.fullscreenElement)await stage.requestFullscreen();
   else await document.exitFullscreen();
  }catch(e){}
 };
+
 fillPlaylist();
 
-/* ฉากอวกาศ 3 มิติสร้างด้วย Three.js */
+/* มิกเซอร์: ปรับความดัง เบส และเสียงแหลม */
+$("volume").addEventListener("input",e=>{
+ const v=Number(e.target.value);
+ $("vol-value").textContent=v+"%";
+ if(masterGain&&ctx)masterGain.gain.setTargetAtTime(v/100,ctx.currentTime,.03);
+});
+
+$("bass").addEventListener("input",e=>{
+ const v=Number(e.target.value);
+ $("bass-value").textContent=(v>0?"+":"")+v+" dB";
+ if(bassFilter&&ctx)bassFilter.gain.setTargetAtTime(v,ctx.currentTime,.03);
+});
+
+$("treble").addEventListener("input",e=>{
+ const v=Number(e.target.value);
+ $("treble-value").textContent=(v>0?"+":"")+v+" dB";
+ if(trebleFilter&&ctx)trebleFilter.gain.setTargetAtTime(v,ctx.currentTime,.03);
+});
+
+/* ฉากอวกาศ 3 มิติด้วย Three.js */
 const canvas=$("space");
 try{
  scene=new THREE.Scene();
@@ -378,6 +447,7 @@ try{
 
  const positions=new Float32Array(2400*3);
  const colors=new Float32Array(2400*3);
+
  for(let i=0;i<2400;i++){
   positions[i*3]=(Math.random()-.5)*330;
   positions[i*3+1]=(Math.random()-.5)*210;
@@ -385,9 +455,11 @@ try{
   const c=new THREE.Color().setHSL(.52+Math.random()*.28,.85,.55+Math.random()*.3);
   colors.set([c.r,c.g,c.b],i*3);
  }
+
  const geo=new THREE.BufferGeometry();
  geo.setAttribute("position",new THREE.BufferAttribute(positions,3));
  geo.setAttribute("color",new THREE.BufferAttribute(colors,3));
+
  stars=new THREE.Points(geo,new THREE.PointsMaterial({
   size:1.05,vertexColors:true,transparent:true,opacity:.9,depthWrite:false
  }));
@@ -397,7 +469,7 @@ try{
  coreMat=new THREE.MeshBasicMaterial({
   color:0xbd00ff,wireframe:true,transparent:true,opacity:.19
  });
- core=new THREE.Mesh(coreGeo,coreMat);
+ const core=new THREE.Mesh(coreGeo,coreMat);
  scene.add(core);
 
  const ringGeo=new THREE.TorusGeometry(23,.09,8,240);
@@ -417,6 +489,7 @@ try{
  scene.add(ring2);
 
  clock=new THREE.Clock();
+
  function resize3d(){
   const w=stage.clientWidth,h=stage.clientHeight;
   camera.aspect=w/h;
@@ -442,6 +515,7 @@ try{
    for(let i=0;i<freq.length;i++)energy+=freq[i];
    energy=energy/freq.length/255;
   }
+
   core.scale.setScalar(1+energy*.28);
   core.rotation.z=t*.06;
   camera.position.x=Math.sin(t*.09)*2.2;
@@ -452,52 +526,93 @@ try{
  render3d();
 }catch(err){
  console.warn("3D renderer unavailable:",err);
-}
-/* คลื่นเสียงจากเพลงที่กำลังเล่น */
+/* กราฟเสียงหลายเส้น สูงขึ้น และตอบสนองต่อเพลงจริง */
 const wc=$("wave"),wctx=wc.getContext("2d");
 
 function drawWave(){
  requestAnimationFrame(drawWave);
+
  const dpr=Math.min(devicePixelRatio||1,2);
  const w=wc.clientWidth,h=wc.clientHeight;
+ if(!w||!h)return;
+
  if(wc.width!==Math.floor(w*dpr)||wc.height!==Math.floor(h*dpr)){
   wc.width=Math.floor(w*dpr);
   wc.height=Math.floor(h*dpr);
  }
+
  wctx.setTransform(dpr,0,0,dpr,0,0);
  wctx.clearRect(0,0,w,h);
- if(analyser&&waveData&&playing)analyser.getByteTimeDomainData(waveData);
 
- const mid=h*.5,points=Math.max(120,Math.floor(w*.8));
- for(let layer=0;layer<3;layer++){
+ if(analyser&&waveData&&playing)analyser.getByteTimeDomainData(waveData);
+ if(analyser&&freq&&playing)analyser.getByteFrequencyData(freq);
+
+ const mid=h*.5;
+ const points=Math.max(160,Math.floor(w*.95));
+ const barCount=Math.min(100,Math.floor(w/7));
+ const barGap=2;
+ const barW=Math.max(2,(w-(barCount-1)*barGap)/barCount);
+
+ for(let i=0;i<barCount;i++){
+  let level=0;
+
+  if(analyser&&freq&&playing){
+   const j=Math.floor(i/barCount*freq.length);
+   level=freq[j]/255;
+  }else{
+   level=.08+.08*(.5+.5*Math.sin(i*.32+performance.now()*.002));
+  }
+
+  const bh=Math.max(3,level*h*.42);
+  const grad=wctx.createLinearGradient(0,mid-bh,0,mid+bh);
+  grad.addColorStop(0,"#bd00ff");
+  grad.addColorStop(.5,"#ffffff");
+  grad.addColorStop(1,"#00f5ff");
+
+  wctx.fillStyle=grad;
+  wctx.globalAlpha=.65;
+  wctx.fillRect(i*(barW+barGap),mid-bh,barW,bh*2);
+ }
+
+ wctx.globalAlpha=1;
+
+ const palette=["#00f5ff","#bd00ff","#ffffff","#ff45df","#38a8ff"];
+
+ for(let layer=0;layer<5;layer++){
   wctx.beginPath();
-  wctx.lineWidth=layer===0?2.8:1.1;
-  wctx.strokeStyle=layer===0?"#00f5ff":layer===1?"#bd00ff":"#ffffff88";
-  wctx.shadowBlur=layer===0?16:8;
-  wctx.shadowColor=layer===1?"#bd00ff":"#00f5ff";
+  wctx.lineWidth=layer===0?3.2:layer===1?2:1.2;
+  wctx.strokeStyle=palette[layer];
+  wctx.shadowBlur=layer===0?24:14;
+  wctx.shadowColor=palette[layer];
 
   for(let i=0;i<=points;i++){
    const x=i/points*w;
-   let v=0;
+   let v;
+
    if(analyser&&waveData&&playing){
     const j=Math.floor(i/points*(waveData.length-1));
     v=(waveData[j]-128)/128;
    }else{
-    v=Math.sin(i*.12+performance.now()*.0015+layer)*.08+
-      Math.sin(i*.035-performance.now()*.001)*.04;
+    v=Math.sin(i*.12+performance.now()*.0015+layer)*.18+
+      Math.sin(i*.035-performance.now()*.001)*.1;
    }
-   const amp=(playing?h*.38:h*.18)*(1-layer*.22);
-   const y=mid+v*amp+Math.sin(i*.08+performance.now()*.001+layer)*3;
+
+   const amplitude=(playing?h*.72:h*.28)*(1-layer*.105);
+   const y=mid+v*amplitude+
+     Math.sin(i*.08+performance.now()*.001+layer*1.4)*(2+layer);
+
    if(i===0)wctx.moveTo(x,y);
    else wctx.lineTo(x,y);
   }
+
   wctx.stroke();
  }
+
  wctx.shadowBlur=0;
 }
 drawWave();
 
-/* สร้างโลโก้เคลื่อนไหวจากพิกเซลของ logo1.jpg */
+/* โลโก้เคลื่อนไหวจากอนุภาคที่สร้างด้วยพิกเซลของ logo1.jpg */
 const lc=$("logo-motion"),lctx=lc.getContext("2d");
 const bc=$("burst"),bctx=bc.getContext("2d");
 let logoParticles=[],burstMode=0,burstStart=performance.now(),logoImage=null;
@@ -505,11 +620,14 @@ let logoParticles=[],burstMode=0,burstStart=performance.now(),logoImage=null;
 function fitCanvas(el,ctx){
  const dpr=Math.min(devicePixelRatio||1,2);
  const w=el.clientWidth,h=el.clientHeight;
+
  if(!w||!h)return null;
+
  if(el.width!==Math.floor(w*dpr)||el.height!==Math.floor(h*dpr)){
   el.width=Math.floor(w*dpr);
   el.height=Math.floor(h*dpr);
  }
+
  ctx.setTransform(dpr,0,0,dpr,0,0);
  return {w,h,dpr};
 }
@@ -517,19 +635,25 @@ function fitCanvas(el,ctx){
 function buildAnimatedLogo(){
  const size=fitCanvas(lc,lctx);
  fitCanvas(bc,bctx);
+
  if(!size||!LOGO)return;
 
  logoImage=new Image();
+
  logoImage.onload=()=>{
   const off=document.createElement("canvas");
   const oc=off.getContext("2d");
+
   off.width=150;
   off.height=150;
   oc.clearRect(0,0,150,150);
   oc.drawImage(logoImage,0,0,150,150);
+
   const data=oc.getImageData(0,0,150,150).data;
   logoParticles=[];
-  const step=3,scale=Math.min(size.w,size.h)*.86/150;
+
+  const step=3;
+  const scale=Math.min(size.w,size.h)*.86/150;
 
   for(let y=0;y<150;y+=step){
    for(let x=0;x<150;x+=step){
@@ -543,11 +667,9 @@ function buildAnimatedLogo(){
     const dist=30+Math.random()*Math.max(size.w,size.h)*.7;
 
     logoParticles.push({
-     tx,ty,x:tx,y:ty,
+     tx,ty,
      sx:size.w/2+Math.cos(angle)*dist,
      sy:size.h/2+Math.sin(angle)*dist,
-     vx:(Math.random()-.5)*1.8,
-     vy:(Math.random()-.5)*1.8,
      r:.7+Math.random()*1.5,
      color:`rgba(${data[k]},${data[k+1]},${data[k+2]},${Math.max(.35,alpha)})`,
      phase:Math.random()*Math.PI*2
@@ -555,27 +677,37 @@ function buildAnimatedLogo(){
    }
   }
  };
+
  logoImage.src=LOGO;
 }
 
 function triggerBurst(){
  if(!logoParticles.length)return;
+
  burstMode=burstMode===1?0:1;
  burstStart=performance.now();
+
  $("burst-btn").textContent=burstMode
   ?"✦ ประกอบโลโก้กลับ"
   :"✦ แตกตัว / ประกอบโลโก้";
 }
+
 $("burst-btn").onclick=triggerBurst;
 
 function animateLogo(){
  requestAnimationFrame(animateLogo);
+
  const size=fitCanvas(lc,lctx);
  fitCanvas(bc,bctx);
+
  if(!size||!logoParticles.length)return;
 
- const {w,h}=size,now=performance.now(),t=now*.001;
+ const {w,h}=size;
+ const now=performance.now();
+ const t=now*.001;
+
  let energy=0;
+
  if(analyser&&freq&&playing){
   analyser.getByteFrequencyData(freq);
   for(let i=0;i<freq.length;i++)energy+=freq[i];
@@ -584,15 +716,19 @@ function animateLogo(){
 
  lctx.clearRect(0,0,w,h);
  bctx.clearRect(0,0,bc.clientWidth,bc.clientHeight);
+
  const progress=Math.min(1,(now-burstStart)/1300);
  const scatter=burstMode?progress:1-progress;
 
  for(const q of logoParticles){
   const drift=Math.sin(t*1.7+q.phase)*(1.5+energy*8);
   const flutter=Math.cos(t*1.3+q.phase)*(1.5+energy*8);
-  const tx=q.tx+drift,ty=q.ty+flutter;
+
+  const tx=q.tx+drift;
+  const ty=q.ty+flutter;
   const sx=q.sx+Math.sin(t+q.phase)*22;
   const sy=q.sy+Math.cos(t*.9+q.phase)*22;
+
   const x=tx+(sx-tx)*scatter;
   const y=ty+(sy-ty)*scatter;
   const radius=q.r*(1+energy*1.8)*(1+Math.sin(t*2+q.phase)*.13);
@@ -613,6 +749,7 @@ function animateLogo(){
    bctx.fill();
   }
  }
+
  lctx.shadowBlur=0;
  bctx.shadowBlur=0;
 }
