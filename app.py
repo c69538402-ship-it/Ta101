@@ -571,7 +571,7 @@ html_code = """
             document.getElementById('play-icon').className = "fa-solid fa-pause";
         });
 
-        // ปุ่ม Play / Pause
+                // ปุ่ม Play / Pause
         const btnPlay = document.getElementById('btn-play');
         const playIcon = document.getElementById('play-icon');
         btnPlay.addEventListener('click', () => {
@@ -586,6 +586,33 @@ html_code = """
                 playIcon.className = "fa-solid fa-pause";
             }
         });
+
+        // ปุ่มเปลี่ยนเพลง Next / Prev
+        document.getElementById('btn-next').addEventListener('click', () => {
+            currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+            loadTrack(currentTrackIndex);
+            if (isPlaying) audioElement.play();
+        });
+
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+            loadTrack(currentTrackIndex);
+            if (isPlaying) audioElement.play();
+        });
+
+        // ระบบ Loop & Shuffle
+        const btnLoop = document.getElementById('btn-loop');
+        btnLoop.addEventListener('click', () => {
+            isLooping = !isLooping;
+            btnLoop.classList.toggle('active', isLooping);
+        });
+
+        const btnShuffle = document.getElementById('btn-shuffle');
+        btnShuffle.addEventListener('click', () => {
+            isShuffling = !isShuffling;
+            btnShuffle.classList.toggle('active', isShuffling);
+        });
+        
 
         // ปุ่มเปลี่ยนเพลง Next / Prev
         document.getElementById('btn-next').addEventListener('click', () => {
