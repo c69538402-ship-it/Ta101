@@ -251,8 +251,7 @@ player_html = r"""<!DOCTYPE html>
 
             <div class="visualizer-container" id="visualizer"></div>
 
-
-                        <div class="player-panel">
+            <div class="player-panel">
                 <div class="track-info">
                     <div class="track-thumb">
                         <img src="__LOGO_BASE64__" alt="Track Art">
@@ -368,9 +367,85 @@ player_html = r"""<!DOCTYPE html>
             starPositions[i + 1] = (Math.random() - 0.5) * 180;
             starPositions[i + 2] = (Math.random() - 0.5) * 250;
         }
-        starGeometry.setAttribute('position',
-      
-        = new THREE.PointsMaterial({ color: 0x00f3ff, size: 0.9, transparent: true, opacity: 0.85 });
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        
+        starMaterial = new THREE.PointsMaterial({ color: 0x00f3ff, size: 0.9, transparent: true, opacity: 0.85 });
+        const starField = new THREE.Points(starGeometry, starMaterial);
+        scene.add(starField);
+
+        const torusGeometry = new THREE.TorusKnotGeometry(6, 1.8, 100, 16);
+        musicCoreMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true, transparent: true, opacity: 0.4 });
+        const musicCore = new THREE.Mesh(torusGeometry, musicCoreMaterial);
+        scene.add(musicCore);
+
+        audioElement.addEventListener('ended', () => {
+            if (isShuffling) {
+                currentTrackIndex = Math.floor(Math.random() * songs.length);
+            } else if (isLooping && songs.length === 1) {
+                audioElement.play();
+                return;
+            } else {
+                currentTrackIndex = (currentTrackIndex + 1) % songs.length;
+            }
+            loadTrack(currentTrackIndex);
+            audioElement.play();
+        });
+
+        audioElement.addEventListener('timeupdate', () => {
+            if (audioElement.duration) {
+                const progressPercent = (audioElement.currentTime / audioElement.duration) * 100;
+                document.getElementById('progress-fill').style.width = progressPercent + '%';
+                
+                let curM = Math.floor(audioElement.currentTime / 60);
+                let curS = Math.floor(audioElement.currentTime % 60);
+                document.getElementById('current-time').innerText = curM + ":" + (curS < 10 ? '0' : '') + curS;
+
+                let durM = Math.floor(audioElement.duration / 60);
+                let durS = Math.floor(audioElement.duration % 60);
+                document.getElementById('total-duration').innerText = durM + ":" + (durS < 10 ? '0' : '') + durS;
+            }
+        });
+
+        document.getElementById('progress-bar').addEventListener('click', (e) => {
+            const width = e.currentTarget.clientWidth;
+            const clickX = e.offsetX;
+            if (audioElement.duration) {
+                audioElement.currentTime = (clickX / width) * audioElement.duration;
+            }
+        });
+
+        document.getElementById('btn-start-app').addEventListener('click', () => {
+            initAudioContext();
+            document.getElementById('start-overlay').style.opacity = '0';
+            setTimeout(() => { document.getElementById('start-overlay').style.display = 'none'; }, 500);
+            audioElement.play();
+            isPlaying = true;
+            document.getElementById('play-icon').className = "fa-solid fa-pause";
+        });
+
+        const btnPlay = document.getElementById('btn-play');
+        const playIcon = document.getElementById('play-icon');
+        btnPlay.addEventListener('click', () => {
+            initAudioContext();
+            if (isPlaying) {
+                audioElement.pause();
+                isPlaying = false;
+                playIcon.className = "fa-solid fa-play";
+            } else {
+                audioElement.play();
+                isPlaying = true;
+                playIcon.className = "fa-solid fa-pause";
+            }
+        });
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            currentTrackIndex = (currentTrackIndex + 1) % songs.length;
+            loadTrack(currentTrackIndex);
+            if (isPlaying) audioElement.play();
+        });
+
+        document.getElementById('btn-prev').addEventListener('click', 
+ = new THREE.PointsMaterial({ color: 0x00f3ff, size: 0.9, transparent: true, opacity: 0.85 });
         const starField = new THREE.Points(starGeometry, starMaterial);
         scene.add(starField);
 
@@ -514,3 +589,4 @@ player_html = player_html.replace("__LOGO_BASE64__", logo_base64)
 
 components.html(player_html, height=880, scrolling=False)
 
+```
