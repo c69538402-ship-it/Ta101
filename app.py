@@ -1,20 +1,20 @@
 from pathlib import Path
 import base64
-import mimetypes
 import json
+import mimetypes
 import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="3D Space Music Visualizer • TA101",
+    page_title="TA101 • NEON SPACE MUSIC",
     page_icon="🌌",
-    layout="centered"
+    layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
 ROOT = Path(__file__).resolve().parent
-
-# 1. แปลงไฟล์เพลงเป็น Base64 อัตโนมัติ
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"}
+
 songs = []
 for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
     if path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
@@ -23,587 +23,322 @@ for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
             encoded = base64.b64encode(path.read_bytes()).decode("ascii")
             songs.append({
                 "name": path.stem,
-                "src": f"data:{mime};base64,{encoded}"
+                "src": f"data:{mime};base64,{encoded}",
             })
         except OSError:
-            pass
-
-if not songs:
-    songs = [{
-        "name": "Cybernetic Universe (Demo)",
-        "src": "https://commondatastorage.googleapis.com/codeskulptor-assets/Epoq-Lepidoptera.ogg"
-    }]
+            continue
 
 songs_json = json.dumps(songs, ensure_ascii=False).replace("</", "<\\/")
 
-# 2. แปลงรูปโลโก้ logo1.jpg เป็น Base64 ป้องกันภาพไม่ขึ้น
-logo_base64 = "https://via.placeholder.com/70/00f3ff/000000?text=LOGO"
-logo_path = ROOT / "logo1.jpg"
-if logo_path.exists():
-    try:
-        logo_mime = mimetypes.guess_type(logo_path.name)[0] or "image/jpeg"
-        logo_encoded = base64.b64encode(logo_path.read_bytes()).decode("ascii")
-        logo_base64 = f"data:{logo_mime};base64,{logo_encoded}"
-    except OSError:
-        pass
+logo_data = ""
+for candidate in ("logo1.jpg", "logo1.jpeg", "logo1.png", "โลโก้.jpg", "logo.jpg"):
+    logo_path = ROOT / candidate
+    if logo_path.is_file():
+        try:
+            mime = mimetypes.guess_type(logo_path.name)[0] or "image/jpeg"
+            logo_data = f"data:{mime};base64,{base64.b64encode(logo_path.read_bytes()).decode('ascii')}"
+            break
+        except OSError:
+            pass
 
-# 3. โครงสร้าง HTML / CSS / JavaScript
-player_html = r"""<!DOCTYPE html>
+# JSON encoding prevents quotes in filenames from breaking the JavaScript.
+logo_json = json.dumps(logo_data)
+
+player_html = r"""<!doctype html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Space Music Visualizer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Prompt:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        :root {
-            --primary: #00f3ff;
-            --secondary: #ff00ff;
-            --bg-glow: rgba(0, 243, 255, 0.3);
-            --panel-bg: rgba(12, 8, 25, 0.85);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Prompt', sans-serif; }
-
-        .app-container {
-            position: relative;
-            width: 100%;
-            max-width: 450px;
-            height: 100vh;
-            margin: 0 auto;
-            background: #05020a;
-            overflow: hidden;
-            box-shadow: 0 0 35px var(--bg-glow);
-            transition: box-shadow 0.5s ease;
-        }
-
-        #canvas-container {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
-        }
-
-        .ui-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
-            display: flex; flex-direction: column; justify-content: space-between;
-            padding: 15px; pointer-events: none;
-        }
-        .ui-layer > * { pointer-events: auto; }
-
-        .header-section { text-align: center; margin-top: 2px; }
-
-        .theme-selector {
-            display: flex; justify-content: center; gap: 8px; margin-bottom: 8px;
-        }
-        .theme-btn {
-            width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff;
-            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .theme-btn:hover { transform: scale(1.2); }
-        .theme-btn.active-theme { box-shadow: 0 0 10px #fff; transform: scale(1.15); }
-        
-        #btn-cyber { background: linear-gradient(135deg, #00f3ff, #ff00ff); }
-        #btn-matrix { background: linear-gradient(135deg, #00ff66, #0033ff); }
-        #btn-sunset { background: linear-gradient(135deg, #ff5500, #ff007f); }
-        #btn-space { background: linear-gradient(135deg, #9900ff, #00ccff); }
-
-        .logo-wrapper {
-            width: 65px; height: 65px; margin: 0 auto 4px auto;
-            border-radius: 50%; overflow: hidden;
-            border: 2px solid var(--primary);
-            box-shadow: 0 0 20px var(--primary), inset 0 0 15px var(--secondary);
-            transition: transform 0.05s ease, border-color 0.5s, box-shadow 0.5s;
-        }
-        .logo-wrapper img {
-            width: 100%; height: 100%; object-fit: cover;
-            animation: spin-logo 8s linear infinite;
-        }
-        @keyframes spin-logo { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        .neon-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 18px; font-weight: 900;
-            text-transform: uppercase;
-            color: var(--primary);
-            text-shadow: 0 0 10px var(--primary), 0 0 20px var(--secondary);
-            animation: neon-glow 1.5s ease-in-out infinite alternate;
-        }
-        @keyframes neon-glow {
-            0% { transform: scale(1); text-shadow: 0 0 8px var(--primary), 0 0 15px var(--secondary); }
-            100% { transform: scale(1.02); text-shadow: 0 0 15px var(--primary), 0 0 30px var(--secondary); }
-        }
-
-        .subtitle {
-            font-size: 9px; color: #a0a0c0; margin-top: 1px; letter-spacing: 2px;
-        }
-
-        .visualizer-container {
-            width: 100%; height: 55px; display: flex; align-items: flex-end;
-            justify-content: center; gap: 3px; padding: 0 10px;
-        }
-        .bar {
-            flex: 1; background: linear-gradient(to top, var(--primary), var(--secondary));
-            border-radius: 4px 4px 0 0; box-shadow: 0 0 10px var(--primary); height: 5px;
-            transition: height 0.05s ease, background 0.5s;
-        }
-
-        .player-panel {
-            background: var(--panel-bg); backdrop-filter: blur(15px);
-            border: 1px solid var(--primary); border-radius: 18px;
-            padding: 12px 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9);
-            margin-bottom: 2px; transition: border-color 0.5s;
-        }
-
-        .track-info { display: flex; align-items: center; margin-bottom: 8px; }
-        .track-thumb {
-            width: 35px; height: 35px; border-radius: 8px; overflow: hidden;
-            border: 1px solid var(--secondary); margin-right: 10px; flex-shrink: 0;
-        }
-        .track-thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .track-meta { overflow: hidden; }
-        .track-name {
-            font-size: 12px; font-weight: 600; color: #fff;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .track-artist { font-size: 9px; color: var(--primary); }
-
-        .progress-area { margin-bottom: 8px; }
-        .progress-bar {
-            width: 100%; height: 5px; background: rgba(255, 255, 255, 0.15);
-            border-radius: 3px; cursor: pointer; position: relative; overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary));
-            border-radius: 3px; box-shadow: 0 0 10px var(--primary);
-        }
-        .time-stamps {
-            display: flex; justify-content: space-between; font-size: 9px; color: #8888aa; margin-top: 2px;
-        }
-
-        .controls { display: flex; align-items: center; justify-content: space-around; }
-        .btn-control {
-            background: none; border: none; color: #fff; font-size: 14px;
-            cursor: pointer; transition: all 0.2s; text-shadow: 0 0 10px var(--primary);
-        }
-        .btn-control:hover { color: var(--primary); transform: scale(1.15); }
-        .btn-control.active { color: var(--secondary); text-shadow: 0 0 12px var(--secondary); }
-
-        .btn-play-pause {
-            width: 40px; height: 40px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border: none; color: #fff; font-size: 15px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; box-shadow: 0 0 20px var(--secondary);
-            transition: transform 0.2s;
-        }
-        .btn-play-pause:hover { transform: scale(1.1); }
-
-        #start-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(3, 1, 6, 0.96); z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; padding: 20px; transition: opacity 0.5s ease;
-        }
-        #start-overlay h1 {
-            font-family: 'Orbitron', sans-serif; font-size: 18px; color: var(--primary);
-            margin-bottom: 10px; text-shadow: 0 0 15px var(--primary);
-        }
-        #start-overlay p { color: #b0b0d0; font-size: 11px; margin-bottom: 20px; line-height: 1.4; }
-        .btn-start {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border: none; color: #fff; padding: 12px 30px; font-size: 14px;
-            font-weight: 700; border-radius: 30px; cursor: pointer;
-            box-shadow: 0 0 25px var(--primary); font-family: 'Prompt', sans-serif;
-            text-transform: uppercase; letter-spacing: 1px; transition: transform 0.2s;
-        }
-        .btn-start:hover { transform: scale(1.06); }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Prompt:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--a:#00f5ff;--b:#bd00ff;--panel:rgba(5,8,25,.76)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;color:#fff;font-family:Prompt,sans-serif}
+#stage{position:relative;width:100%;height: min(940px,100vh);min-height:650px;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#10133c 0%,#050615 48%,#010208 100%);isolation:isolate}
+#space{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.aurora{position:absolute;inset:-20%;z-index:1;pointer-events:none;background:conic-gradient(from 30deg at 50% 50%,transparent,#00eaff12,transparent,#b400ff18,transparent);filter:blur(45px);animation:aurora 18s linear infinite}
+@keyframes aurora{to{transform:rotate(360deg)}}
+.hud{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:clamp(14px,3vw,30px);pointer-events:none}
+.hud>*{pointer-events:auto}
+.top{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
+.brand{font-family:Orbitron,sans-serif;font-weight:900;letter-spacing:clamp(3px,1vw,8px);font-size:clamp(23px,4.5vw,48px);text-align:center;color:#eafcff;text-shadow:0 0 8px var(--a),0 0 25px var(--a),0 0 50px var(--b);animation:flicker 3.5s ease-in-out infinite alternate}
+@keyframes flicker{from{filter:brightness(.86);text-shadow:0 0 8px var(--a),0 0 22px var(--a),0 0 35px var(--b)}to{filter:brightness(1.25);text-shadow:0 0 12px var(--a),0 0 32px var(--a),0 0 65px var(--b)}}
+.subtitle{font-size:10px;letter-spacing:4px;color:#c7d6ff;text-align:center}
+.themes{display:flex;gap:10px;margin-top:3px}
+.theme{width:23px;height:23px;border:2px solid #ffffffc9;border-radius:50%;cursor:pointer;box-shadow:0 0 13px currentColor}
+.theme:focus{outline:2px solid white;outline-offset:3px}
+#t1{background:linear-gradient(135deg,#00f5ff,#bd00ff);color:#00f5ff}
+#t2{background:linear-gradient(135deg,#00ff82,#0055ff);color:#00ff82}
+#t3{background:linear-gradient(135deg,#ff7a00,#ff006e);color:#ff7a00}
+#t4{background:linear-gradient(135deg,#fff,#7777ff);color:#fff}
+.center{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:min(68vw,460px);height:min(68vw,460px);max-height:48vh;display:grid;place-items:center;pointer-events:none}
+.ring{position:absolute;border-radius:50%;border:1px solid color-mix(in srgb,var(--a) 75%,transparent);box-shadow:0 0 20px color-mix(in srgb,var(--a) 60%,transparent),inset 0 0 20px color-mix(in srgb,var(--b) 30%,transparent)}
+.r1{inset:2%;animation:orbit 20s linear infinite}
+.r2{inset:10%;border-style:dashed;opacity:.65;animation:orbit 32s linear infinite reverse}
+.r3{inset:18%;border-width:2px;opacity:.4;animation:pulse 2.8s ease-in-out infinite}
+@keyframes orbit{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{transform:scale(1.06);opacity:.9}}
+#logo{width:38%;height:38%;object-fit:contain;border-radius:50%;border:2px solid var(--a);box-shadow:0 0 20px var(--a),0 0 55px var(--b),inset 0 0 20px var(--a);background:#060817;animation:logoGlow 2.2s ease-in-out infinite alternate}
+@keyframes logoGlow{to{box-shadow:0 0 35px var(--a),0 0 85px var(--b),inset 0 0 30px var(--a);filter:brightness(1.15)}}
+#logo-placeholder{font-family:Orbitron,sans-serif;color:var(--a);font-size:12px;text-shadow:0 0 15px var(--a);text-align:center}
+#burst{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#burst-btn{pointer-events:auto;position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);border:1px solid var(--a);border-radius:30px;background:#060817aa;color:#fff;padding:7px 13px;font:11px Prompt,sans-serif;white-space:nowrap;box-shadow:0 0 15px var(--a);cursor:pointer}
+.visual{width:min(900px,100%);height:clamp(80px,15vh,145px);display:block;filter:drop-shadow(0 0 8px var(--a));margin-bottom:10px}
+.panel{width:min(760px,100%);border:1px solid color-mix(in srgb,var(--a) 80%,white 5%);border-radius:22px;padding:clamp(14px,2.5vw,24px);background:var(--panel);backdrop-filter:blur(18px);box-shadow:0 0 25px color-mix(in srgb,var(--a) 18%,transparent),inset 0 0 24px #8a00ff0b}
+.track{display:flex;align-items:center;gap:12px;min-width:0;margin-bottom:15px}
+.thumb{width:54px;height:54px;flex:0 0 54px;border-radius:12px;border:1px solid var(--b);object-fit:cover;box-shadow:0 0 15px var(--b)}
+.tracktext{min-width:0;flex:1}
+#track-title{font-size:clamp(14px,2vw,18px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 12px var(--a)}
+#track-sub{font-size:11px;color:var(--a);margin-top:3px}
+#playlist{max-width:42%;border:1px solid #ffffff36;background:#080b1c;color:white;padding:8px;border-radius:9px;font:11px Prompt,sans-serif}
+.progress{height:7px;background:#ffffff22;border-radius:20px;overflow:hidden;cursor:pointer}
+#fill{height:100%;width:0%;background:linear-gradient(90deg,var(--a),var(--b),#fff);box-shadow:0 0 14px var(--a)}
+.times{display:flex;justify-content:space-between;font-size:10px;color:#aeb9dc;margin-top:5px}
+.controls{display:flex;align-items:center;justify-content:center;gap:clamp(13px,4vw,30px);margin-top:14px}
+.ctrl{border:0;background:transparent;color:#eaf5ff;font-size:20px;cursor:pointer;text-shadow:0 0 12px var(--a);padding:6px}
+.ctrl:hover,.ctrl.active{color:var(--a);filter:drop-shadow(0 0 9px var(--a))}
+#play{width:58px;height:58px;border:0;border-radius:50%;font-size:21px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--a),var(--b));box-shadow:0 0 22px var(--a),0 0 45px #bd00ff77}
+.options{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.pill{font:11px Prompt,sans-serif;color:#e7eaff;border:1px solid #ffffff3d;border-radius:20px;padding:6px 12px;background:#ffffff0a;cursor:pointer}
+.pill.active{border-color:var(--a);box-shadow:0 0 12px color-mix(in srgb,var(--a) 45%,transparent);color:var(--a)}
+#start{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;background:radial-gradient(ellipse at center,#11143bea,#010208f5);transition:opacity .6s}
+#start h2{font:900 clamp(22px,4vw,42px) Orbitron,sans-serif;color:var(--a);text-shadow:0 0 20px var(--a);margin:0 0 12px}
+#start p{color:#c8d4f4;max-width:480px;font-size:13px;line-height:1.8}
+#start button{margin-top:12px;padding:13px 25px;border:0;border-radius:30px;color:#fff;font:700 14px Prompt,sans-serif;background:linear-gradient(100deg,var(--a),var(--b));box-shadow:0 0 25px var(--a);cursor:pointer}
+.foot{font:9px Orbitron,sans-serif;letter-spacing:2px;color:#93a2d2;margin-top:9px;text-align:center}
+@media(max-width:560px){#stage{min-height:620px}.hud{padding:12px}.center{top:40%;width:min(78vw,360px);height:min(78vw,360px);max-height:38vh}.visual{height:75px;margin-bottom:6px}.panel{padding:13px}.thumb{width:43px;height:43px;flex-basis:43px}.controls{gap:15px}#play{width:51px;height:51px}.subtitle{letter-spacing:2px}.foot{font-size:8px}}
+</style>
 </head>
 <body>
-
-    <div class="app-container" id="app-container">
-        <div id="start-overlay">
-            <h1>TA101 • NEON MUSIC 3D</h1>
-            <p>แตะปุ่มเพื่อเปิดใช้งานภาพ 3 มิติ เลือกธีม และฟังเพลงต่อเนื่อง</p>
-            <button class="btn-start" id="btn-start-app"><i class="fa-solid fa-play"></i> เริ่มต้นใช้งาน</button>
-        </div>
-
-        <div id="canvas-container"></div>
-
-        <div class="ui-layer">
-            <div class="header-section">
-                <div class="theme-selector">
-                    <div class="theme-btn active-theme" id="btn-cyber" onclick="setTheme('#00f3ff', '#ff00ff', 'rgba(0,243,255,0.3)')" title="Cyberpunk"></div>
-                    <div class="theme-btn" id="btn-matrix" onclick="setTheme('#00ff66', '#0033ff', 'rgba(0,255,102,0.3)')" title="Matrix"></div>
-                    <div class="theme-btn" id="btn-sunset" onclick="setTheme('#ff5500', '#ff007f', 'rgba(255,85,0,0.3)')" title="Sunset"></div>
-                    <div class="theme-btn" id="btn-space" onclick="setTheme('#cc00ff', '#00ffff', 'rgba(204,0,255,0.3)')" title="Deep Space"></div>
-                </div>
-
-                <div class="logo-wrapper" id="logo-box">
-                    <img src="__LOGO_BASE64__" alt="Logo">
-                </div>
-                <h1 class="neon-title" id="neon-title-text">COSMIC BEAT</h1>
-                <div class="subtitle">TA101 NEBULA 3D</div>
-            </div>
-
-            <div class="visualizer-container" id="visualizer"></div>
-
-            <div class="player-panel">
-                <div class="track-info">
-                    <div class="track-thumb">
-                        <img src="__LOGO_BASE64__" alt="Track Art">
-                    </div>
-                    <div class="track-meta">
-                        <div class="track-name" id="track-title">กำลังเตรียมเพลง...</div>
-                        <div class="track-artist" id="track-artist">Local Folder Playlist</div>
-                    </div>
-                </div>
-
-                <div class="progress-area">
-                    <div class="progress-bar" id="progress-bar">
-                        <div class="progress-fill" id="progress-fill"></div>
-                    </div>
-                    <div class="time-stamps">
-                        <span id="current-time">0:00</span>
-                        <span id="total-duration">0:00</span>
-                    </div>
-                </div>
-
-                <div class="controls">
-                    <button class="btn-control active" id="btn-loop" title="เล่นวนซ้ำ"><i class="fa-solid fa-rotate-right"></i></button>
-                    <button class="btn-control" id="btn-prev" title="เพลงก่อนหน้า"><i class="fa-solid fa-backward-step"></i></button>
-                    <button class="btn-play-pause" id="btn-play"><i class="fa-solid fa-play" id="play-icon"></i></button>
-                    <button class="btn-control" id="btn-next" title="เพลงถัดไป"><i class="fa-solid fa-forward-step"></i></button>
-                    <button class="btn-control" id="btn-shuffle" title="สุ่มเพลง"><i class="fa-solid fa-shuffle"></i></button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-
-    <script>
-        const songs = __SONGS__;
-
-        let currentTrackIndex = 0;
-        let isPlaying = false;
-        let isLooping = true;
-        let isShuffling = false;
-
-        const audioElement = new Audio();
-        audioElement.crossOrigin = "anonymous";
-        audioElement.preload = "auto";
-
-        let audioCtx, analyser, sourceNode, dataArray;
-        let starMaterial, musicCoreMaterial;
-
-        function setTheme(primaryColor, secondaryColor, glowColor) {
-            document.documentElement.style.setProperty('--primary', primaryColor);
-            document.documentElement.style.setProperty('--secondary', secondaryColor);
-            document.documentElement.style.setProperty('--bg-glow', glowColor);
-            
-            if (starMaterial) starMaterial.color.set(primaryColor);
-            if (musicCoreMaterial) musicCoreMaterial.color.set(secondaryColor);
-
-            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active-theme'));
-            if (event && event.target) event.target.classList.add('active-theme');
-        }
-
-        function loadTrack(index) {
-            if (!songs.length) return;
-            currentTrackIndex = (index + songs.length) % songs.length;
-            audioElement.src = songs[currentTrackIndex].src;
-            document.getElementById('track-title').innerText = songs[currentTrackIndex].name;
-            document.getElementById('track-artist').innerText = "TA101 Playlist (" + (currentTrackIndex + 1) + "/" + songs.length + ")";
-            audioElement.load();
-        }
-
-        loadTrack(currentTrackIndex);
-
-        function initAudioContext() {
-            if (audioCtx) return;
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            audioCtx = new AudioContext();
-            analyser = audioCtx.createAnalyser();
-            sourceNode = audioCtx.createMediaElementSource(audioElement);
-            sourceNode.connect(analyser);
-            analyser.connect(audioCtx.destination);
-            analyser.fftSize = 64;
-            dataArray = new Uint8Array(analyser.frequencyBinCount);
-        }
-
-        const visualizerContainer = document.getElementById('visualizer');
-        const numBars = 16;
-        const bars = [];
-        for (let i = 0; i < numBars; i++) {
-            const bar = document.createElement('div');
-            bar.className = 'bar';
-            visualizerContainer.appendChild(bar);
-            bars.push(bar);
-        }
-
-        const container = document.getElementById('canvas-container');
-        const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x05020a, 0.02);
-
-        const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
-        camera.position.z = 45;
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        container.appendChild(renderer.domElement);
-
-        const starCount = 600;
-        const starGeometry = new THREE.BufferGeometry();
-        const starPositions = new Float32Array(starCount * 3);
-
-        for (let i = 0; i < starCount * 3; i += 3) {
-            starPositions[i] = (Math.random() - 0.5) * 180;
-            starPositions[i + 1] = (Math.random() - 0.5) * 180;
-            starPositions[i + 2] = (Math.random() - 0.5) * 250;
-        }
-        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-        
-        starMaterial = new THREE.PointsMaterial({ color: 0x00f3ff, size: 0.9, transparent: true, opacity: 0.85 });
-        const starField = new THREE.Points(starGeometry, starMaterial);
-        scene.add(starField);
-
-        const torusGeometry = new THREE.TorusKnotGeometry(6, 1.8, 100, 16);
-        musicCoreMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true, transparent: true, opacity: 0.4 });
-        const musicCore = new THREE.Mesh(torusGeometry, musicCoreMaterial);
-        scene.add(musicCore);
-
-        audioElement.addEventListener('ended', () => {
-            if (isShuffling) {
-                currentTrackIndex = Math.floor(Math.random() * songs.length);
-            } else if (isLooping && songs.length === 1) {
-                audioElement.play();
-                return;
-            } else {
-                currentTrackIndex = (currentTrackIndex + 1) % songs.length;
-            }
-            loadTrack(currentTrackIndex);
-            audioElement.play();
-        });
-
-        audioElement.addEventListener('timeupdate', () => {
-            if (audioElement.duration) {
-                const progressPercent = (audioElement.currentTime / audioElement.duration) * 100;
-                document.getElementById('progress-fill').style.width = progressPercent + '%';
-                
-                let curM = Math.floor(audioElement.currentTime / 60);
-                let curS = Math.floor(audioElement.currentTime % 60);
-                document.getElementById('current-time').innerText = curM + ":" + (curS < 10 ? '0' : '') + curS;
-
-                let durM = Math.floor(audioElement.duration / 60);
-                let durS = Math.floor(audioElement.duration % 60);
-                document.getElementById('total-duration').innerText = durM + ":" + (durS < 10 ? '0' : '') + durS;
-            }
-        });
-
-        document.getElementById('progress-bar').addEventListener('click', (e) => {
-            const width = e.currentTarget.clientWidth;
-            const clickX = e.offsetX;
-            if (audioElement.duration) {
-                audioElement.currentTime = (clickX / width) * audioElement.duration;
-            }
-        });
-
-        document.getElementById('btn-start-app').addEventListener('click', () => {
-            initAudioContext();
-            document.getElementById('start-overlay').style.opacity = '0';
-            setTimeout(() => { document.getElementById('start-overlay').style.display = 'none'; }, 500);
-            audioElement.play();
-            isPlaying = true;
-            document.getElementById('play-icon').className = "fa-solid fa-pause";
-        });
-
-        const btnPlay = document.getElementById('btn-play');
-        const playIcon = document.getElementById('play-icon');
-        btnPlay.addEventListener('click', () => {
-            initAudioContext();
-            if (isPlaying) {
-                audioElement.pause();
-                isPlaying = false;
-                playIcon.className = "fa-solid fa-play";
-            } else {
-                audioElement.play();
-                isPlaying = true;
-                playIcon.className = "fa-solid fa-pause";
-            }
-        });
-
-        document.getElementById('btn-next').addEventListener('click', () => {
-            currentTrackIndex = (currentTrackIndex + 1) % songs.length;
-            loadTrack(currentTrackIndex);
-            if (isPlaying) audioElement.play();
-        });
-
-        
-document.getElementById('btn-prev').addEventListener('click', () => {
-    if (!songs.length) return;
-
-    if (audioElement.currentTime > 3) {
-        audioElement.currentTime = 0;
-        return;
-    }
-
-    currentTrackIndex =
-        (currentTrackIndex - 1 + songs.length) % songs.length;
-
-    loadTrack(currentTrackIndex);
-    if (isPlaying) {
-        audioElement.play().catch(console.warn);
-    }
-});
-
-document.getElementById('btn-loop').addEventListener('click', () => {
-    isLooping = !isLooping;
-
-    document.getElementById('btn-loop')
-        .classList.toggle('active', isLooping);
-
-    audioElement.loop = isLooping && songs.length === 1;
-});
-
-document.getElementById('btn-shuffle').addEventListener('click', () => {
-    isShuffling = !isShuffling;
-
-    document.getElementById('btn-shuffle')
-        .classList.toggle('active', isShuffling);
-});
-
-window.addEventListener('resize', () => {
-    if (!renderer || !camera || !container) return;
-
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-
-    if (!width || !height) return;
-
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
-});
-
-function animate() {
-    requestAnimationFrame(animate);
-
-    if (musicCore) {
-        musicCore.rotation.x += 0.003;
-        musicCore.rotation.y += 0.005;
-    }
-
-    if (starField) {
-        starField.rotation.y += 0.0005;
-    }
-
-    if (analyser && dataArray && isPlaying) {
-        analyser.getByteFrequencyData(dataArray);
-
-        let total = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-            total += dataArray[i];
-        }
-
-        const average = total / dataArray.length / 255;
-
-        bars.forEach((bar, i) => {
-            const value = dataArray[
-                Math.min(i, dataArray.length - 1)
-            ] / 255;
-
-            bar.style.height =
-                Math.max(5, value * 55) + 'px';
-
-            bar.style.opacity = 0.45 + value * 0.55;
-        });
-
-        if (musicCore) {
-            const scale = 1 + average * 0.6;
-            musicCore.scale.set(scale, scale, scale);
-        }
-
-        if (renderer && scene && camera) {
-            renderer.render(scene, camera);
-        }
-    } else {
-        bars.forEach((bar) => {
-            bar.style.height = '5px';
-        });
-
-        if (renderer && scene && camera) {
-            renderer.render(scene, camera);
-        }
-    }
+<div id="stage">
+ <canvas id="space"></canvas><div class="aurora"></div>
+ <div class="center">
+  <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
+  <img id="logo" alt="TA101 logo" style="display:none">
+  <div id="logo-placeholder">TA101<br>NEON MUSIC</div>
+  <canvas id="burst"></canvas>
+  <button id="burst-btn" type="button">✦ โลโก้แตกตัว / ประกอบกลับ</button>
+ </div>
+ <div class="hud">
+  <div class="top">
+   <div class="brand">TA101 • NEON MUSIC</div>
+   <div class="subtitle">3D COSMIC AUDIO EXPERIENCE</div>
+   <div class="themes">
+    <button class="theme" id="t1" aria-label="Cyber neon"></button>
+    <button class="theme" id="t2" aria-label="Matrix green"></button>
+    <button class="theme" id="t3" aria-label="Solar flare"></button>
+    <button class="theme" id="t4" aria-label="Ice space"></button>
+   </div>
+  </div>
+  <div style="flex:1"></div>
+  <canvas class="visual" id="wave"></canvas>
+  <div class="panel">
+   <div class="track">
+    <img class="thumb" id="thumb" alt="Album art" style="display:none">
+    <div class="tracktext"><div id="track-title">กำลังเตรียมเพลง...</div><div id="track-sub">TA101 LOCAL PLAYLIST</div></div>
+    <select id="playlist" aria-label="เลือกเพลง"><option>กำลังโหลดรายการเพลง</option></select>
+   </div>
+   <div class="progress" id="progress"><div id="fill"></div></div>
+   <div class="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
+   <div class="controls">
+    <button class="ctrl" id="prev" title="เพลงก่อน">⏮</button>
+    <button id="play" title="เล่น / หยุด">▶</button>
+    <button class="ctrl" id="next" title="เพลงถัดไป">⏭</button>
+   </div>
+   <div class="options">
+    <button class="pill active" id="loop">↻ วนซ้ำรายการ</button>
+    <button class="pill" id="shuffle">⤨ สุ่มเพลง</button>
+    <button class="pill" id="single">♪ เล่นเพลงเดียว</button>
+    <button class="pill" id="fullscreen">⛶ เต็มจอ</button>
+   </div>
+  </div>
+  <div class="foot">SPACE • LIGHT • SOUND • 1.618 ENERGY</div>
+ </div>
+ <div id="start">
+  <h2>ENTER THE COSMOS</h2>
+  <p>ฉากอวกาศสามมิติ • อนุภาคโลโก้ • ไฟนีออน • คลื่นเสียงตามเพลงจริง<br>แตะเพื่อเริ่มเพลงและเปิดใช้งานระบบวิเคราะห์เสียง</p>
+  <button id="enter">✦ เริ่มประสบการณ์ TA101</button>
+ </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+const SONGS = __SONGS__;
+const LOGO = __LOGO__;
+const $ = id => document.getElementById(id);
+const audio = new Audio();
+audio.preload = "auto";
+audio.crossOrigin = "anonymous";
+let index=0, playing=false, shuffle=false, loopList=true, single=false;
+let ctx=null, analyser=null, source=null, freq=null, waveData=null;
+let scene,camera,renderer,stars,core,coreMat,clock;
+const stage=$("stage");
+function setTheme(a,b){
+ document.documentElement.style.setProperty("--a",a);
+ document.documentElement.style.setProperty("--b",b);
+ if(stars && stars.material) stars.material.color.set(a);
+ if(coreMat) coreMat.color.set(b);
 }
+$("t1").onclick=()=>setTheme("#00f5ff","#bd00ff");
+$("t2").onclick=()=>setTheme("#00ff82","#0055ff");
+$("t3").onclick=()=>setTheme("#ff7a00","#ff006e");
+$("t4").onclick=()=>setTheme("#e8f5ff","#7777ff");
+if(LOGO){$("logo").src=LOGO;$("logo").style.display="block";$("thumb").src=LOGO;$("thumb").style.display="block";$("logo-placeholder").style.display="none";}
+function timeText(s){if(!Number.isFinite(s))return "0:00";s=Math.max(0,Math.floor(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
+function initAudio(){
+ if(ctx)return;
+ const AC=window.AudioContext||window.webkitAudioContext;
+ if(!AC)return;
+ ctx=new AC();analyser=ctx.createAnalyser();analyser.fftSize=256;analyser.smoothingTimeConstant=.78;
+ source=ctx.createMediaElementSource(audio);source.connect(analyser);analyser.connect(ctx.destination);
+ freq=new Uint8Array(analyser.frequencyBinCount);waveData=new Uint8Array(analyser.fftSize);
+}
+function fillPlaylist(){
+ const sel=$("playlist");sel.innerHTML="";
+ if(!SONGS.length){sel.innerHTML='<option value="">ไม่พบไฟล์เพลง</option>';$("track-title").textContent="ไม่พบไฟล์เพลงในโปรเจกต์";$("track-sub").textContent="เพิ่มไฟล์ MP3 ไว้ข้าง app.py";return}
+ SONGS.forEach((s,i)=>{const op=document.createElement("option");op.value=String(i);op.textContent=(i+1)+". "+s.name;sel.appendChild(op)});
+ loadTrack(0);
+}
+function loadTrack(i){
+ if(!SONGS.length)return;
+ index=(i+SONGS.length)%SONGS.length;audio.src=SONGS[index].src;audio.load();
+ $("track-title").textContent=SONGS[index].name;$("track-sub").textContent="TRACK "+(index+1)+" / "+SONGS.length;
+ $("playlist").value=String(index);$("fill").style.width="0%";$("elapsed").textContent="0:00";$("duration").textContent="0:00";
+}
+async function playAudio(){
+ if(!SONGS.length)return;
+ initAudio();
+ if(ctx && ctx.state==="suspended"){try{await ctx.resume()}catch(e){}}
+ try{await audio.play();playing=true;$("play").textContent="Ⅱ";}catch(e){playing=false;$("play").textContent="▶";$("track-sub").textContent="แตะปุ่มเล่นอีกครั้ง หากเบราว์เซอร์บล็อกเสียง";}
+}
+function pauseAudio(){audio.pause();playing=false;$("play").textContent="▶"}
+function nextTrack(fromEnded=false){
+ if(!SONGS.length)return;
+ if(single && fromEnded){pauseAudio();audio.currentTime=0;return}
+ if(shuffle && SONGS.length>1){let n=index;while(n===index)n=Math.floor(Math.random()*SONGS.length);loadTrack(n)}
+ else if(fromEnded && !loopList && index===SONGS.length-1){pauseAudio();return}
+ else loadTrack(index+1);
+ if(playing || fromEnded)playAudio();
+}
+$("play").onclick=()=>playing?pauseAudio():playAudio();
+$("next").onclick=()=>nextTrack(false);
+$("prev").onclick=()=>{if(audio.currentTime>3){audio.currentTime=0;return}loadTrack(index-1);if(playing)playAudio()};
+$("playlist").onchange=e=>{loadTrack(Number(e.target.value));playAudio()};
+$("loop").onclick=()=>{loopList=!loopList;$("loop").classList.toggle("active",loopList);if(loopList){single=false;$("single").classList.remove("active")}};
+$("shuffle").onclick=()=>{shuffle=!shuffle;$("shuffle").classList.toggle("active",shuffle)};
+$("single").onclick=()=>{single=!single;$("single").classList.toggle("active",single);if(single){loopList=false;$("loop").classList.remove("active")}else{loopList=true;$("loop").classList.add("active")}};
+audio.addEventListener("ended",()=>nextTrack(true));
+audio.addEventListener("loadedmetadata",()=>{$("duration").textContent=timeText(audio.duration)});
+audio.addEventListener("timeupdate",()=>{if(audio.duration){$("fill").style.width=(audio.currentTime/audio.duration*100)+"%";$("elapsed").textContent=timeText(audio.currentTime)}});
+$("progress").onclick=e=>{if(audio.duration){const r=e.currentTarget.getBoundingClientRect();audio.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*audio.duration}};
+$("enter").onclick=async()=>{initAudio();if(ctx&&ctx.state==="suspended"){try{await ctx.resume()}catch(e){}}$("start").style.opacity="0";setTimeout(()=>$("start").style.display="none",620);await playAudio();};
+$("fullscreen").onclick=async()=>{try{if(!document.fullscreenElement)await stage.requestFullscreen();else await document.exitFullscreen()}catch(e){}};
+fillPlaylist();
 
-document.getElementById('btn-start-app')
-    .addEventListener('click', async () => {
-        initAudioContext();
+/* Three.js space: real 3D star field, nebula points, and wireframe energy core */
+const canvas=$("space");
+try{
+ scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x03040c,0.0038);
+ camera=new THREE.PerspectiveCamera(62,1,.1,1200);camera.position.z=90;
+ renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.8));
+ const positions=new Float32Array(2400*3), colors=new Float32Array(2400*3);
+ for(let i=0;i<2400;i++){positions[i*3]=(Math.random()-.5)*330;positions[i*3+1]=(Math.random()-.5)*210;positions[i*3+2]=(Math.random()-.5)*650;const c=new THREE.Color().setHSL(.52+Math.random()*.28,.85,.55+Math.random()*.3);colors.set([c.r,c.g,c.b],i*3)}
+ const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.BufferAttribute(positions,3));geo.setAttribute("color",new THREE.BufferAttribute(colors,3));
+ stars=new THREE.Points(geo,new THREE.PointsMaterial({size:1.05,vertexColors:true,transparent:true,opacity:.9,depthWrite:false}));scene.add(stars);
+ const coreGeo=new THREE.IcosahedronGeometry(17,2);coreMat=new THREE.MeshBasicMaterial({color:0xbd00ff,wireframe:true,transparent:true,opacity:.19});core=new THREE.Mesh(coreGeo,coreMat);scene.add(core);
+ const ringGeo=new THREE.TorusGeometry(23,.09,8,240);const ringMat=new THREE.MeshBasicMaterial({color:0x00f5ff,transparent:true,opacity:.65});const ring=new THREE.Mesh(ringGeo,ringMat);ring.rotation.x=1.05;scene.add(ring);
+ const ring2=new THREE.Mesh(new THREE.TorusGeometry(29,.045,6,240),new THREE.MeshBasicMaterial({color:0xbd00ff,transparent:true,opacity:.55}));ring2.rotation.y=.9;ring2.rotation.x=.4;scene.add(ring2);
+ clock=new THREE.Clock();
+ function resize3d(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}
+ window.addEventListener("resize",resize3d);resize3d();
+ function render3d(){
+  requestAnimationFrame(render3d);const t=clock.getElapsedTime();
+  stars.rotation.y+=.00045;stars.rotation.x=Math.sin(t*.08)*.025;
+  core.rotation.x=t*.12;core.rotation.y=t*.18;ring.rotation.z=t*.12;ring2.rotation.z=-t*.09;
+  let energy=0;
+  if(analyser&&freq&&playing){analyser.getByteFrequencyData(freq);for(let i=0;i<freq.length;i++)energy+=freq[i];energy=energy/freq.length/255}
+  const s=1+energy*.28;core.scale.setScalar(s);core.rotation.z=t*.06;
+  camera.position.x=Math.sin(t*.09)*2.2;camera.position.y=Math.cos(t*.11)*1.5;camera.lookAt(0,0,0);
+  renderer.render(scene,camera);
+ }
+ render3d();
+}catch(err){console.warn("3D renderer unavailable:",err)}
 
-        const overlay = document.getElementById('start-overlay');
-        overlay.style.opacity = '0';
+/* Audio-reactive waveform: actual analyser data when playing, quiet idle wave otherwise */
+const wc=$("wave"),wctx=wc.getContext("2d");
+function drawWave(){
+ requestAnimationFrame(drawWave);
+ const dpr=Math.min(devicePixelRatio||1,2),w=wc.clientWidth,h=wc.clientHeight;
+ if(wc.width!==Math.floor(w*dpr)||wc.height!==Math.floor(h*dpr)){wc.width=Math.floor(w*dpr);wc.height=Math.floor(h*dpr)}
+ wctx.setTransform(dpr,0,0,dpr,0,0);wctx.clearRect(0,0,w,h);
+ if(analyser&&waveData&&playing)analyser.getByteTimeDomainData(waveData);
+ const mid=h*.5,points=Math.max(120,Math.floor(w*.8));
+ for(let layer=0;layer<3;layer++){
+  wctx.beginPath();wctx.lineWidth=layer===0?2.8:1.1;wctx.strokeStyle=layer===0?"#00f5ff":layer===1?"#bd00ff":"#ffffff88";
+  wctx.shadowBlur=layer===0?16:8;wctx.shadowColor=layer===1?"#bd00ff":"#00f5ff";
+  for(let i=0;i<=points;i++){
+   const x=i/points*w;let v=0;
+   if(analyser&&waveData&&playing){const j=Math.floor(i/points*(waveData.length-1));v=(waveData[j]-128)/128}
+   else v=Math.sin(i*.12+performance.now()*.0015+layer)*.08+Math.sin(i*.035-performance.now()*.001)*.04;
+   const amp=(playing? h*.38:h*.18)*(1-layer*.22);
+   const y=mid+v*amp+Math.sin(i*.08+performance.now()*.001+layer)*3;
+   if(i===0)wctx.moveTo(x,y);else wctx.lineTo(x,y);
+  }
+  wctx.stroke();
+ }
+ wctx.shadowBlur=0;
+}
+drawWave();
 
-        setTimeout(() => {
-            overlay.style.display = 'none';
-        }, 500);
-
-        if (audioCtx && audioCtx.state === 'suspended') {
-            await audioCtx.resume();
-        }
-
-        if (songs.length) {
-            try {
-                await audioElement.play();
-                isPlaying = true;
-                document.getElementById('play-icon').className =
-                    'fa-solid fa-pause';
-            } catch (error) {
-                console.warn('กดปุ่มเล่นอีกครั้งหากเสียงยังไม่เริ่ม', error);
-            }
-        }
-    });
-
-animate();
+/* Logo particle burst: sample logo pixels, scatter them, then reform the logo image */
+const bc=$("burst"),bctx=bc.getContext("2d");
+let particlePoints=[],particleMode=0,burstStart=0;
+function makeParticles(){
+ const dpr=Math.min(devicePixelRatio||1,2),w=bc.clientWidth,h=bc.clientHeight;
+ bc.width=Math.max(1,Math.floor(w*dpr));bc.height=Math.max(1,Math.floor(h*dpr));bctx.setTransform(dpr,0,0,dpr,0,0);
+ particlePoints=[];
+ if(!LOGO)return;
+ const img=new Image();img.onload=()=>{
+  const off=document.createElement("canvas"),oc=off.getContext("2d");off.width=100;off.height=100;oc.drawImage(img,0,0,100,100);
+  const data=oc.getImageData(0,0,100,100).data;
+  const step=3,scale=Math.min(w,h)*.38/100;
+  for(let y=0;y<100;y+=step)for(let x=0;x<100;x+=step){const p=(y*100+x)*4;if(data[p+3]>80){particlePoints.push({x:(x-50)*scale+w/2,y:(y-50)*scale+h/2,ox:(Math.random()-.5)*w*1.4,oy:(Math.random()-.5)*h*1.4,r:.7+Math.random()*1.7,c:`rgba(${data[p]},${data[p+1]},${data[p+2]},${.45+Math.random()*.55})`})}}
+ };img.src=LOGO;
+}
+function triggerBurst(){if(!LOGO){return}particleMode=particleMode===1?0:1;burstStart=performance.now();$("burst-btn").textContent=particleMode?"✦ ประกอบโลโก้กลับ":"✦ โลโก้แตกตัว / ประกอบกลับ";if(particleMode===0){$("logo").style.opacity="1"}else{$("logo").style.opacity=".08"}}
+$("burst-btn").onclick=triggerBurst;
+function drawParticles(){
+ requestAnimationFrame(drawParticles);
+ const w=bc.clientWidth,h=bc.clientHeight;if(!w||!h)return;
+ if(bc.width!==Math.floor(w*Math.min(devicePixelRatio||1,2))||bc.height!==Math.floor(h*Math.min(devicePixelRatio||1,2)))makeParticles();
+ bctx.clearRect(0,0,w,h);if(!particlePoints.length)return;
+ const elapsed=(performance.now()-burstStart)/1000;const p=particleMode?Math.min(1,elapsed/1.2):Math.max(0,1-elapsed/1.2);
+ for(const q of particlePoints){const x=q.x+(q.ox-q.x)*p,y=q.y+(q.oy-q.y)*p;bctx.beginPath();bctx.fillStyle=q.c;bctx.shadowColor=q.c;bctx.shadowBlur=particleMode?12:5;bctx.arc(x,y,q.r,0,Math.PI*2);bctx.fill()}
+ bctx.shadowBlur=0;
+ if(!particleMode&&p===0){$("logo").style.opacity="1"}
+}
+makeParticles();drawParticles();window.addEventListener("resize",makeParticles);
 </script>
 </body>
-</html>
-"""
+</html>"""
 
 player_html = (
     player_html
     .replace("__SONGS__", songs_json)
-    .replace("__LOGO_BASE64__", logo_base64)
+    .replace("__LOGO__", logo_json)
 )
 
 st.markdown(
     """
     <style>
-    #MainMenu, footer, header {
-        visibility: hidden;
-    }
-
-    .block-container {
-        padding: 0 !important;
-        max-width: 100% !important;
-    }
-
-    [data-testid="stAppViewContainer"] {
-        background: #000;
-    }
+    #MainMenu, footer, header {visibility:hidden;}
+    .stApp, [data-testid="stAppViewContainer"] {background:#02030b;}
+    .block-container {padding:0 !important;max-width:100% !important;}
+    iframe {border:0 !important;}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-components.html(
-    player_html,
-    height=950,
-    scrolling=True,
-)
+if not songs:
+    st.info("ยังไม่พบไฟล์เพลงในโฟลเดอร์เดียวกับ app.py ให้วางไฟล์ MP3 ไว้ใน GitHub repository เดียวกัน")
+components.html(player_html, height=980, scrolling=False)
