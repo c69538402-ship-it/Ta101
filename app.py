@@ -12,27 +12,24 @@ st.set_page_config(
     layout="centered"
 )
 
-# 1. ค้นหาไฟล์เพลงอัตโนมัติจากโฟลเดอร์เดียวกับ app.py
+# โฟลเดอร์หลัก
 ROOT = Path(__file__).resolve().parent
+
+# 1. ฟังก์ชันแปลงไฟล์เพลงเป็น Base64
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"}
-
-def encode_audio(path):
-    mime = mimetypes.guess_type(path.name)[0] or "audio/mpeg"
-    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
-    return f"data:{mime};base64,{encoded}"
-
 songs = []
 for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
     if path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
         try:
+            mime = mimetypes.guess_type(path.name)[0] or "audio/mpeg"
+            encoded = base64.b64encode(path.read_bytes()).decode("ascii")
             songs.append({
                 "name": path.stem,
-                "src": encode_audio(path)
+                "src": f"data:{mime};base64,{encoded}"
             })
         except OSError:
             pass
 
-# หากยังไม่พบเพลง ให้ใส่เพลงสำรองป้องกันแอปพัง
 if not songs:
     songs = [{
         "name": "Cybernetic Universe (Demo)",
@@ -41,7 +38,18 @@ if not songs:
 
 songs_json = json.dumps(songs, ensure_ascii=False).replace("</", "<\\/")
 
-# 2. โค้ด HTML / CSS / 3D Three.js พร้อมลูกเล่นจัดเต็ม
+# 2. ฟังก์ชันแปลงรูปโลโก้ logo1.jpg เป็น Base64 ป้องกันรูปไม่ขึ้น
+logo_base64 = "https://via.placeholder.com/70/00f3ff/000000?text=LOGO"
+logo_path = ROOT / "logo1.jpg"
+if logo_path.exists():
+    try:
+        logo_mime = mimetypes.guess_type(logo_path.name)[0] or "image/jpeg"
+        logo_encoded = base64.b64encode(logo_path.read_bytes()).decode("ascii")
+        logo_base64 = f"data:{logo_mime};base64,{logo_encoded}"
+    except OSError:
+        pass
+
+# 3. โค้ด HTML / CSS / 3D Three.js
 player_html = r"""
 <!DOCTYPE html>
 <html lang="th">
@@ -82,7 +90,6 @@ player_html = r"""
 
         .header-section { text-align: center; margin-top: 5px; }
 
-        /* โลโก้หมุนได้และกระแทกตามจังหวะเบส */
         .logo-wrapper {
             width: 70px; height: 70px; margin: 0 auto 6px auto;
             border-radius: 50%; overflow: hidden;
@@ -96,7 +103,7 @@ player_html = r"""
         }
         @keyframes spin-logo { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* ตัวหนังสือวิ้งนีออนเปลี่ยนสีไปเรื่อยๆ แบบสมูท */
+        /* ตัวหนังสือวิ้งนีออนค่อยๆ เปลี่ยนสีวนลูป */
         .neon-title {
             font-family: 'Orbitron', sans-serif;
             font-size: 20px; font-weight: 900;
@@ -120,7 +127,6 @@ player_html = r"""
             text-shadow: 0 0 5px rgba(0,243,255,0.5);
         }
 
-        /* กราฟแท่งเสียงมิกซ์เพลงเรืองแสง */
         .visualizer-container {
             width: 100%; height: 65px; display: flex; align-items: flex-end;
             justify-content: center; gap: 3px; padding: 0 10px;
@@ -218,7 +224,7 @@ player_html = r"""
         <div class="ui-layer">
             <div class="header-section">
                 <div class="logo-wrapper" id="logo-box">
-                    <img src="logo1.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/70/00f3ff/000000?text=LOGO'">
+                    <img src="__LOGO_BASE64__" alt="Logo">
                 </div>
                 <h1 class="neon-title">COSMIC BEAT</h1>
                 <div class="subtitle">TA101 NEBULA 3D</div>
@@ -229,7 +235,7 @@ player_html = r"""
             <div class="player-panel">
                 <div class="track-info">
                     <div class="track-thumb">
-                        <img src="logo1.jpg" alt="Track Art" onerror="this.src='https://via.placeholder.com/38/ff00ff/ffffff?text=TRK'">
+                        <img src="__LOGO_BASE64__" alt="Track Art">
                     </div>
                     <div class="track-meta">
                         <div class="track-name" id="track-title">กำลังเตรียมเพลง...</div>
@@ -458,8 +464,6 @@ player_html = r"""
 
             renderer.render(scene, camera);
         }
-        animate();
-
         window.addEventListener('resize', () => {
     camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
@@ -470,8 +474,12 @@ player_html = r"""
 </html>
 """
 
-# แทนที่ค่าเพลงลงใน HTML
+# แทนที่ข้อมูลเพลงและรูปโลโก้ลงใน HTML
 player_html = player_html.replace("__SONGS__", songs_json)
+player_html = player_html.replace("__LOGO_BASE64__", logo_base64)
 
 # เรนเดอร์หน้าเว็บทั้งหมดลงใน Streamlit
 components.html(player_html, height=850, scrolling=False)
+
+
+     
