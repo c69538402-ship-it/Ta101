@@ -47,9 +47,8 @@ if logo_path.exists():
     except OSError:
         pass
 
-# 3. โครงสร้าง HTML / CSS และหน้าจอ UI
-player_html_part1 = r"""
-<!DOCTYPE html>
+# 3. โครงสร้าง HTML / CSS / JavaScript ทั้งหมด
+player_html = r"""<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
@@ -101,7 +100,6 @@ player_html_part1 = r"""
         }
         @keyframes spin-logo { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* ตัวหนังสือวิ้งนีออนค่อยๆ เปลี่ยนสีวนลูป */
         .neon-title {
             font-family: 'Orbitron', sans-serif;
             font-size: 20px; font-weight: 900;
@@ -261,7 +259,7 @@ player_html_part1 = r"""
             </div>
         </div>
     </div>
-   player_html_part2 = r"""
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
@@ -474,10 +472,8 @@ player_html_part1 = r"""
 </html>
 """
 
-# ประกอบร่างโค้ด HTML ทั้งหมดและแทนที่ค่าตัวแปร
-player_html = player_html_part1 + player_html_part2
+# แทนที่ค่าตัวแปรและเรนเดอร์ลงใน Streamlit
 player_html = player_html.replace("__SONGS__", songs_json)
 player_html = player_html.replace("__LOGO_BASE64__", logo_base64)
 
-# เรนเดอร์หน้าเว็บลงใน Streamlit Cloud
 components.html(player_html, height=850, scrolling=False)
