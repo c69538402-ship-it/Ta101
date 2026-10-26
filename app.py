@@ -41,7 +41,7 @@ if not songs:
 
 songs_json = json.dumps(songs, ensure_ascii=False).replace("</", "<\\/")
 
-# 2. โค้ด HTML / CSS / 3D Three.js
+# 2. โค้ด HTML / CSS / 3D Three.js พร้อมลูกเล่นจัดเต็ม
 player_html = r"""
 <!DOCTYPE html>
 <html lang="th">
@@ -82,6 +82,7 @@ player_html = r"""
 
         .header-section { text-align: center; margin-top: 5px; }
 
+        /* โลโก้หมุนได้และกระแทกตามจังหวะเบส */
         .logo-wrapper {
             width: 70px; height: 70px; margin: 0 auto 6px auto;
             border-radius: 50%; overflow: hidden;
@@ -95,30 +96,23 @@ player_html = r"""
         }
         @keyframes spin-logo { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        /* ตัวหนังสือวิ้งนีออนเปลี่ยนสีไปเรื่อยๆ แบบสมูท */
         .neon-title {
             font-family: 'Orbitron', sans-serif;
-            font-size: 20px; font-weight: 900; color: #fff;
+            font-size: 20px; font-weight: 900;
             text-transform: uppercase;
-            text-shadow: 0 0 5px #fff, 0 0 10px #00f3ff, 0 0 25px #00f3ff;
-            animation: neon-glow 1.5s ease-in-out infinite alternate;
+            animation: colorShift 6s ease-in-out infinite alternate, neon-glow 1.5s ease-in-out infinite alternate;
             position: relative;
         }
-        .neon-title::after {
-            content: attr(data-text);
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            color: #ff00ff; z-index: 1; overflow: hidden; white-space: nowrap;
-            clip-path: polygon(0 0, 0 100%, 0 100%, 0 0);
-            animation: shine-sweep 3s ease-in-out infinite;
-            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+        @keyframes colorShift {
+            0% { color: #00f3ff; text-shadow: 0 0 10px #00f3ff, 0 0 20px #00f3ff, 0 0 40px #00f3ff; }
+            33% { color: #ff00ff; text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00ff; }
+            66% { color: #00ff66; text-shadow: 0 0 10px #00ff66, 0 0 20px #00ff66, 0 0 40px #00ff66; }
+            100% { color: #00f3ff; text-shadow: 0 0 10px #00f3ff, 0 0 20px #00f3ff, 0 0 40px #00f3ff; }
         }
         @keyframes neon-glow {
-            0% { text-shadow: 0 0 5px #fff, 0 0 10px #00f3ff; }
-            100% { text-shadow: 0 0 2px #fff, 0 0 8px #ff00ff, 0 0 20px #ff00ff; }
-        }
-        @keyframes shine-sweep {
-            0% { clip-path: polygon(0 0, 0 100%, 10% 100%, 0 0); }
-            50% { clip-path: polygon(90% 0, 100% 100%, 100% 100%, 90% 0); }
-            100% { clip-path: polygon(0 0, 0 100%, 10% 100%, 0 0); }
+            0% { transform: scale(1); }
+            100% { transform: scale(1.03); }
         }
 
         .subtitle {
@@ -126,13 +120,15 @@ player_html = r"""
             text-shadow: 0 0 5px rgba(0,243,255,0.5);
         }
 
+        /* กราฟแท่งเสียงมิกซ์เพลงเรืองแสง */
         .visualizer-container {
-            width: 100%; height: 60px; display: flex; align-items: flex-end;
+            width: 100%; height: 65px; display: flex; align-items: flex-end;
             justify-content: center; gap: 3px; padding: 0 10px;
         }
         .bar {
             flex: 1; background: linear-gradient(to top, #00f3ff, #ff00ff);
-            border-radius: 3px 3px 0 0; box-shadow: 0 0 10px rgba(0, 243, 255, 0.6); height: 5px;
+            border-radius: 4px 4px 0 0; box-shadow: 0 0 12px rgba(0, 243, 255, 0.7); height: 5px;
+            transition: height 0.05s ease;
         }
 
         .player-panel {
@@ -224,7 +220,7 @@ player_html = r"""
                 <div class="logo-wrapper" id="logo-box">
                     <img src="logo1.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/70/00f3ff/000000?text=LOGO'">
                 </div>
-                <h1 class="neon-title" data-text="COSMIC BEAT">COSMIC BEAT</h1>
+                <h1 class="neon-title">COSMIC BEAT</h1>
                 <div class="subtitle">TA101 NEBULA 3D</div>
             </div>
 
@@ -444,15 +440,15 @@ player_html = r"""
                 let bassValue = dataArray[2] / 255; 
 
                 const logoBox = document.getElementById('logo-box');
-                logoBox.style.transform = "scale(" + (1 + bassValue * 0.35) + ")";
+                logoBox.style.transform = "scale(" + (1 + bassValue * 0.4) + ")";
 
                 musicCore.rotation.x += 0.01 + (bassValue * 0.02);
                 musicCore.rotation.y += 0.015 + (bassValue * 0.02);
-                let coreScale = 1 + (bassValue * 0.4);
+                let coreScale = 1 + (bassValue * 0.45);
                 musicCore.scale.set(coreScale, coreScale, coreScale);
 
                 for (let i = 0; i < numBars; i++) {
-                    const height = (dataArray[i] / 255) * 50 + 5;
+                    const height = (dataArray[i] / 255) * 58 + 6;
                     bars[i].style.height = height + 'px';
                 }
             } else {
@@ -464,7 +460,7 @@ player_html = r"""
         }
         animate();
 
-window.addEventListener('resize', () => {
+        window.addEventListener('resize', () => {
     camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(container.clientWidth, container.clientHeight);
