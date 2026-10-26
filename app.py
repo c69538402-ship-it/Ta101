@@ -589,4 +589,3 @@ player_html = player_html.replace("__LOGO_BASE64__", logo_base64)
 
 components.html(player_html, height=880, scrolling=False)
 
-```
