@@ -8,7 +8,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# นำโค้ด HTML/CSS/JS ทั้งหมดมาใส่ไว้ในตัวแปรนี้
+# โค้ด HTML / CSS / JavaScript ทั้งหมด
 html_code = """
 <!DOCTYPE html>
 <html lang="th">
@@ -16,7 +16,6 @@ html_code = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3D Space Music Visualizer</title>
-    <!-- นำเข้า Google Fonts และ FontAwesome สำหรับไอคอน -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Prompt:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -36,7 +35,6 @@ html_code = """
             font-family: 'Prompt', sans-serif;
         }
 
-        /* จัดหน้าจอแนวตั้งสไตล์ TikTok / Reels / Shorts */
         .app-container {
             position: relative;
             width: 100%;
@@ -45,7 +43,7 @@ html_code = """
             margin: 0 auto;
             background: #05020a;
             overflow: hidden;
-            box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 35px rgba(0, 243, 255, 0.3);
         }
 
         #canvas-container {
@@ -57,7 +55,6 @@ html_code = """
             z-index: 1;
         }
 
-        /* เลเยอร์ UI ด้านบน */
         .ui-layer {
             position: absolute;
             top: 0;
@@ -68,7 +65,7 @@ html_code = """
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 30px 20px;
+            padding: 25px 20px;
             pointer-events: none;
         }
 
@@ -76,41 +73,42 @@ html_code = """
             pointer-events: auto;
         }
 
-        /* ส่วนหัว / โลโก้ & ตัวหนังสือวิ้งแรงๆ */
         .header-section {
             text-align: center;
-            margin-top: 10px;
+            margin-top: 5px;
         }
 
+        /* โลโก้หมุนได้และกระแทกตามจังหวะ */
         .logo-wrapper {
-            width: 70px;
-            height: 70px;
-            margin: 0 auto 10px auto;
+            width: 75px;
+            height: 75px;
+            margin: 0 auto 8px auto;
             border-radius: 50%;
             overflow: hidden;
             border: 2px solid #00f3ff;
-            box-shadow: 0 0 15px #00f3ff, inset 0 0 15px #00f3ff;
-            animation: pulse-logo 2s infinite alternate;
+            box-shadow: 0 0 20px #00f3ff, inset 0 0 15px #ff00ff;
+            transition: transform 0.05s ease;
         }
 
         .logo-wrapper img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            animation: spin-logo 8s linear infinite;
         }
 
-        @keyframes pulse-logo {
-            0% { transform: scale(1); box-shadow: 0 0 10px #00f3ff; }
-            100% { transform: scale(1.05); box-shadow: 0 0 25px #ff00ff; }
+        @keyframes spin-logo {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         .neon-title {
             font-family: 'Orbitron', sans-serif;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 900;
             color: #fff;
             text-transform: uppercase;
-            text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #00f3ff, 0 0 40px #00f3ff, 0 0 80px #00f3ff;
+            text-shadow: 0 0 5px #fff, 0 0 10px #00f3ff, 0 0 25px #00f3ff;
             animation: neon-glow 1.5s ease-in-out infinite alternate;
             position: relative;
         }
@@ -132,8 +130,8 @@ html_code = """
         }
 
         @keyframes neon-glow {
-            0% { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #00f3ff, 0 0 40px #00f3ff; }
-            100% { text-shadow: 0 0 2px #fff, 0 0 5px #fff, 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff; }
+            0% { text-shadow: 0 0 5px #fff, 0 0 10px #00f3ff; }
+            100% { text-shadow: 0 0 2px #fff, 0 0 8px #ff00ff, 0 0 20px #ff00ff; }
         }
 
         @keyframes shine-sweep {
@@ -143,51 +141,50 @@ html_code = """
         }
 
         .subtitle {
-            font-size: 12px;
+            font-size: 11px;
             color: #a0a0c0;
-            margin-top: 4px;
+            margin-top: 2px;
             letter-spacing: 2px;
             text-shadow: 0 0 5px rgba(0,243,255,0.5);
         }
 
         .visualizer-container {
             width: 100%;
-            height: 80px;
+            height: 70px;
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            gap: 4px;
-            padding: 0 20px;
+            gap: 3px;
+            padding: 0 10px;
         }
 
         .bar {
             flex: 1;
             background: linear-gradient(to top, #00f3ff, #ff00ff);
             border-radius: 3px 3px 0 0;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
-            transition: height 0.05s ease;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
             height: 5px;
         }
 
         .player-panel {
-            background: rgba(15, 10, 30, 0.7);
+            background: rgba(12, 8, 25, 0.8);
             backdrop-filter: blur(15px);
-            border: 1px solid rgba(0, 243, 255, 0.3);
+            border: 1px solid rgba(0, 243, 255, 0.4);
             border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(0, 243, 255, 0.1);
-            margin-bottom: 10px;
+            padding: 18px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9), inset 0 0 15px rgba(0, 243, 255, 0.15);
+            margin-bottom: 5px;
         }
 
         .track-info {
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         .track-thumb {
-            width: 45px;
-            height: 45px;
+            width: 42px;
+            height: 42px;
             border-radius: 10px;
             overflow: hidden;
             border: 1px solid #ff00ff;
@@ -206,7 +203,7 @@ html_code = """
         }
 
         .track-name {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: #fff;
             white-space: nowrap;
@@ -216,7 +213,7 @@ html_code = """
         }
 
         .track-artist {
-            font-size: 11px;
+            font-size: 10px;
             color: #00f3ff;
             white-space: nowrap;
             overflow: hidden;
@@ -224,13 +221,13 @@ html_code = """
         }
 
         .progress-area {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         .progress-bar {
             width: 100%;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
+            height: 5px;
+            background: rgba(255, 255, 255, 0.15);
             border-radius: 3px;
             cursor: pointer;
             position: relative;
@@ -248,9 +245,9 @@ html_code = """
         .time-stamps {
             display: flex;
             justify-content: space-between;
-            font-size: 10px;
+            font-size: 9px;
             color: #8888aa;
-            margin-top: 5px;
+            margin-top: 4px;
         }
 
         .controls {
@@ -263,7 +260,7 @@ html_code = """
             background: none;
             border: none;
             color: #fff;
-            font-size: 18px;
+            font-size: 16px;
             cursor: pointer;
             transition: all 0.2s;
             text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
@@ -271,32 +268,32 @@ html_code = """
 
         .btn-control:hover {
             color: #00f3ff;
-            transform: scale(1.1);
-        }
-
-        .btn-play-pause {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #00f3ff, #ff00ff);
-            border: none;
-            color: #fff;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 0 20px rgba(255, 0, 255, 0.6);
-            transition: transform 0.2s;
-        }
-
-        .btn-play-pause:hover {
-            transform: scale(1.08);
+            transform: scale(1.15);
         }
 
         .btn-control.active {
             color: #ff00ff;
-            text-shadow: 0 0 10px #ff00ff;
+            text-shadow: 0 0 12px #ff00ff;
+        }
+
+        .btn-play-pause {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00f3ff, #ff00ff);
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.7);
+            transition: transform 0.2s;
+        }
+
+        .btn-play-pause:hover {
+            transform: scale(1.1);
         }
 
         #start-overlay {
@@ -305,7 +302,7 @@ html_code = """
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(5, 2, 10, 0.95);
+            background: rgba(3, 1, 6, 0.96);
             z-index: 100;
             display: flex;
             flex-direction: column;
@@ -318,16 +315,16 @@ html_code = """
 
         #start-overlay h1 {
             font-family: 'Orbitron', sans-serif;
-            font-size: 22px;
+            font-size: 20px;
             color: #00f3ff;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             text-shadow: 0 0 15px #00f3ff;
         }
 
         #start-overlay p {
             color: #b0b0d0;
-            font-size: 13px;
-            margin-bottom: 25px;
+            font-size: 12px;
+            margin-bottom: 22px;
             line-height: 1.5;
         }
 
@@ -335,12 +332,12 @@ html_code = """
             background: linear-gradient(135deg, #00f3ff, #ff00ff);
             border: none;
             color: #fff;
-            padding: 14px 35px;
-            font-size: 16px;
+            padding: 12px 30px;
+            font-size: 15px;
             font-weight: 700;
             border-radius: 30px;
             cursor: pointer;
-            box-shadow: 0 0 25px rgba(0, 243, 255, 0.6);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.7);
             font-family: 'Prompt', sans-serif;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -348,25 +345,28 @@ html_code = """
         }
 
         .btn-start:hover {
-            transform: scale(1.05);
+            transform: scale(1.06);
         }
     </style>
 </head>
 <body>
 
     <div class="app-container">
+        <!-- หน้าจอปลดล็อคเสียงครั้งแรก -->
         <div id="start-overlay">
-            <h1>CYBERPUNK SPACE MUSIC</h1>
-            <p>สัมผัสประสบการณ์ภาพ 3 มิติ โลโก้อณูแสง และกราฟเสียงตอบสนองแบบเรียลไทม์</p>
+            <h1>COSMIC BEAT 3D</h1>
+            <p>แตะปุ่มด้านล่างเพื่อเริ่มสัมผัสประสบการณ์ภาพ 3 มิติ และดนตรีต่อเนื่องแบบจัดเต็ม</p>
             <button class="btn-start" id="btn-start-app"><i class="fa-solid fa-play"></i> เริ่มต้นใช้งาน</button>
         </div>
 
+        <!-- ฉาก 3 มิติ (Three.js) -->
         <div id="canvas-container"></div>
 
+        <!-- เลเยอร์ UI -->
         <div class="ui-layer">
             <div class="header-section">
-                <div class="logo-wrapper">
-                    <img src="logo1.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/70/00f3ff/000000?text=LOGO'">
+                <div class="logo-wrapper" id="logo-box">
+                    <img src="logo1.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/75/00f3ff/000000?text=LOGO'">
                 </div>
                 <h1 class="neon-title" data-text="COSMIC BEAT">COSMIC BEAT</h1>
                 <div class="subtitle">NEBULA 3D EXPERIENCE</div>
@@ -377,11 +377,11 @@ html_code = """
             <div class="player-panel">
                 <div class="track-info">
                     <div class="track-thumb">
-                        <img src="logo1.jpg" alt="Track Art" onerror="this.src='https://via.placeholder.com/45/ff00ff/ffffff?text=TRK'">
+                        <img src="logo1.jpg" alt="Track Art" onerror="this.src='https://via.placeholder.com/42/ff00ff/ffffff?text=TRK'">
                     </div>
                     <div class="track-meta">
-                        <div class="track-name" id="track-title">Cybernetic Universe</div>
-                        <div class="track-artist" id="track-artist">Synthwave Future Mix</div>
+                        <div class="track-name" id="track-title">กำลังโหลดเพลง...</div>
+                        <div class="track-artist" id="track-artist">Local Playlist</div>
                     </div>
                 </div>
 
@@ -396,7 +396,7 @@ html_code = """
                 </div>
 
                 <div class="controls">
-                    <button class="btn-control" id="btn-loop" title="เล่นซ้ำ / เล่นต่อเนื่อง"><i class="fa-solid fa-rotate-right"></i></button>
+                    <button class="btn-control active" id="btn-loop" title="เล่นซ้ำ"><i class="fa-solid fa-rotate-right"></i></button>
                     <button class="btn-control" id="btn-prev" title="เพลงก่อนหน้า"><i class="fa-solid fa-backward-step"></i></button>
                     <button class="btn-play-pause" id="btn-play"><i class="fa-solid fa-play" id="play-icon"></i></button>
                     <button class="btn-control" id="btn-next" title="เพลงถัดไป"><i class="fa-solid fa-forward-step"></i></button>
@@ -411,21 +411,22 @@ html_code = """
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
     <script>
+        // รายการเพลงในโฟลเดอร์เดียวกันกับ app.py (สามารถเปลี่ยนชื่อไฟล์เป็นเพลงของคุณได้เลยครับ)
         const playlist = [
             {
-                title: "Cybernetic Universe",
+                title: "Cybernetic Universe (เพลงที่ 1)",
                 artist: "Synthwave Future Mix",
-                src: "https://commondatastorage.googleapis.com/codeskulptor-assets/Epoq-Lepidoptera.ogg"
+                src: "song1.mp3"
             },
             {
-                title: "Starlight Nebula",
+                title: "Starlight Nebula (เพลงที่ 2)",
                 artist: "Deep Space Audio",
-                src: "https://commondatastorage.googleapis.com/codeskulptor-assets/Music/odin-point_blank.mp3"
+                src: "song2.mp3"
             },
             {
-                title: "Neon Gravity",
+                title: "Neon Gravity (เพลงที่ 3)",
                 artist: "Vector Beam",
-                src: "https://commondatastorage.googleapis.com/codeskulptor-assets/soundscapes/soundscape-night.mp3"
+                src: "song3.mp3"
             }
         ];
 
@@ -436,11 +437,19 @@ html_code = """
 
         const audioElement = new Audio();
         audioElement.crossOrigin = "anonymous";
-        audioElement.src = playlist[currentTrackIndex].src;
-        audioElement.loop = false;
+        audioElement.preload = "auto";
 
         let audioCtx, analyser, sourceNode, dataArray;
-        let bassFactor = 1.0;
+
+        function loadTrack(index) {
+            currentTrackIndex = index;
+            audioElement.src = playlist[currentTrackIndex].src;
+            document.getElementById('track-title').innerText = playlist[currentTrackIndex].title;
+            document.getElementById('track-artist').innerText = playlist[currentTrackIndex].artist;
+            audioElement.load();
+        }
+
+        loadTrack(currentTrackIndex);
 
         function initAudioContext() {
             if (audioCtx) return;
@@ -454,6 +463,7 @@ html_code = """
             dataArray = new Uint8Array(analyser.frequencyBinCount);
         }
 
+        // สร้างกราฟเสียง
         const visualizerContainer = document.getElementById('visualizer');
         const numBars = 16;
         const bars = [];
@@ -464,39 +474,92 @@ html_code = """
             bars.push(bar);
         }
 
+        // --- THREE.JS 3D SCENE ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x05020a, 0.015);
+        scene.fog = new THREE.FogExp2(0x05020a, 0.02);
 
         const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
-        camera.position.z = 50;
+        camera.position.z = 45;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const starCount = 800;
+        // ดาวพุ่งเข้าหากล้อง
+        const starCount = 600;
         const starGeometry = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 3);
 
         for (let i = 0; i < starCount * 3; i += 3) {
-            starPositions[i] = (Math.random() - 0.5) * 200;
-            starPositions[i + 1] = (Math.random() - 0.5) * 200;
-            starPositions[i + 2] = (Math.random() - 0.5) * 300;
+            starPositions[i] = (Math.random() - 0.5) * 180;
+            starPositions[i + 1] = (Math.random() - 0.5) * 180;
+            starPositions[i + 2] = (Math.random() - 0.5) * 250;
         }
         starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
         
         const starMaterial = new THREE.PointsMaterial({
             color: 0x00f3ff,
-            size: 0.8,
+            size: 0.9,
             transparent: true,
-            opacity: 0.8
+            opacity: 0.85
         });
         const starField = new THREE.Points(starGeometry, starMaterial);
         scene.add(starField);
 
-        // ควบคุมการเล่นเพลงผ่านปุ่ม Start
+        // เพิ่มวัตถุ 3D กลางจอ (Torus Knot นีออน) ขยายตามเบส
+        const torusGeometry = new THREE.TorusKnotGeometry(7, 2, 100, 16);
+        const torusMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff00ff,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.35
+        });
+        const musicCore = new THREE.Mesh(torusGeometry, torusMaterial);
+        scene.add(musicCore);
+
+        // ควบคุมการเล่นเพลงต่อเนื่อง (Auto-next)
+        audioElement.addEventListener('ended', () => {
+            if (isShuffling) {
+                currentTrackIndex = Math.floor(Math.random() * playlist.length);
+            } else if (isLooping && playlist.length === 1) {
+                audioElement.play();
+                return;
+            } else {
+                currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+            }
+            loadTrack(currentTrackIndex);
+            audioElement.play();
+        });
+
+        // อัปเดตแถบเวลา
+        audioElement.addEventListener('timeupdate', () => {
+            if (audioElement.duration) {
+                const progressPercent = (audioElement.currentTime / audioElement.duration) * 100;
+                document.getElementById('progress-fill').style.width = progressPercent + '%';
+                
+                let curM = Math.floor(audioElement.currentTime / 60);
+                let curS = Math.floor(audioElement.currentTime % 60);
+                document.getElementById('current-time').innerText = `${curM}:${curS < 10 ? '0' : ''}${curS}`;
+
+                let durM = Math.floor(audioElement.duration / 60);
+                let durS = Math.floor(audioElement.duration % 60);
+                document.getElementById('total-duration').innerText = `${durM}:${durS < 10 ? '0' : ''}${durS}`;
+            }
+        });
+
+        // กดที่แถบเวลาเพื่อกรอเพลง
+        document.getElementById('progress-bar').addEventListener('click', (e) => {
+            const width = e.currentTarget.clientWidth;
+            const clickX = e.offsetX;
+            const duration = audioElement.duration;
+            if (duration) {
+                audioElement.currentTime = (clickX / width) * duration;
+            }
+        });
+
+        // ปุ่ม Start แอปพลิเคชันครั้งแรก
         document.getElementById('btn-start-app').addEventListener('click', () => {
             initAudioContext();
             document.getElementById('start-overlay').style.opacity = '0';
@@ -524,28 +587,72 @@ html_code = """
             }
         });
 
-        // Animation Loop
+        // ปุ่มเปลี่ยนเพลง Next / Prev
+        document.getElementById('btn-next').addEventListener('click', () => {
+            currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+            loadTrack(currentTrackIndex);
+            if (isPlaying) audioElement.play();
+        });
+
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            currentTrackIndex = (currentTrackIndex - 1 + playlist.
+                    document.getElementById('btn-prev').addEventListener('click', () => {
+            currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+            loadTrack(currentTrackIndex);
+            if (isPlaying) audioElement.play();
+        });
+
+        // ปุ่ม Loop & Shuffle
+        const btnLoop = document.getElementById('btn-loop');
+        btnLoop.addEventListener('click', () => {
+            isLooping = !isLooping;
+            btnLoop.classList.toggle('active', isLooping);
+        });
+
+        const btnShuffle = document.getElementById('btn-shuffle');
+        btnShuffle.addEventListener('click', () => {
+            isShuffling = !isShuffling;
+            btnShuffle.classList.toggle('active', isShuffling);
+        });
+
+        // Animation Loop 3D & Audio Reaction
         function animate() {
             requestAnimationFrame(animate);
 
-            // ขยับดาวพุ่งเข้าหา
+            // ดาวพุ่ง
             const positions = starGeometry.attributes.position.array;
             for (let i = 2; i < starCount * 3; i += 3) {
-                positions[i] += 0.5;
-                if (positions[i] > 50) {
-                    positions[i] = -250;
-                }
+                positions[i] += 0.6;
+                if (positions[i] > 40) positions[i] = -210;
             }
             starGeometry.attributes.position.needsUpdate = true;
-            starField.rotation.z += 0.001;
+            starField.rotation.z += 0.0015;
 
-            // อัปเดตกราฟเสียง
+            // เอฟเฟกต์ตอบสนองเสียงเพลง (Bass & Visualizer)
             if (analyser && isPlaying) {
                 analyser.getByteFrequencyData(dataArray);
+                
+                // ดึงค่าเบส (ย่านความถี่ต่ำ) มาทำให้วัตถุและโลโก้กระแทกตามจังหวะ
+                let bassValue = dataArray[2] / 255; 
+
+                // โลโก้กระแทกและขยายตามเบส
+                const logoBox = document.getElementById('logo-box');
+                logoBox.style.transform = `scale(${1 + bassValue * 0.35})`;
+
+                // 3D Core หมุนเร็วขึ้นและขยายตามเพลง
+                musicCore.rotation.x += 0.01 + (bassValue * 0.02);
+                musicCore.rotation.y += 0.015 + (bassValue * 0.02);
+                let coreScale = 1 + (bassValue * 0.4);
+                musicCore.scale.set(coreScale, coreScale, coreScale);
+
+                // อัปเดตกราฟแท่งเสียง
                 for (let i = 0; i < numBars; i++) {
-                    const height = (dataArray[i] / 255) * 70 + 5;
+                    const height = (dataArray[i] / 255) * 60 + 5;
                     bars[i].style.height = height + 'px';
                 }
+            } else {
+                musicCore.rotation.x += 0.005;
+                musicCore.rotation.y += 0.008;
             }
 
             renderer.render(scene, camera);
@@ -563,5 +670,5 @@ html_code = """
 </html>
 """
 
-# เรนเดอร์หน้าเว็บ 3D ลงใน Streamlit (กำหนดความสูงเป็น 850 พิกเซล)
+# เรนเดอร์ลงใน Streamlit
 components.html(html_code, height=850, scrolling=False)
