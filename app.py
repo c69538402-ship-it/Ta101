@@ -41,7 +41,6 @@ for candidate in ("logo1.jpg", "logo1.jpeg", "logo1.png", "โลโก้.jpg",
         except OSError:
             pass
 
-# JSON encoding prevents quotes in filenames from breaking the JavaScript.
 logo_json = json.dumps(logo_data)
 
 player_html = r"""<!doctype html>
@@ -54,11 +53,22 @@ player_html = r"""<!doctype html>
 :root{--a:#00f5ff;--b:#bd00ff;--panel:rgba(5,8,25,.76)}
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;color:#fff;font-family:Prompt,sans-serif}
-#stage{position:relative;width:100%;height: min(940px,100vh);min-height:650px;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#10133c 0%,#050615 48%,#010208 100%);isolation:isolate}
-#space{position:absolute;inset:0;width:100%;height:100%;z-index:0}
-.aurora{position:absolute;inset:-20%;z-index:1;pointer-events:none;background:conic-gradient(from 30deg at 50% 50%,transparent,#00eaff12,transparent,#b400ff18,transparent);filter:blur(45px);animation:aurora 18s linear infinite}
+#stage{position:relative;width:100%;height:min(940px,100vh);min-height:650px;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#10133c 0%,#050615 48%,#010208 100%);isolation:isolate}
+#cosmic-nebula{position:absolute;inset:-18%;z-index:0;pointer-events:none;overflow:hidden;background:
+radial-gradient(ellipse at 22% 32%,#183c9b88 0%,transparent 27%),
+radial-gradient(ellipse at 78% 28%,#8b18b588 0%,transparent 25%),
+radial-gradient(ellipse at 62% 78%,#007e9d66 0%,transparent 30%),
+radial-gradient(ellipse at 35% 78%,#4c176b77 0%,transparent 29%),
+radial-gradient(ellipse at center,#10133c 0%,#050615 47%,#010208 100%);
+filter:saturate(1.35);animation:nebula-drift 28s ease-in-out infinite alternate}
+#cosmic-nebula:before,#cosmic-nebula:after{content:"";position:absolute;inset:-25%;background:conic-gradient(from 0deg at 50% 50%,transparent 0deg,#00eaff15 55deg,transparent 115deg,#bd00ff20 205deg,transparent 270deg,#00f5ff10 320deg,transparent);filter:blur(42px);animation:aurora 35s linear infinite}
+#cosmic-nebula:after{opacity:.65;transform:scale(.8) rotate(35deg);animation-duration:47s;animation-direction:reverse}
+@keyframes nebula-drift{from{transform:translate3d(-1.5%,1%,0) scale(1)}to{transform:translate3d(1.5%,-1%,0) scale(1.08)}}
+#space{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+.aurora{position:absolute;inset:-20%;z-index:2;pointer-events:none;background:conic-gradient(from 30deg at 50% 50%,transparent,#00eaff12,transparent,#b400ff18,transparent);filter:blur(45px);animation:aurora 18s linear infinite}
 @keyframes aurora{to{transform:rotate(360deg)}}
-.hud{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:clamp(14px,3vw,30px);pointer-events:none}
+.center{z-index:3}
+.hud{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:clamp(14px,3vw,30px);pointer-events:none}
 .hud>*{pointer-events:auto}
 .top{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
 .brand{font-family:Orbitron,sans-serif;font-weight:900;letter-spacing:clamp(3px,1vw,8px);font-size:clamp(23px,4.5vw,48px);text-align:center;color:#eafcff;text-shadow:0 0 8px var(--a),0 0 25px var(--a),0 0 50px var(--b);animation:flicker 3.5s ease-in-out infinite alternate}
@@ -78,8 +88,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;col
 .r3{inset:18%;border-width:2px;opacity:.4;animation:pulse 2.8s ease-in-out infinite}
 @keyframes orbit{to{transform:rotate(360deg)}}
 @keyframes pulse{50%{transform:scale(1.06);opacity:.9}}
-#logo{width:38%;height:38%;object-fit:contain;border-radius:50%;border:2px solid var(--a);box-shadow:0 0 20px var(--a),0 0 55px var(--b),inset 0 0 20px var(--a);background:#060817;animation:logoGlow 2.2s ease-in-out infinite alternate}
-@keyframes logoGlow{to{box-shadow:0 0 35px var(--a),0 0 85px var(--b),inset 0 0 30px var(--a);filter:brightness(1.15)}}
+#logo{display:none!important}
+#logo-motion{position:absolute;width:58%;height:58%;z-index:2;overflow:visible;filter:drop-shadow(0 0 15px var(--a))}
 #logo-placeholder{font-family:Orbitron,sans-serif;color:var(--a);font-size:12px;text-shadow:0 0 15px var(--a);text-align:center}
 #burst{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 #burst-btn{pointer-events:auto;position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);border:1px solid var(--a);border-radius:30px;background:#060817aa;color:#fff;padding:7px 13px;font:11px Prompt,sans-serif;white-space:nowrap;box-shadow:0 0 15px var(--a);cursor:pointer}
@@ -111,13 +121,15 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;col
 </head>
 <body>
 <div id="stage">
- <canvas id="space"></canvas><div class="aurora"></div>
+ <div id="cosmic-nebula" aria-hidden="true"></div><canvas id="space"></canvas><div class="aurora"></div>
  <div class="center">
   <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
-  <img id="logo" alt="TA101 logo" style="display:none">
+  <img id="logo" alt="TA101 logo source" style="display:none">
+  <canvas id="logo-motion" aria-label="Animated TA101 logo"></canvas>
   <div id="logo-placeholder">TA101<br>NEON MUSIC</div>
-  <canvas id="burst"></canvas>
-  <button id="burst-btn" type="button">✦ โลโก้แตกตัว / ประกอบกลับ</button>
+
+    <canvas id="burst"></canvas>
+  <button id="burst-btn" type="button">✦ แตกตัว / ประกอบโลโก้</button>
  </div>
  <div class="hud">
   <div class="top">
@@ -172,6 +184,7 @@ let index=0, playing=false, shuffle=false, loopList=true, single=false;
 let ctx=null, analyser=null, source=null, freq=null, waveData=null;
 let scene,camera,renderer,stars,core,coreMat,clock;
 const stage=$("stage");
+
 function setTheme(a,b){
  document.documentElement.style.setProperty("--a",a);
  document.documentElement.style.setProperty("--b",b);
@@ -182,106 +195,301 @@ $("t1").onclick=()=>setTheme("#00f5ff","#bd00ff");
 $("t2").onclick=()=>setTheme("#00ff82","#0055ff");
 $("t3").onclick=()=>setTheme("#ff7a00","#ff006e");
 $("t4").onclick=()=>setTheme("#e8f5ff","#7777ff");
-if(LOGO){$("logo").src=LOGO;$("logo").style.display="block";$("thumb").src=LOGO;$("thumb").style.display="block";$("logo-placeholder").style.display="none";}
-function timeText(s){if(!Number.isFinite(s))return "0:00";s=Math.max(0,Math.floor(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
+
+if(LOGO){
+ $("logo").src=LOGO;
+ $("thumb").src=LOGO;
+ $("thumb").style.display="block";
+ $("logo-placeholder").style.display="none";
+}
+
+function timeText(s){
+ if(!Number.isFinite(s))return "0:00";
+ s=Math.max(0,Math.floor(s));
+ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+}
+
 function initAudio(){
  if(ctx)return;
  const AC=window.AudioContext||window.webkitAudioContext;
  if(!AC)return;
- ctx=new AC();analyser=ctx.createAnalyser();analyser.fftSize=256;analyser.smoothingTimeConstant=.78;
- source=ctx.createMediaElementSource(audio);source.connect(analyser);analyser.connect(ctx.destination);
- freq=new Uint8Array(analyser.frequencyBinCount);waveData=new Uint8Array(analyser.fftSize);
+ ctx=new AC();
+ analyser=ctx.createAnalyser();
+ analyser.fftSize=256;
+ analyser.smoothingTimeConstant=.78;
+ source=ctx.createMediaElementSource(audio);
+ source.connect(analyser);
+ analyser.connect(ctx.destination);
+ freq=new Uint8Array(analyser.frequencyBinCount);
+ waveData=new Uint8Array(analyser.fftSize);
 }
+
 function fillPlaylist(){
- const sel=$("playlist");sel.innerHTML="";
- if(!SONGS.length){sel.innerHTML='<option value="">ไม่พบไฟล์เพลง</option>';$("track-title").textContent="ไม่พบไฟล์เพลงในโปรเจกต์";$("track-sub").textContent="เพิ่มไฟล์ MP3 ไว้ข้าง app.py";return}
- SONGS.forEach((s,i)=>{const op=document.createElement("option");op.value=String(i);op.textContent=(i+1)+". "+s.name;sel.appendChild(op)});
+ const sel=$("playlist");
+ sel.innerHTML="";
+ if(!SONGS.length){
+  sel.innerHTML='<option value="">ไม่พบไฟล์เพลง</option>';
+  $("track-title").textContent="ไม่พบไฟล์เพลงในโปรเจกต์";
+  $("track-sub").textContent="เพิ่มไฟล์ MP3 ไว้ข้าง app.py";
+  return;
+ }
+ SONGS.forEach((s,i)=>{
+  const op=document.createElement("option");
+  op.value=String(i);
+  op.textContent=(i+1)+". "+s.name;
+  sel.appendChild(op);
+ });
  loadTrack(0);
 }
+
 function loadTrack(i){
  if(!SONGS.length)return;
- index=(i+SONGS.length)%SONGS.length;audio.src=SONGS[index].src;audio.load();
- $("track-title").textContent=SONGS[index].name;$("track-sub").textContent="TRACK "+(index+1)+" / "+SONGS.length;
- $("playlist").value=String(index);$("fill").style.width="0%";$("elapsed").textContent="0:00";$("duration").textContent="0:00";
+ index=(i+SONGS.length)%SONGS.length;
+ audio.src=SONGS[index].src;
+ audio.load();
+ $("track-title").textContent=SONGS[index].name;
+ $("track-sub").textContent="TRACK "+(index+1)+" / "+SONGS.length;
+ $("playlist").value=String(index);
+ $("fill").style.width="0%";
+ $("elapsed").textContent="0:00";
+ $("duration").textContent="0:00";
 }
+
 async function playAudio(){
  if(!SONGS.length)return;
  initAudio();
- if(ctx && ctx.state==="suspended"){try{await ctx.resume()}catch(e){}}
- try{await audio.play();playing=true;$("play").textContent="Ⅱ";}catch(e){playing=false;$("play").textContent="▶";$("track-sub").textContent="แตะปุ่มเล่นอีกครั้ง หากเบราว์เซอร์บล็อกเสียง";}
+ if(ctx && ctx.state==="suspended"){
+  try{await ctx.resume()}catch(e){}
+ }
+ try{
+  await audio.play();
+  playing=true;
+  $("play").textContent="Ⅱ";
+ }catch(e){
+  playing=false;
+  $("play").textContent="▶";
+  $("track-sub").textContent="แตะปุ่มเล่นอีกครั้ง หากเบราว์เซอร์บล็อกเสียง";
+ }
 }
-function pauseAudio(){audio.pause();playing=false;$("play").textContent="▶"}
+
+function pauseAudio(){
+ audio.pause();
+ playing=false;
+ $("play").textContent="▶";
+}
+
 function nextTrack(fromEnded=false){
  if(!SONGS.length)return;
- if(single && fromEnded){pauseAudio();audio.currentTime=0;return}
- if(shuffle && SONGS.length>1){let n=index;while(n===index)n=Math.floor(Math.random()*SONGS.length);loadTrack(n)}
- else if(fromEnded && !loopList && index===SONGS.length-1){pauseAudio();return}
- else loadTrack(index+1);
+ if(single && fromEnded){
+  pauseAudio();
+  audio.currentTime=0;
+  return;
+ }
+ if(shuffle && SONGS.length>1){
+  let n=index;
+  while(n===index)n=Math.floor(Math.random()*SONGS.length);
+  loadTrack(n);
+ }else if(fromEnded && !loopList && index===SONGS.length-1){
+  pauseAudio();
+  return;
+ }else{
+  loadTrack(index+1);
+ }
  if(playing || fromEnded)playAudio();
 }
+
 $("play").onclick=()=>playing?pauseAudio():playAudio();
 $("next").onclick=()=>nextTrack(false);
-$("prev").onclick=()=>{if(audio.currentTime>3){audio.currentTime=0;return}loadTrack(index-1);if(playing)playAudio()};
-$("playlist").onchange=e=>{loadTrack(Number(e.target.value));playAudio()};
-$("loop").onclick=()=>{loopList=!loopList;$("loop").classList.toggle("active",loopList);if(loopList){single=false;$("single").classList.remove("active")}};
-$("shuffle").onclick=()=>{shuffle=!shuffle;$("shuffle").classList.toggle("active",shuffle)};
-$("single").onclick=()=>{single=!single;$("single").classList.toggle("active",single);if(single){loopList=false;$("loop").classList.remove("active")}else{loopList=true;$("loop").classList.add("active")}};
+$("prev").onclick=()=>{
+ if(audio.currentTime>3){audio.currentTime=0;return;}
+ loadTrack(index-1);
+ if(playing)playAudio();
+};
+$("playlist").onchange=e=>{
+ loadTrack(Number(e.target.value));
+ playAudio();
+};
+$("loop").onclick=()=>{
+ loopList=!loopList;
+ $("loop").classList.toggle("active",loopList);
+ if(loopList){
+  single=false;
+  $("single").classList.remove("active");
+ }
+};
+$("shuffle").onclick=()=>{
+ shuffle=!shuffle;
+ $("shuffle").classList.toggle("active",shuffle);
+};
+$("single").onclick=()=>{
+ single=!single;
+ $("single").classList.toggle("active",single);
+ if(single){
+  loopList=false;
+  $("loop").classList.remove("active");
+ }else{
+  loopList=true;
+  $("loop").classList.add("active");
+ }
+};
+
 audio.addEventListener("ended",()=>nextTrack(true));
-audio.addEventListener("loadedmetadata",()=>{$("duration").textContent=timeText(audio.duration)});
-audio.addEventListener("timeupdate",()=>{if(audio.duration){$("fill").style.width=(audio.currentTime/audio.duration*100)+"%";$("elapsed").textContent=timeText(audio.currentTime)}});
-$("progress").onclick=e=>{if(audio.duration){const r=e.currentTarget.getBoundingClientRect();audio.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*audio.duration}};
-$("enter").onclick=async()=>{initAudio();if(ctx&&ctx.state==="suspended"){try{await ctx.resume()}catch(e){}}$("start").style.opacity="0";setTimeout(()=>$("start").style.display="none",620);await playAudio();};
-$("fullscreen").onclick=async()=>{try{if(!document.fullscreenElement)await stage.requestFullscreen();else await document.exitFullscreen()}catch(e){}};
+audio.addEventListener("loadedmetadata",()=>{
+ $("duration").textContent=timeText(audio.duration);
+});
+audio.addEventListener("timeupdate",()=>{
+ if(audio.duration){
+  $("fill").style.width=(audio.currentTime/audio.duration*100)+"%";
+  $("elapsed").textContent=timeText(audio.currentTime);
+ }
+});
+$("progress").onclick=e=>{
+ if(audio.duration){
+  const r=e.currentTarget.getBoundingClientRect();
+  audio.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*audio.duration;
+ }
+};
+$("enter").onclick=async()=>{
+ initAudio();
+ if(ctx&&ctx.state==="suspended"){
+  try{await ctx.resume()}catch(e){}
+ }
+ $("start").style.opacity="0";
+ setTimeout(()=>$("start").style.display="none",620);
+ await playAudio();
+};
+$("fullscreen").onclick=async()=>{
+ try{
+  if(!document.fullscreenElement)await stage.requestFullscreen();
+  else await document.exitFullscreen();
+ }catch(e){}
+};
 fillPlaylist();
 
-/* Three.js space: real 3D star field, nebula points, and wireframe energy core */
+/* ฉากอวกาศ 3 มิติสร้างด้วย Three.js */
 const canvas=$("space");
 try{
- scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x03040c,0.0038);
- camera=new THREE.PerspectiveCamera(62,1,.1,1200);camera.position.z=90;
- renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.8));
- const positions=new Float32Array(2400*3), colors=new Float32Array(2400*3);
- for(let i=0;i<2400;i++){positions[i*3]=(Math.random()-.5)*330;positions[i*3+1]=(Math.random()-.5)*210;positions[i*3+2]=(Math.random()-.5)*650;const c=new THREE.Color().setHSL(.52+Math.random()*.28,.85,.55+Math.random()*.3);colors.set([c.r,c.g,c.b],i*3)}
- const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.BufferAttribute(positions,3));geo.setAttribute("color",new THREE.BufferAttribute(colors,3));
- stars=new THREE.Points(geo,new THREE.PointsMaterial({size:1.05,vertexColors:true,transparent:true,opacity:.9,depthWrite:false}));scene.add(stars);
- const coreGeo=new THREE.IcosahedronGeometry(17,2);coreMat=new THREE.MeshBasicMaterial({color:0xbd00ff,wireframe:true,transparent:true,opacity:.19});core=new THREE.Mesh(coreGeo,coreMat);scene.add(core);
- const ringGeo=new THREE.TorusGeometry(23,.09,8,240);const ringMat=new THREE.MeshBasicMaterial({color:0x00f5ff,transparent:true,opacity:.65});const ring=new THREE.Mesh(ringGeo,ringMat);ring.rotation.x=1.05;scene.add(ring);
- const ring2=new THREE.Mesh(new THREE.TorusGeometry(29,.045,6,240),new THREE.MeshBasicMaterial({color:0xbd00ff,transparent:true,opacity:.55}));ring2.rotation.y=.9;ring2.rotation.x=.4;scene.add(ring2);
+ scene=new THREE.Scene();
+ scene.fog=new THREE.FogExp2(0x03040c,0.0038);
+ camera=new THREE.PerspectiveCamera(62,1,.1,1200);
+ camera.position.z=90;
+ renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.8));
+
+ const positions=new Float32Array(2400*3);
+ const colors=new Float32Array(2400*3);
+ for(let i=0;i<2400;i++){
+  positions[i*3]=(Math.random()-.5)*330;
+  positions[i*3+1]=(Math.random()-.5)*210;
+  positions[i*3+2]=(Math.random()-.5)*650;
+  const c=new THREE.Color().setHSL(.52+Math.random()*.28,.85,.55+Math.random()*.3);
+  colors.set([c.r,c.g,c.b],i*3);
+ }
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute("position",new THREE.BufferAttribute(positions,3));
+ geo.setAttribute("color",new THREE.BufferAttribute(colors,3));
+ stars=new THREE.Points(geo,new THREE.PointsMaterial({
+  size:1.05,vertexColors:true,transparent:true,opacity:.9,depthWrite:false
+ }));
+ scene.add(stars);
+
+ const coreGeo=new THREE.IcosahedronGeometry(17,2);
+ coreMat=new THREE.MeshBasicMaterial({
+  color:0xbd00ff,wireframe:true,transparent:true,opacity:.19
+ });
+ core=new THREE.Mesh(coreGeo,coreMat);
+ scene.add(core);
+
+ const ringGeo=new THREE.TorusGeometry(23,.09,8,240);
+ const ringMat=new THREE.MeshBasicMaterial({
+  color:0x00f5ff,transparent:true,opacity:.65
+ });
+ const ring=new THREE.Mesh(ringGeo,ringMat);
+ ring.rotation.x=1.05;
+ scene.add(ring);
+
+ const ring2=new THREE.Mesh(
+  new THREE.TorusGeometry(29,.045,6,240),
+  new THREE.MeshBasicMaterial({color:0xbd00ff,transparent:true,opacity:.55})
+ );
+ ring2.rotation.y=.9;
+ ring2.rotation.x=.4;
+ scene.add(ring2);
+
  clock=new THREE.Clock();
- function resize3d(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}
- window.addEventListener("resize",resize3d);resize3d();
+ function resize3d(){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  camera.aspect=w/h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w,h,false);
+ }
+ window.addEventListener("resize",resize3d);
+ resize3d();
+
  function render3d(){
-  requestAnimationFrame(render3d);const t=clock.getElapsedTime();
-  stars.rotation.y+=.00045;stars.rotation.x=Math.sin(t*.08)*.025;
-  core.rotation.x=t*.12;core.rotation.y=t*.18;ring.rotation.z=t*.12;ring2.rotation.z=-t*.09;
+  requestAnimationFrame(render3d);
+  const t=clock.getElapsedTime();
+  stars.rotation.y+=.00045;
+  stars.rotation.x=Math.sin(t*.08)*.025;
+  core.rotation.x=t*.12;
+  core.rotation.y=t*.18;
+  ring.rotation.z=t*.12;
+  ring2.rotation.z=-t*.09;
+
   let energy=0;
-  if(analyser&&freq&&playing){analyser.getByteFrequencyData(freq);for(let i=0;i<freq.length;i++)energy+=freq[i];energy=energy/freq.length/255}
-  const s=1+energy*.28;core.scale.setScalar(s);core.rotation.z=t*.06;
-  camera.position.x=Math.sin(t*.09)*2.2;camera.position.y=Math.cos(t*.11)*1.5;camera.lookAt(0,0,0);
+  if(analyser&&freq&&playing){
+   analyser.getByteFrequencyData(freq);
+   for(let i=0;i<freq.length;i++)energy+=freq[i];
+   energy=energy/freq.length/255;
+  }
+  core.scale.setScalar(1+energy*.28);
+  core.rotation.z=t*.06;
+  camera.position.x=Math.sin(t*.09)*2.2;
+  camera.position.y=Math.cos(t*.11)*1.5;
+  camera.lookAt(0,0,0);
   renderer.render(scene,camera);
  }
  render3d();
-}catch(err){console.warn("3D renderer unavailable:",err)}
-
-/* Audio-reactive waveform: actual analyser data when playing, quiet idle wave otherwise */
+}catch(err){
+ console.warn("3D renderer unavailable:",err);
+}
+/* คลื่นเสียงจากเพลงที่กำลังเล่น */
 const wc=$("wave"),wctx=wc.getContext("2d");
+
 function drawWave(){
  requestAnimationFrame(drawWave);
- const dpr=Math.min(devicePixelRatio||1,2),w=wc.clientWidth,h=wc.clientHeight;
- if(wc.width!==Math.floor(w*dpr)||wc.height!==Math.floor(h*dpr)){wc.width=Math.floor(w*dpr);wc.height=Math.floor(h*dpr)}
- wctx.setTransform(dpr,0,0,dpr,0,0);wctx.clearRect(0,0,w,h);
+ const dpr=Math.min(devicePixelRatio||1,2);
+ const w=wc.clientWidth,h=wc.clientHeight;
+ if(wc.width!==Math.floor(w*dpr)||wc.height!==Math.floor(h*dpr)){
+  wc.width=Math.floor(w*dpr);
+  wc.height=Math.floor(h*dpr);
+ }
+ wctx.setTransform(dpr,0,0,dpr,0,0);
+ wctx.clearRect(0,0,w,h);
  if(analyser&&waveData&&playing)analyser.getByteTimeDomainData(waveData);
+
  const mid=h*.5,points=Math.max(120,Math.floor(w*.8));
  for(let layer=0;layer<3;layer++){
-  wctx.beginPath();wctx.lineWidth=layer===0?2.8:1.1;wctx.strokeStyle=layer===0?"#00f5ff":layer===1?"#bd00ff":"#ffffff88";
-  wctx.shadowBlur=layer===0?16:8;wctx.shadowColor=layer===1?"#bd00ff":"#00f5ff";
+  wctx.beginPath();
+  wctx.lineWidth=layer===0?2.8:1.1;
+  wctx.strokeStyle=layer===0?"#00f5ff":layer===1?"#bd00ff":"#ffffff88";
+  wctx.shadowBlur=layer===0?16:8;
+  wctx.shadowColor=layer===1?"#bd00ff":"#00f5ff";
+
   for(let i=0;i<=points;i++){
-   const x=i/points*w;let v=0;
-   if(analyser&&waveData&&playing){const j=Math.floor(i/points*(waveData.length-1));v=(waveData[j]-128)/128}
-   else v=Math.sin(i*.12+performance.now()*.0015+layer)*.08+Math.sin(i*.035-performance.now()*.001)*.04;
-   const amp=(playing? h*.38:h*.18)*(1-layer*.22);
+   const x=i/points*w;
+   let v=0;
+   if(analyser&&waveData&&playing){
+    const j=Math.floor(i/points*(waveData.length-1));
+    v=(waveData[j]-128)/128;
+   }else{
+    v=Math.sin(i*.12+performance.now()*.0015+layer)*.08+
+      Math.sin(i*.035-performance.now()*.001)*.04;
+   }
+   const amp=(playing?h*.38:h*.18)*(1-layer*.22);
    const y=mid+v*amp+Math.sin(i*.08+performance.now()*.001+layer)*3;
-   if(i===0)wctx.moveTo(x,y);else wctx.lineTo(x,y);
+   if(i===0)wctx.moveTo(x,y);
+   else wctx.lineTo(x,y);
   }
   wctx.stroke();
  }
@@ -289,34 +497,129 @@ function drawWave(){
 }
 drawWave();
 
-/* Logo particle burst: sample logo pixels, scatter them, then reform the logo image */
+/* สร้างโลโก้เคลื่อนไหวจากพิกเซลของ logo1.jpg */
+const lc=$("logo-motion"),lctx=lc.getContext("2d");
 const bc=$("burst"),bctx=bc.getContext("2d");
-let particlePoints=[],particleMode=0,burstStart=0;
-function makeParticles(){
- const dpr=Math.min(devicePixelRatio||1,2),w=bc.clientWidth,h=bc.clientHeight;
- bc.width=Math.max(1,Math.floor(w*dpr));bc.height=Math.max(1,Math.floor(h*dpr));bctx.setTransform(dpr,0,0,dpr,0,0);
- particlePoints=[];
- if(!LOGO)return;
- const img=new Image();img.onload=()=>{
-  const off=document.createElement("canvas"),oc=off.getContext("2d");off.width=100;off.height=100;oc.drawImage(img,0,0,100,100);
-  const data=oc.getImageData(0,0,100,100).data;
-  const step=3,scale=Math.min(w,h)*.38/100;
-  for(let y=0;y<100;y+=step)for(let x=0;x<100;x+=step){const p=(y*100+x)*4;if(data[p+3]>80){particlePoints.push({x:(x-50)*scale+w/2,y:(y-50)*scale+h/2,ox:(Math.random()-.5)*w*1.4,oy:(Math.random()-.5)*h*1.4,r:.7+Math.random()*1.7,c:`rgba(${data[p]},${data[p+1]},${data[p+2]},${.45+Math.random()*.55})`})}}
- };img.src=LOGO;
+let logoParticles=[],burstMode=0,burstStart=performance.now(),logoImage=null;
+
+function fitCanvas(el,ctx){
+ const dpr=Math.min(devicePixelRatio||1,2);
+ const w=el.clientWidth,h=el.clientHeight;
+ if(!w||!h)return null;
+ if(el.width!==Math.floor(w*dpr)||el.height!==Math.floor(h*dpr)){
+  el.width=Math.floor(w*dpr);
+  el.height=Math.floor(h*dpr);
+ }
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ return {w,h,dpr};
 }
-function triggerBurst(){if(!LOGO){return}particleMode=particleMode===1?0:1;burstStart=performance.now();$("burst-btn").textContent=particleMode?"✦ ประกอบโลโก้กลับ":"✦ โลโก้แตกตัว / ประกอบกลับ";if(particleMode===0){$("logo").style.opacity="1"}else{$("logo").style.opacity=".08"}}
+
+function buildAnimatedLogo(){
+ const size=fitCanvas(lc,lctx);
+ fitCanvas(bc,bctx);
+ if(!size||!LOGO)return;
+
+ logoImage=new Image();
+ logoImage.onload=()=>{
+  const off=document.createElement("canvas");
+  const oc=off.getContext("2d");
+  off.width=150;
+  off.height=150;
+  oc.clearRect(0,0,150,150);
+  oc.drawImage(logoImage,0,0,150,150);
+  const data=oc.getImageData(0,0,150,150).data;
+  logoParticles=[];
+  const step=3,scale=Math.min(size.w,size.h)*.86/150;
+
+  for(let y=0;y<150;y+=step){
+   for(let x=0;x<150;x+=step){
+    const k=(y*150+x)*4;
+    const alpha=data[k+3]/255;
+    if(alpha<.18)continue;
+
+    const tx=size.w/2+(x-75)*scale;
+    const ty=size.h/2+(y-75)*scale;
+    const angle=Math.random()*Math.PI*2;
+    const dist=30+Math.random()*Math.max(size.w,size.h)*.7;
+
+    logoParticles.push({
+     tx,ty,x:tx,y:ty,
+     sx:size.w/2+Math.cos(angle)*dist,
+     sy:size.h/2+Math.sin(angle)*dist,
+     vx:(Math.random()-.5)*1.8,
+     vy:(Math.random()-.5)*1.8,
+     r:.7+Math.random()*1.5,
+     color:`rgba(${data[k]},${data[k+1]},${data[k+2]},${Math.max(.35,alpha)})`,
+     phase:Math.random()*Math.PI*2
+    });
+   }
+  }
+ };
+ logoImage.src=LOGO;
+}
+
+function triggerBurst(){
+ if(!logoParticles.length)return;
+ burstMode=burstMode===1?0:1;
+ burstStart=performance.now();
+ $("burst-btn").textContent=burstMode
+  ?"✦ ประกอบโลโก้กลับ"
+  :"✦ แตกตัว / ประกอบโลโก้";
+}
 $("burst-btn").onclick=triggerBurst;
-function drawParticles(){
- requestAnimationFrame(drawParticles);
- const w=bc.clientWidth,h=bc.clientHeight;if(!w||!h)return;
- if(bc.width!==Math.floor(w*Math.min(devicePixelRatio||1,2))||bc.height!==Math.floor(h*Math.min(devicePixelRatio||1,2)))makeParticles();
- bctx.clearRect(0,0,w,h);if(!particlePoints.length)return;
- const elapsed=(performance.now()-burstStart)/1000;const p=particleMode?Math.min(1,elapsed/1.2):Math.max(0,1-elapsed/1.2);
- for(const q of particlePoints){const x=q.x+(q.ox-q.x)*p,y=q.y+(q.oy-q.y)*p;bctx.beginPath();bctx.fillStyle=q.c;bctx.shadowColor=q.c;bctx.shadowBlur=particleMode?12:5;bctx.arc(x,y,q.r,0,Math.PI*2);bctx.fill()}
+
+function animateLogo(){
+ requestAnimationFrame(animateLogo);
+ const size=fitCanvas(lc,lctx);
+ fitCanvas(bc,bctx);
+ if(!size||!logoParticles.length)return;
+
+ const {w,h}=size,now=performance.now(),t=now*.001;
+ let energy=0;
+ if(analyser&&freq&&playing){
+  analyser.getByteFrequencyData(freq);
+  for(let i=0;i<freq.length;i++)energy+=freq[i];
+  energy=energy/freq.length/255;
+ }
+
+ lctx.clearRect(0,0,w,h);
+ bctx.clearRect(0,0,bc.clientWidth,bc.clientHeight);
+ const progress=Math.min(1,(now-burstStart)/1300);
+ const scatter=burstMode?progress:1-progress;
+
+ for(const q of logoParticles){
+  const drift=Math.sin(t*1.7+q.phase)*(1.5+energy*8);
+  const flutter=Math.cos(t*1.3+q.phase)*(1.5+energy*8);
+  const tx=q.tx+drift,ty=q.ty+flutter;
+  const sx=q.sx+Math.sin(t+q.phase)*22;
+  const sy=q.sy+Math.cos(t*.9+q.phase)*22;
+  const x=tx+(sx-tx)*scatter;
+  const y=ty+(sy-ty)*scatter;
+  const radius=q.r*(1+energy*1.8)*(1+Math.sin(t*2+q.phase)*.13);
+
+  lctx.beginPath();
+  lctx.fillStyle=q.color;
+  lctx.shadowColor=Math.random()>.5?"#00f5ff":"#bd00ff";
+  lctx.shadowBlur=8+energy*18;
+  lctx.arc(x,y,radius,0,Math.PI*2);
+  lctx.fill();
+
+  if(burstMode&&Math.random()>.68){
+   bctx.beginPath();
+   bctx.fillStyle=q.color;
+   bctx.shadowColor="#00f5ff";
+   bctx.shadowBlur=10;
+   bctx.arc(x,y,Math.max(.6,radius*.65),0,Math.PI*2);
+   bctx.fill();
+  }
+ }
+ lctx.shadowBlur=0;
  bctx.shadowBlur=0;
- if(!particleMode&&p===0){$("logo").style.opacity="1"}
 }
-makeParticles();drawParticles();window.addEventListener("resize",makeParticles);
+
+buildAnimatedLogo();
+animateLogo();
+window.addEventListener("resize",buildAnimatedLogo);
 </script>
 </body>
 </html>"""
@@ -341,4 +644,6 @@ st.markdown(
 
 if not songs:
     st.info("ยังไม่พบไฟล์เพลงในโฟลเดอร์เดียวกับ app.py ให้วางไฟล์ MP3 ไว้ใน GitHub repository เดียวกัน")
+
+st.caption("🌌 ฉากอวกาศสร้างด้วย CSS และ Three.js ภายในแอป ไม่ใช้คลิปหรือภาพสต็อกภายนอก")
 components.html(player_html, height=980, scrolling=False)
