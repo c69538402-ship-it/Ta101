@@ -444,148 +444,166 @@ player_html = r"""<!DOCTYPE html>
             if (isPlaying) audioElement.play();
         });
 
-        document.getElementById('btn-prev').addEventListener('click', 
- = new THREE.PointsMaterial({ color: 0x00f3ff, size: 0.9, transparent: true, opacity: 0.85 });
-        const starField = new THREE.Points(starGeometry, starMaterial);
-        scene.add(starField);
+        
+document.getElementById('btn-prev').addEventListener('click', () => {
+    if (!songs.length) return;
 
-        const torusGeometry = new THREE.TorusKnotGeometry(6, 1.8, 100, 16);
-        musicCoreMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true, transparent: true, opacity: 0.4 });
-        const musicCore = new THREE.Mesh(torusGeometry, musicCoreMaterial);
-        scene.add(musicCore);
+    if (audioElement.currentTime > 3) {
+        audioElement.currentTime = 0;
+        return;
+    }
 
-        audioElement.addEventListener('ended', () => {
-            if (isShuffling) {
-                currentTrackIndex = Math.floor(Math.random() * songs.length);
-            } else if (isLooping && songs.length === 1) {
-                audioElement.play();
-                return;
-            } else {
-                currentTrackIndex = (currentTrackIndex + 1) % songs.length;
-            }
-            loadTrack(currentTrackIndex);
-            audioElement.play();
+    currentTrackIndex =
+        (currentTrackIndex - 1 + songs.length) % songs.length;
+
+    loadTrack(currentTrackIndex);
+    if (isPlaying) {
+        audioElement.play().catch(console.warn);
+    }
+});
+
+document.getElementById('btn-loop').addEventListener('click', () => {
+    isLooping = !isLooping;
+
+    document.getElementById('btn-loop')
+        .classList.toggle('active', isLooping);
+
+    audioElement.loop = isLooping && songs.length === 1;
+});
+
+document.getElementById('btn-shuffle').addEventListener('click', () => {
+    isShuffling = !isShuffling;
+
+    document.getElementById('btn-shuffle')
+        .classList.toggle('active', isShuffling);
+});
+
+window.addEventListener('resize', () => {
+    if (!renderer || !camera || !container) return;
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    if (!width || !height) return;
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+});
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    if (musicCore) {
+        musicCore.rotation.x += 0.003;
+        musicCore.rotation.y += 0.005;
+    }
+
+    if (starField) {
+        starField.rotation.y += 0.0005;
+    }
+
+    if (analyser && dataArray && isPlaying) {
+        analyser.getByteFrequencyData(dataArray);
+
+        let total = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+            total += dataArray[i];
+        }
+
+        const average = total / dataArray.length / 255;
+
+        bars.forEach((bar, i) => {
+            const value = dataArray[
+                Math.min(i, dataArray.length - 1)
+            ] / 255;
+
+            bar.style.height =
+                Math.max(5, value * 55) + 'px';
+
+            bar.style.opacity = 0.45 + value * 0.55;
         });
 
-        audioElement.addEventListener('timeupdate', () => {
-            if (audioElement.duration) {
-                const progressPercent = (audioElement.currentTime / audioElement.duration) * 100;
-                document.getElementById('progress-fill').style.width = progressPercent + '%';
-                
-                let curM = Math.floor(audioElement.currentTime / 60);
-                let curS = Math.floor(audioElement.currentTime % 60);
-                document.getElementById('current-time').innerText = curM + ":" + (curS < 10 ? '0' : '') + curS;
+        if (musicCore) {
+            const scale = 1 + average * 0.6;
+            musicCore.scale.set(scale, scale, scale);
+        }
 
-                let durM = Math.floor(audioElement.duration / 60);
-                let durS = Math.floor(audioElement.duration % 60);
-                document.getElementById('total-duration').innerText = durM + ":" + (durS < 10 ? '0' : '') + durS;
-            }
-        });
-
-        document.getElementById('progress-bar').addEventListener('click', (e) => {
-            const width = e.currentTarget.clientWidth;
-            const clickX = e.offsetX;
-            if (audioElement.duration) {
-                audioElement.currentTime = (clickX / width) * audioElement.duration;
-            }
-        });
-
-        document.getElementById('btn-start-app').addEventListener('click', () => {
-            initAudioContext();
-            document.getElementById('start-overlay').style.opacity = '0';
-            setTimeout(() => { document.getElementById('start-overlay').style.display = 'none'; }, 500);
-            audioElement.play();
-            isPlaying = true;
-            document.getElementById('play-icon').className = "fa-solid fa-pause";
-        });
-
-        const btnPlay = document.getElementById('btn-play');
-        const playIcon = document.getElementById('play-icon');
-        btnPlay.addEventListener('click', () => {
-            initAudioContext();
-            if (isPlaying) {
-                audioElement.pause();
-                isPlaying = false;
-                playIcon.className = "fa-solid fa-play";
-            } else {
-                audioElement.play();
-                isPlaying = true;
-                playIcon.className = "fa-solid fa-pause";
-            }
-        });
-
-        document.getElementById('btn-next').addEventListener('click', () => {
-            currentTrackIndex = (currentTrackIndex + 1) % songs.length;
-            loadTrack(currentTrackIndex);
-            if (isPlaying) audioElement.play();
-        });
-
-        document.getElementById('btn-prev').addEventListener('click', () => {
-            currentTrackIndex = (currentTrackIndex - 1 + songs.length) % songs.length;
-            loadTrack(currentTrackIndex);
-            if (isPlaying) audioElement.play();
-        });
-
-        const btnLoop = document.getElementById('btn-loop');
-        btnLoop.addEventListener('click', () => {
-            isLooping = !isLooping;
-            btnLoop.classList.toggle('active', isLooping);
-        });
-
-        const btnShuffle = document.getElementById('btn-shuffle');
-        btnShuffle.addEventListener('click', () => {
-            isShuffling = !isShuffling;
-            btnShuffle.classList.toggle('active', isShuffling);
-        });
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            const positions = starGeometry.attributes.position.array;
-            for (let i = 2; i < starCount * 3; i += 3) {
-                positions[i] += 0.6;
-                if (positions[i] > 40) positions[i] = -210;
-            }
-            starGeometry.attributes.position.needsUpdate = true;
-            starField.rotation.z += 0.0015;
-
-            if (analyser && isPlaying) {
-                analyser.getByteFrequencyData(dataArray);
-                let bassValue = dataArray[2] / 255; 
-
-                const logoBox = document.getElementById('logo-box');
-                logoBox.style.transform = "scale(" + (1 + bassValue * 0.4) + ")";
-
-                musicCore.rotation.x += 0.01 + (bassValue * 0.02);
-                musicCore.rotation.y += 0.015 + (bassValue * 0.02);
-                let coreScale = 1 + (bassValue * 0.45);
-                musicCore.scale.set(coreScale, coreScale, coreScale);
-
-                for (let i = 0; i < numBars; i++) {
-                    const height = (dataArray[i] / 255) * 58 + 6;
-                    bars[i].style.height = height + 'px';
-                }
-            } else {
-                musicCore.rotation.x += 0.005;
-                musicCore.rotation.y += 0.008;
-            }
-
+        if (renderer && scene && camera) {
             renderer.render(scene, camera);
         }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
+    } else {
+        bars.forEach((bar) => {
+            bar.style.height = '5px';
         });
-    </script>
+
+        if (renderer && scene && camera) {
+            renderer.render(scene, camera);
+        }
+    }
+}
+
+document.getElementById('btn-start-app')
+    .addEventListener('click', async () => {
+        initAudioContext();
+
+        const overlay = document.getElementById('start-overlay');
+        overlay.style.opacity = '0';
+
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 500);
+
+        if (audioCtx && audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+        }
+
+        if (songs.length) {
+            try {
+                await audioElement.play();
+                isPlaying = true;
+                document.getElementById('play-icon').className =
+                    'fa-solid fa-pause';
+            } catch (error) {
+                console.warn('กดปุ่มเล่นอีกครั้งหากเสียงยังไม่เริ่ม', error);
+            }
+        }
+    });
+
+animate();
+</script>
 </body>
 </html>
 """
 
-player_html = player_html.replace("__SONGS__", songs_json)
-player_html = player_html.replace("__LOGO_BASE64__", logo_base64)
+player_html = (
+    player_html
+    .replace("__SONGS__", songs_json)
+    .replace("__LOGO_BASE64__", logo_base64)
+)
 
-components.html(player_html, height=880, scrolling=False)
+st.markdown(
+    """
+    <style>
+    #MainMenu, footer, header {
+        visibility: hidden;
+    }
 
+    .block-container {
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+
+    [data-testid="stAppViewContainer"] {
+        background: #000;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+components.html(
+    player_html,
+    height=950,
+    scrolling=True,
+)
