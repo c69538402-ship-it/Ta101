@@ -1,3 +1,15 @@
+import streamlit as st
+import streamlit.components.v1 as components
+
+# ตั้งค่าหน้าเว็บ Streamlit
+st.set_page_config(
+    page_title="3D Space Music Visualizer",
+    page_icon="🌌",
+    layout="centered"
+)
+
+# นำโค้ด HTML/CSS/JS ทั้งหมดมาใส่ไว้ในตัวแปรนี้
+html_code = """
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -103,7 +115,6 @@
             position: relative;
         }
 
-        /* แสงวิ่งผ่านตัวหนังสือ */
         .neon-title::after {
             content: attr(data-text);
             position: absolute;
@@ -139,7 +150,6 @@
             text-shadow: 0 0 5px rgba(0,243,255,0.5);
         }
 
-        /* กราฟเสียงตอบสนองเพลงจริง (Visualizer Canvas) */
         .visualizer-container {
             width: 100%;
             height: 80px;
@@ -159,7 +169,6 @@
             height: 5px;
         }
 
-        /* เครื่องเล่นเพลง */
         .player-panel {
             background: rgba(15, 10, 30, 0.7);
             backdrop-filter: blur(15px);
@@ -214,7 +223,6 @@
             text-overflow: ellipsis;
         }
 
-        /* แถบเวลา */
         .progress-area {
             margin-bottom: 15px;
         }
@@ -245,7 +253,6 @@
             margin-top: 5px;
         }
 
-        /* ปุ่มควบคุมเครื่องเล่น */
         .controls {
             display: flex;
             align-items: center;
@@ -292,7 +299,6 @@
             text-shadow: 0 0 10px #ff00ff;
         }
 
-        /* ปุ่มเริ่มทำงานเสียงครั้งแรก (ปลดล็อค AudioContext) */
         #start-overlay {
             position: absolute;
             top: 0;
@@ -349,19 +355,15 @@
 <body>
 
     <div class="app-container">
-        <!-- หน้าจอเริ่มระบบเพื่อให้ Browser อนุญาตเล่นเสียง -->
         <div id="start-overlay">
             <h1>CYBERPUNK SPACE MUSIC</h1>
             <p>สัมผัสประสบการณ์ภาพ 3 มิติ โลโก้อณูแสง และกราฟเสียงตอบสนองแบบเรียลไทม์</p>
             <button class="btn-start" id="btn-start-app"><i class="fa-solid fa-play"></i> เริ่มต้นใช้งาน</button>
         </div>
 
-        <!-- ฉาก 3 มิติ (Three.js) -->
         <div id="canvas-container"></div>
 
-        <!-- เลเยอร์ UI -->
         <div class="ui-layer">
-            <!-- หัวข้อและโลโก้ -->
             <div class="header-section">
                 <div class="logo-wrapper">
                     <img src="logo1.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/70/00f3ff/000000?text=LOGO'">
@@ -370,12 +372,8 @@
                 <div class="subtitle">NEBULA 3D EXPERIENCE</div>
             </div>
 
-            <!-- กราฟเสียง (Audio Visualizer) -->
-            <div class="visualizer-container" id="visualizer">
-                <!-- แถบกราฟเสียงจะถูกสร้างด้วย JS -->
-            </div>
+            <div class="visualizer-container" id="visualizer"></div>
 
-            <!-- เครื่องเล่นเพลง -->
             <div class="player-panel">
                 <div class="track-info">
                     <div class="track-thumb">
@@ -408,12 +406,11 @@
         </div>
     </div>
 
-    <!-- โหลด Three.js และ GSAP สำหรับเอฟเฟกต์อนุภาคและการเคลื่อนไหว -->
+    <!-- โหลด Three.js และ GSAP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
     <script>
-        // รายการเพลย์ลิสต์ (เพลงตัวอย่างลิขสิทธิ์ฟรี / Audio Streams)
         const playlist = [
             {
                 title: "Cybernetic Universe",
@@ -437,7 +434,6 @@
         let isLooping = true;
         let isShuffling = false;
 
-        // Audio & Visualizer Setup
         const audioElement = new Audio();
         audioElement.crossOrigin = "anonymous";
         audioElement.src = playlist[currentTrackIndex].src;
@@ -458,7 +454,6 @@
             dataArray = new Uint8Array(analyser.frequencyBinCount);
         }
 
-        // สร้างกราฟเสียง (Visualizer Bars)
         const visualizerContainer = document.getElementById('visualizer');
         const numBars = 16;
         const bars = [];
@@ -469,7 +464,6 @@
             bars.push(bar);
         }
 
-        // --- THREE.JS 3D SPACE SCENE ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         scene.fog = new THREE.FogExp2(0x05020a, 0.015);
@@ -482,7 +476,6 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // 1. ดาวพุ่งเข้าหากล้อง (Starfield)
         const starCount = 800;
         const starGeometry = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 3);
@@ -492,4 +485,83 @@
             starPositions[i + 1] = (Math.random() - 0.5) * 200;
             starPositions[i + 2] = (Math.random() - 0.5) * 300;
         }
-        starGeometry.setAttribute('
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0x00f3ff,
+            size: 0.8,
+            transparent: true,
+            opacity: 0.8
+        });
+        const starField = new THREE.Points(starGeometry, starMaterial);
+        scene.add(starField);
+
+        // ควบคุมการเล่นเพลงผ่านปุ่ม Start
+        document.getElementById('btn-start-app').addEventListener('click', () => {
+            initAudioContext();
+            document.getElementById('start-overlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('start-overlay').style.display = 'none';
+            }, 500);
+            audioElement.play();
+            isPlaying = true;
+            document.getElementById('play-icon').className = "fa-solid fa-pause";
+        });
+
+        // ปุ่ม Play / Pause
+        const btnPlay = document.getElementById('btn-play');
+        const playIcon = document.getElementById('play-icon');
+        btnPlay.addEventListener('click', () => {
+            initAudioContext();
+            if (isPlaying) {
+                audioElement.pause();
+                isPlaying = false;
+                playIcon.className = "fa-solid fa-play";
+            } else {
+                audioElement.play();
+                isPlaying = true;
+                playIcon.className = "fa-solid fa-pause";
+            }
+        });
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // ขยับดาวพุ่งเข้าหา
+            const positions = starGeometry.attributes.position.array;
+            for (let i = 2; i < starCount * 3; i += 3) {
+                positions[i] += 0.5;
+                if (positions[i] > 50) {
+                    positions[i] = -250;
+                }
+            }
+            starGeometry.attributes.position.needsUpdate = true;
+            starField.rotation.z += 0.001;
+
+            // อัปเดตกราฟเสียง
+            if (analyser && isPlaying) {
+                analyser.getByteFrequencyData(dataArray);
+                for (let i = 0; i < numBars; i++) {
+                    const height = (dataArray[i] / 255) * 70 + 5;
+                    bars[i].style.height = height + 'px';
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // ปรับขนาดหน้าจออัตโนมัติ
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+    </script>
+</body>
+</html>
+"""
+
+# เรนเดอร์หน้าเว็บ 3D ลงใน Streamlit (กำหนดความสูงเป็น 850 พิกเซล)
+components.html(html_code, height=850, scrolling=False)
