@@ -47,7 +47,7 @@ if logo_path.exists():
     except OSError:
         pass
 
-# 3. โครงสร้าง HTML / CSS / JavaScript พร้อมระบบเลือกธีม
+# 3. โครงสร้าง HTML / CSS / JavaScript
 player_html = r"""<!DOCTYPE html>
 <html lang="th">
 <head>
@@ -95,7 +95,6 @@ player_html = r"""<!DOCTYPE html>
 
         .header-section { text-align: center; margin-top: 2px; }
 
-        /* แผงเลือกธีมสี */
         .theme-selector {
             display: flex; justify-content: center; gap: 8px; margin-bottom: 8px;
         }
@@ -124,7 +123,6 @@ player_html = r"""<!DOCTYPE html>
         }
         @keyframes spin-logo { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* ตัวหนังสือวิ้งนีออนเปลี่ยนสีสมูท */
         .neon-title {
             font-family: 'Orbitron', sans-serif;
             font-size: 18px; font-weight: 900;
@@ -237,7 +235,6 @@ player_html = r"""<!DOCTYPE html>
 
         <div class="ui-layer">
             <div class="header-section">
-                <!-- ปุ่มเปลี่ยนธีม -->
                 <div class="theme-selector">
                     <div class="theme-btn active-theme" id="btn-cyber" onclick="setTheme('#00f3ff', '#ff00ff', 'rgba(0,243,255,0.3)')" title="Cyberpunk"></div>
                     <div class="theme-btn" id="btn-matrix" onclick="setTheme('#00ff66', '#0033ff', 'rgba(0,255,102,0.3)')" title="Matrix"></div>
@@ -254,7 +251,8 @@ player_html = r"""<!DOCTYPE html>
 
             <div class="visualizer-container" id="visualizer"></div>
 
-            <div class="player-panel">
+
+                        <div class="player-panel">
                 <div class="track-info">
                     <div class="track-thumb">
                         <img src="__LOGO_BASE64__" alt="Track Art">
@@ -302,20 +300,18 @@ player_html = r"""<!DOCTYPE html>
         audioElement.preload = "auto";
 
         let audioCtx, analyser, sourceNode, dataArray;
+        let starMaterial, musicCoreMaterial;
 
-        // ฟังก์ชันเปลี่ยนธีมสีแบบเรียลไทม์
         function setTheme(primaryColor, secondaryColor, glowColor) {
             document.documentElement.style.setProperty('--primary', primaryColor);
             document.documentElement.style.setProperty('--secondary', secondaryColor);
             document.documentElement.style.setProperty('--bg-glow', glowColor);
             
-            // เปลี่ยนสีดาวและวัตถุ 3D ตามธีม
             if (starMaterial) starMaterial.color.set(primaryColor);
             if (musicCoreMaterial) musicCoreMaterial.color.set(secondaryColor);
 
-            // อัปเดตสถานะปุ่มแอคทีฟ
             document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active-theme'));
-            event.target.classList.add('active-theme');
+            if (event && event.target) event.target.classList.add('active-theme');
         }
 
         function loadTrack(index) {
@@ -363,8 +359,7 @@ player_html = r"""<!DOCTYPE html>
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-
-                const starCount = 600;
+        const starCount = 600;
         const starGeometry = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 3);
 
@@ -375,14 +370,5 @@ player_html = r"""<!DOCTYPE html>
         }
         starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
         
-        const starMaterial = new THREE.PointsMaterial({ color: 0x00f3ff, size: 0.9, transparent: true, opacity: 0.85 });
-        const starField = new THREE.Points(starGeometry, starMaterial);
-        scene.add(starField);
-
-        const torusGeometry = new THREE.TorusKnotGeometry(6, 1.8, 100, 16);
-        const musicCoreMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true, transparent: true, opacity: 0.4 });
-        const musicCore = new THREE.Mesh(torusGeometry, musicCoreMaterial);
-        scene.add(musicCore);
-
-        audioElement
+        starMaterial
         
