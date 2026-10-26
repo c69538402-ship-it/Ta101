@@ -5,17 +5,15 @@ import json
 import streamlit as st
 import streamlit.components.v1 as components
 
-# ตั้งค่าหน้าเว็บ Streamlit
 st.set_page_config(
     page_title="3D Space Music Visualizer • TA101",
     page_icon="🌌",
     layout="centered"
 )
 
-# โฟลเดอร์หลัก
 ROOT = Path(__file__).resolve().parent
 
-# 1. ฟังก์ชันแปลงไฟล์เพลงเป็น Base64
+# 1. แปลงไฟล์เพลงเป็น Base64 อัตโนมัติ
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"}
 songs = []
 for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
@@ -38,7 +36,7 @@ if not songs:
 
 songs_json = json.dumps(songs, ensure_ascii=False).replace("</", "<\\/")
 
-# 2. ฟังก์ชันแปลงรูปโลโก้ logo1.jpg เป็น Base64 ป้องกันรูปไม่ขึ้น
+# 2. แปลงรูปโลโก้ logo1.jpg เป็น Base64 ป้องกันภาพไม่ขึ้น
 logo_base64 = "https://via.placeholder.com/70/00f3ff/000000?text=LOGO"
 logo_path = ROOT / "logo1.jpg"
 if logo_path.exists():
@@ -49,8 +47,8 @@ if logo_path.exists():
     except OSError:
         pass
 
-# 3. โค้ด HTML / CSS / 3D Three.js
-player_html = r"""
+# 3. โครงสร้าง HTML / CSS และหน้าจอ UI
+player_html_part1 = r"""
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -263,7 +261,7 @@ player_html = r"""
             </div>
         </div>
     </div>
-
+   player_html_part2 = r"""
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
@@ -464,22 +462,22 @@ player_html = r"""
 
             renderer.render(scene, camera);
         }
+        animate();
+
         window.addEventListener('resize', () => {
-    camera.aspect = container.clientWidth / container.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(container.clientWidth, container.clientHeight);
-});
-</script>
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+    </script>
 </body>
 </html>
 """
 
-# แทนที่ข้อมูลเพลงและรูปโลโก้ลงใน HTML
+# ประกอบร่างโค้ด HTML ทั้งหมดและแทนที่ค่าตัวแปร
+player_html = player_html_part1 + player_html_part2
 player_html = player_html.replace("__SONGS__", songs_json)
 player_html = player_html.replace("__LOGO_BASE64__", logo_base64)
 
-# เรนเดอร์หน้าเว็บทั้งหมดลงใน Streamlit
+# เรนเดอร์หน้าเว็บลงใน Streamlit Cloud
 components.html(player_html, height=850, scrolling=False)
-
-
-     
