@@ -1,786 +1,315 @@
-from pathlib import Path
-import base64
-import json
-import mimetypes
+
 import streamlit as st
-import streamlit.components.v1 as components
+import os
+import random
+import base64
+import mimetypes
+from pathlib import Path
+from html import escape
+
+# ==============================
+# TA101 • NEON MUSIC
+# PART 1
+# ==============================
 
 st.set_page_config(
-    page_title="TA101 • NEON SPACE MUSIC",
-    page_icon="🌌",
+    page_title="TA101 • NEON MUSIC",
+    page_icon="🎧",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="collapsed"
 )
 
 ROOT = Path(__file__).resolve().parent
-AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"}
+AUDIO_EXTENSIONS = {
+    ".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"
+}
 
-songs = []
-for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
-    if path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
-        try:
-            mime = mimetypes.guess_type(path.name)[0] or "audio/mpeg"
-            encoded = base64.b64encode(path.read_bytes()).decode("ascii")
-            songs.append({
-                "name": path.stem,
-                "src": f"data:{mime};base64,{encoded}",
-            })
-        except OSError:
-            continue
-
-songs_json = json.dumps(songs, ensure_ascii=False).replace("</", "<\\/")
-
-logo_data = ""
-for candidate in ("logo1.jpg", "logo1.jpeg", "logo1.png", "โลโก้.jpg", "logo.jpg"):
-    logo_path = ROOT / candidate
-    if logo_path.is_file():
-        try:
-            mime = mimetypes.guess_type(logo_path.name)[0] or "image/jpeg"
-            logo_data = f"data:{mime};base64,{base64.b64encode(logo_path.read_bytes()).decode('ascii')}"
-            break
-        except OSError:
-            pass
-
-logo_json = json.dumps(logo_data)
-
-player_html = r"""<!doctype html>
-<html lang="th">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Prompt:wght@400;500;700&display=swap" rel="stylesheet">
+st.markdown("""
 <style>
-:root{--a:#00f5ff;--b:#bd00ff;--panel:rgba(5,8,25,.76)}
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;color:#fff;font-family:Prompt,sans-serif}
-#stage{position:relative;width:100%;height:min(940px,100vh);min-height:650px;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#10133c 0%,#050615 48%,#010208 100%);isolation:isolate}
-#cosmic-nebula{position:absolute;inset:-18%;z-index:0;pointer-events:none;overflow:hidden;background:
-radial-gradient(ellipse at 22% 32%,#183c9b88 0%,transparent 27%),
-radial-gradient(ellipse at 78% 28%,#8b18b588 0%,transparent 25%),
-radial-gradient(ellipse at 62% 78%,#007e9d66 0%,transparent 30%),
-radial-gradient(ellipse at 35% 78%,#4c176b77 0%,transparent 29%),
-radial-gradient(ellipse at center,#10133c 0%,#050615 47%,#010208 100%);
-filter:saturate(1.35);animation:nebula-drift 28s ease-in-out infinite alternate}
-#cosmic-nebula:before,#cosmic-nebula:after{content:"";position:absolute;inset:-25%;background:conic-gradient(from 0deg at 50% 50%,transparent 0deg,#00eaff15 55deg,transparent 115deg,#bd00ff20 205deg,transparent 270deg,#00f5ff10 320deg,transparent);filter:blur(42px);animation:aurora 35s linear infinite}
-#cosmic-nebula:after{opacity:.65;transform:scale(.8) rotate(35deg);animation-duration:47s;animation-direction:reverse}
-@keyframes nebula-drift{from{transform:translate3d(-1.5%,1%,0) scale(1)}to{transform:translate3d(1.5%,-1%,0) scale(1.08)}}
-#space{position:absolute;inset:0;width:100%;height:100%;z-index:1}
-.aurora{position:absolute;inset:-20%;z-index:2;pointer-events:none;background:conic-gradient(from 30deg at 50% 50%,transparent,#00eaff12,transparent,#b400ff18,transparent);filter:blur(45px);animation:aurora 18s linear infinite}
-@keyframes aurora{to{transform:rotate(360deg)}}
-.center{z-index:3}
-.hud{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:clamp(14px,3vw,30px);pointer-events:none}
-.hud>*{pointer-events:auto}
-.top{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
-.brand{font-family:Orbitron,sans-serif;font-weight:900;letter-spacing:clamp(3px,1vw,8px);font-size:clamp(23px,4.5vw,48px);text-align:center;color:#eafcff;text-shadow:0 0 8px var(--a),0 0 25px var(--a),0 0 50px var(--b);animation:flicker 3.5s ease-in-out infinite alternate}
-@keyframes flicker{from{filter:brightness(.86);text-shadow:0 0 8px var(--a),0 0 22px var(--a),0 0 35px var(--b)}to{filter:brightness(1.25);text-shadow:0 0 12px var(--a),0 0 32px var(--a),0 0 65px var(--b)}}
-.subtitle{font-size:10px;letter-spacing:4px;color:#c7d6ff;text-align:center}
-.themes{display:flex;gap:10px;margin-top:3px}
-.theme{width:23px;height:23px;border:2px solid #ffffffc9;border-radius:50%;cursor:pointer;box-shadow:0 0 13px currentColor}
-.theme:focus{outline:2px solid white;outline-offset:3px}
-#t1{background:linear-gradient(135deg,#00f5ff,#bd00ff);color:#00f5ff}
-#t2{background:linear-gradient(135deg,#00ff82,#0055ff);color:#00ff82}
-#t3{background:linear-gradient(135deg,#ff7a00,#ff006e);color:#ff7a00}
-#t4{background:linear-gradient(135deg,#fff,#7777ff);color:#fff}
-.center{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:min(68vw,460px);height:min(68vw,460px);max-height:48vh;display:grid;place-items:center;pointer-events:none}
-.ring{position:absolute;border-radius:50%;border:1px solid color-mix(in srgb,var(--a) 75%,transparent);box-shadow:0 0 20px color-mix(in srgb,var(--a) 60%,transparent),inset 0 0 20px color-mix(in srgb,var(--b) 30%,transparent)}
-.r1{inset:2%;animation:orbit 20s linear infinite}
-.r2{inset:10%;border-style:dashed;opacity:.65;animation:orbit 32s linear infinite reverse}
-.r3{inset:18%;border-width:2px;opacity:.4;animation:pulse 2.8s ease-in-out infinite}
-@keyframes orbit{to{transform:rotate(360deg)}}
-@keyframes pulse{50%{transform:scale(1.06);opacity:.9}}
-#logo{display:none!important}
-#logo-motion{position:absolute;width:58%;height:58%;z-index:2;overflow:visible;filter:drop-shadow(0 0 15px var(--a))}
-#logo-placeholder{font-family:Orbitron,sans-serif;color:var(--a);font-size:12px;text-shadow:0 0 15px var(--a);text-align:center}
-#burst{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-#burst-btn{pointer-events:auto;position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);border:1px solid var(--a);border-radius:30px;background:#060817aa;color:#fff;padding:7px 13px;font:11px Prompt,sans-serif;white-space:nowrap;box-shadow:0 0 15px var(--a);cursor:pointer}
-.visual{width:min(1000px,100%);height:clamp(125px,22vh,205px);display:block;filter:drop-shadow(0 0 12px var(--a));margin-bottom:5px;overflow:visible}
-.panel{width:min(760px,100%);border:1px solid color-mix(in srgb,var(--a) 80%,white 5%);border-radius:22px;padding:clamp(14px,2.5vw,24px);background:var(--panel);backdrop-filter:blur(18px);box-shadow:0 0 25px color-mix(in srgb,var(--a) 18%,transparent),inset 0 0 24px #8a00ff0b}
-.track{display:flex;align-items:center;gap:12px;min-width:0;margin-bottom:15px}
-.thumb{width:54px;height:54px;flex:0 0 54px;border-radius:12px;border:1px solid var(--b);object-fit:cover;box-shadow:0 0 15px var(--b)}
-.tracktext{min-width:0;flex:1}
-#track-title{font-family:Orbitron,Prompt,sans-serif;font-size:clamp(15px,2.4vw,22px);font-weight:900;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:linear-gradient(90deg,#fff,var(--a),#fff,var(--b),#fff);background-size:240% auto;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 8px var(--a));animation:title-flow 5s linear infinite}
-@keyframes title-flow{to{background-position:240% center}}
-#track-sub{font-size:10px;color:var(--a);margin-top:5px;letter-spacing:2px;text-shadow:0 0 9px var(--a)}
-.mixer{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:17px;padding:12px 14px;border:1px solid #ffffff20;border-radius:15px;background:linear-gradient(120deg,#00eaff0b,#bd00ff12);box-shadow:inset 0 0 18px #00eaff09}
-.mix-channel{min-width:0}
-.mix-head{display:flex;justify-content:space-between;gap:6px;font:10px Orbitron,sans-serif;letter-spacing:1px;color:#dceaff;margin-bottom:8px}
-.mix-head b{color:var(--a);font-weight:700}
-.mix-channel input{width:100%;height:5px;accent-color:var(--a);cursor:pointer;filter:drop-shadow(0 0 4px var(--a))}
-.mixer-title{text-align:center;font:9px Orbitron,sans-serif;letter-spacing:3px;color:var(--b);margin-top:15px;text-shadow:0 0 10px var(--b)}
-#playlist{max-width:42%;border:1px solid #ffffff36;background:#080b1c;color:white;padding:8px;border-radius:9px;font:11px Prompt,sans-serif}
-.progress{height:7px;background:#ffffff22;border-radius:20px;overflow:hidden;cursor:pointer}
-#fill{height:100%;width:0%;background:linear-gradient(90deg,var(--a),var(--b),#fff);box-shadow:0 0 14px var(--a)}
-.times{display:flex;justify-content:space-between;font-size:10px;color:#aeb9dc;margin-top:5px}
-.controls{display:flex;align-items:center;justify-content:center;gap:clamp(13px,4vw,30px);margin-top:14px}
-.ctrl{border:0;background:transparent;color:#eaf5ff;font-size:20px;cursor:pointer;text-shadow:0 0 12px var(--a);padding:6px}
-.ctrl:hover,.ctrl.active{color:var(--a);filter:drop-shadow(0 0 9px var(--a))}
-#play{width:58px;height:58px;border:0;border-radius:50%;font-size:21px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--a),var(--b));box-shadow:0 0 22px var(--a),0 0 45px #bd00ff77}
-.options{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px}
-.pill{font:11px Prompt,sans-serif;color:#e7eaff;border:1px solid #ffffff3d;border-radius:20px;padding:6px 12px;background:#ffffff0a;cursor:pointer}
-.pill.active{border-color:var(--a);box-shadow:0 0 12px color-mix(in srgb,var(--a) 45%,transparent);color:var(--a)}
-#start{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;background:radial-gradient(ellipse at center,#11143bea,#010208f5);transition:opacity .6s}
-#start h2{font:900 clamp(22px,4vw,42px) Orbitron,sans-serif;color:var(--a);text-shadow:0 0 20px var(--a);margin:0 0 12px}
-#start p{color:#c8d4f4;max-width:480px;font-size:13px;line-height:1.8}
-#start button{margin-top:12px;padding:13px 25px;border:0;border-radius:30px;color:#fff;font:700 14px Prompt,sans-serif;background:linear-gradient(100deg,var(--a),var(--b));box-shadow:0 0 25px var(--a);cursor:pointer}
-.foot{font:9px Orbitron,sans-serif;letter-spacing:2px;color:#93a2d2;margin-top:9px;text-align:center}
-@media(max-width:560px){#stage{min-height:620px}.hud{padding:12px}.center{top:38%;width:min(78vw,360px);height:min(78vw,360px);max-height:36vh}.visual{height:clamp(110px,17vh,150px);margin-bottom:4px}.panel{padding:12px}.thumb{width:43px;height:43px;flex-basis:43px}.controls{gap:15px}#play{width:51px;height:51px}.subtitle{letter-spacing:2px}.foot{font-size:8px}.mixer{gap:8px;padding:10px 8px}.mix-head{font-size:8px;letter-spacing:.4px}}
+.stApp {
+    background:
+        radial-gradient(ellipse at top, #172554 0%, #08091b 45%, #02030a 100%);
+    color: #f8fafc;
+}
+header[data-testid="stHeader"] {
+    background: transparent;
+}
+.block-container {
+    max-width: 1250px;
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+}
+.neon-title {
+    text-align: center;
+    font-size: clamp(34px, 6vw, 66px);
+    font-weight: 900;
+    letter-spacing: 5px;
+    color: #ffffff;
+    text-shadow:
+        0 0 8px #00eaff,
+        0 0 20px #00aaff,
+        0 0 45px #8b5cf6;
+    animation: glow 2.5s ease-in-out infinite alternate;
+}
+.neon-subtitle {
+    text-align: center;
+    color: #67e8f9;
+    letter-spacing: 4px;
+    font-size: 12px;
+}
+@keyframes glow {
+    from { filter: brightness(.8); }
+    to { filter: brightness(1.5); }
+}
+.neon-panel {
+    border: 1px solid #06b6d4;
+    border-radius: 18px;
+    padding: 18px;
+    background: linear-gradient(135deg,
+        rgba(15,23,42,.96), rgba(49,20,90,.55));
+    box-shadow: 0 0 18px rgba(6,182,212,.2),
+                inset 0 0 18px rgba(139,92,246,.08);
+}
+div.stButton > button {
+    border: 1px solid #22d3ee;
+    border-radius: 12px;
+    background: linear-gradient(120deg, #172554, #581c87);
+    color: white;
+    font-weight: bold;
+    min-height: 44px;
+}
+div.stButton > button:hover {
+    border-color: #f0abfc;
+    color: #ffffff;
+    box-shadow: 0 0 15px #a855f7;
+}
+div[data-testid="stAudio"] {
+    border: 1px solid #8b5cf6;
+    border-radius: 12px;
+    padding: 8px;
+}
+section[data-testid="stSidebar"] {
+    background: #08091b;
+}
 </style>
-</head>
-<body>
-<div id="stage">
- <div id="cosmic-nebula" aria-hidden="true"></div><canvas id="space"></canvas><div class="aurora"></div>
- <div class="center">
-  <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
-  <img id="logo" alt="TA101 logo source" style="display:none">
-  <canvas id="logo-motion" aria-label="Animated TA101 logo"></canvas>
-  <div id="logo-placeholder">TA101<br>NEON MUSIC</div>
-  <canvas id="burst"></canvas>
-  <button id="
-  .burst-btn" type="button">✦ แตกตัว / ประกอบโลโก้</button>
- </div>
-  <div class="hud">
-  <div class="top">
-   <div class="brand">TA101 • NEON MUSIC</div>
-   <div class="subtitle">3D COSMIC AUDIO EXPERIENCE</div>
-   <div class="themes">
-    <button class="theme" id="t1" aria-label="Cyber neon"></button>
-    <button class="theme" id="t2" aria-label="Matrix green"></button>
-    <button class="theme" id="t3" aria-label="Solar flare"></button>
-    <button class="theme" id="t4" aria-label="Ice space"></button>
-   </div>
-  </div>
-  <div style="flex:1"></div>
-  <canvas class="visual" id="wave"></canvas>
-  <div class="panel">
-   <div class="track">
-    <img class="thumb" id="thumb" alt="Album art" style="display:none">
-    <div class="tracktext"><div id="track-title">กำลังเตรียมเพลง...</div><div id="track-sub">TA101 LOCAL PLAYLIST</div></div>
-    <select id="playlist" aria-label="เลือกเพลง"><option>กำลังโหลดรายการเพลง</option></select>
-   </div>
-   <div class="progress" id="progress"><div id="fill"></div></div>
-   <div class="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
-   <div class="controls">
-    <button class="ctrl" id="prev" title="เพลงก่อน">⏮</button>
-    <button id="play" title="เล่น / หยุด">▶</button>
-    <button class="ctrl" id="next" title="เพลงถัดไป">⏭</button>
-   </div>
-   <div class="mixer-title">✦ NEON MIX CONSOLE ✦</div>
-   <div class="mixer">
-    <div class="mix-channel"><div class="mix-head"><span>VOLUME</span><b id="vol-value">80%</b></div><input id="volume" type="range" min="0" max="100" value="80" aria-label="ปรับความดัง"></div>
-    <div class="mix-channel"><div class="mix-head"><span>BASS</span><b id="bass-value">+4 dB</b></div><input id="bass" type="range" min="-12" max="12" value="4" aria-label="ปรับเสียงเบส"></div>
-    <div class="mix-channel"><div class="mix-head"><span>TREBLE</span><b id="treble-value">+2 dB</b></div><input id="treble" type="range" min="-12" max="12" value="2" aria-label="ปรับเสียงแหลม"></div>
-   </div>
-   <div class="options">
-    <button class="pill active" id="loop">↻ วนซ้ำรายการ</button>
-    <button class="pill" id="shuffle">⤨ สุ่มเพลง</button>
-    <button class="pill" id="single">♪ เล่นเพลงเดียว</button>
-    <button class="pill" id="fullscreen">⛶ เต็มจอ</button>
-   </div>
-  </div>
-  <div class="foot">SPACE • LIGHT • SOUND • 1.618 ENERGY</div>
- </div>
- <div id="start">
-  <h2>ENTER THE COSMOS</h2>
-  <p>ฉากอวกาศสามมิติ • อนุภาคโลโก้ • ไฟนีออน • คลื่นเสียงตามเพลงจริง<br>แตะเพื่อเริ่มเพลงและเปิดใช้งานระบบวิเคราะห์เสียง</p>
-  <button id="enter">✦ เริ่มประสบการณ์ TA101</button>
- </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script>
-const SONGS = __SONGS__;
-const LOGO = __LOGO__;
-const $ = id => document.getElementById(id);
-const audio = new Audio();
-audio.preload = "auto";
-audio.crossOrigin = "anonymous";
-let index=0, playing=false, shuffle=false, loopList=true, single=false;
-let ctx=null, analyser=null, source=null, freq=null, waveData=null, bassFilter=null, trebleFilter=null, masterGain=null;
-let scene,camera,renderer,stars,core,coreMat,clock;
-const stage=$("stage");
-
-function setTheme(a,b){
- document.documentElement.style.setProperty("--a",a);
- document.documentElement.style.setProperty("--b",b);
- if(stars && stars.material) stars.material.color.set(a);
- if(coreMat) coreMat.color.set(b);
-}
-$("t1").onclick=()=>setTheme("#00f5ff","#bd00ff");
-$("t2").onclick=()=>setTheme("#00ff82","#0055ff");
-$("t3").onclick=()=>setTheme("#ff7a00","#ff006e");
-$("t4").onclick=()=>setTheme("#e8f5ff","#7777ff");
-
-if(LOGO){
- $("logo").src=LOGO;
- $("thumb").src=LOGO;
- $("thumb").style.display="block";
- $("logo-placeholder").style.display="none";
-}
-
-function timeText(s){
- if(!Number.isFinite(s))return "0:00";
- s=Math.max(0,Math.floor(s));
- return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
-}
-
-function initAudio(){
- if(ctx)return;
- const AC=window.AudioContext||window.webkitAudioContext;
- if(!AC)return;
-
- ctx=new AC();
- analyser=ctx.createAnalyser();
- analyser.fftSize=512;
- analyser.smoothingTimeConstant=.82;
-
- source=ctx.createMediaElementSource(audio);
-
- bassFilter=ctx.createBiquadFilter();
- bassFilter.type="lowshelf";
- bassFilter.frequency.value=180;
- bassFilter.gain.value=4;
-
- trebleFilter=ctx.createBiquadFilter();
- trebleFilter.type="highshelf";
- trebleFilter.frequency.value=3200;
- trebleFilter.gain.value=2;
-
- masterGain=ctx.createGain();
- masterGain.gain.value=.8;
-
- source.connect(bassFilter);
- bassFilter.connect(trebleFilter);
- trebleFilter.connect(masterGain);
- masterGain.connect(analyser);
- analyser.connect(ctx.destination);
-
- freq=new Uint8Array(analyser.frequencyBinCount);
- waveData=new Uint8Array(analyser.fftSize);
-}
-
-function fillPlaylist(){
- const sel=$("playlist");
- sel.innerHTML="";
- if(!SONGS.length){
-  sel.innerHTML='<option value="">ไม่พบไฟล์เพลง</option>';
-  $("track-title").textContent="ไม่พบไฟล์เพลงในโปรเจกต์";
-  $("track-sub").textContent="เพิ่มไฟล์ MP3 ไว้ข้าง app.py";
-  return;
- }
- SONGS.forEach((s,i)=>{
-  const op=document.createElement("option");
-  op.value=String(i);
-  op.textContent=(i+1)+". "+s.name;
-  sel.appendChild(op);
- });
- loadTrack(0);
-}
-
-function loadTrack(i){
- if(!SONGS.length)return;
- index=(i+SONGS.length)%SONGS.length;
- audio.src=SONGS[index].src;
- audio.load();
- $("track-title").textContent=SONGS[index].name;
- $("track-sub").textContent="TRACK "+(index+1)+" / "+SONGS.length;
- $("playlist").value=String(index);
- $("fill").style.width="0%";
- $("elapsed").textContent="0:00";
- $("duration").textContent="0:00";
-}
-
-async function playAudio(){
- if(!SONGS.length)return;
- initAudio();
-
- if(ctx && ctx.state==="suspended"){
-  try{await ctx.resume()}catch(e){}
- }
-
- try{
-  await audio.play();
-  playing=true;
-  $("play").textContent="Ⅱ";
- }catch(e){
-  playing=false;
-  $("play").textContent="▶";
-  $("track-sub").textContent="แตะปุ่มเล่นอีกครั้ง หากเบราว์เซอร์บล็อกเสียง";
- }
-}
-
-function pauseAudio(){
- audio.pause();
- playing=false;
- $("play").textContent="▶";
-}
-
-function nextTrack(fromEnded=false){
- if(!SONGS.length)return;
-
- if(single && fromEnded){
-  pauseAudio();
-  audio.currentTime=0;
-  return;
- }
-
- if(shuffle && SONGS.length>1){
-  let n=index;
-  while(n===index)n=Math.floor(Math.random()*SONGS.length);
-  loadTrack(n);
- }else if(fromEnded && !loopList && index===SONGS.length-1){
-  pauseAudio();
-  return;
- }else{
-  loadTrack(index+1);
- }
-
- if(playing || fromEnded)playAudio();
-}
-
-$("play").onclick=()=>playing?pauseAudio():playAudio();
-$("next").onclick=()=>nextTrack(false);
-
-$("prev").onclick=()=>{
- if(audio.currentTime>3){
-  audio.currentTime=0;
-  return;
- }
- loadTrack(index-1);
- if(playing)playAudio();
-};
-
-$("playlist").onchange=e=>{
- loadTrack(Number(e.target.value));
- playAudio();
-};
-
-$("loop").onclick=()=>{
- loopList=!loopList;
- $("loop").classList.toggle("active",loopList);
- if(loopList){
-  single=false;
-  $("single").classList.remove("active");
- }
-};
-
-$("shuffle").onclick=()=>{
- shuffle=!shuffle;
- $("shuffle").classList.toggle("active",shuffle);
-};
-
-$("single").onclick=()=>{
- single=!single;
- $("single").classList.toggle("active",single);
- if(single){
-  loopList=false;
-  $("loop").classList.remove("active");
- }else{
-  loopList=true;
-  $("loop").classList.add("active");
- }
-};
-
-audio.addEventListener("ended",()=>nextTrack(true));
-audio.addEventListener("loadedmetadata",()=>{
- $("duration").textContent=timeText(audio.duration);
-});
-audio.addEventListener("timeupdate",()=>{
- if(audio.duration){
-  $("fill").style.width=(audio.currentTime/audio.duration*100)+"%";
-  $("elapsed").textContent=timeText(audio.currentTime);
- }
-});
-
-$("progress").onclick=e=>{
- if(audio.duration){
-  const r=e.currentTarget.getBoundingClientRect();
-  audio.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*audio.duration;
- }
-};
-
-$("enter").onclick=async()=>{
- initAudio();
- if(ctx&&ctx.state==="suspended"){
-  try{await ctx.resume()}catch(e){}
- }
- $("start").style.opacity="0";
- setTimeout(()=>$("start").style.display="none",620);
- await playAudio();
-};
-
-$("fullscreen").onclick=async()=>{
- try{
-  if(!document.fullscreenElement)await stage.requestFullscreen();
-  else await document.exitFullscreen();
- }catch(e){}
-};
-
-fillPlaylist();
-
-/* มิกเซอร์: ปรับความดัง เบส และเสียงแหลม */
-$("volume").addEventListener("input",e=>{
- const v=Number(e.target.value);
- $("vol-value").textContent=v+"%";
- if(masterGain&&ctx)masterGain.gain.setTargetAtTime(v/100,ctx.currentTime,.03);
-});
-
-$("bass").addEventListener("input",e=>{
- const v=Number(e.target.value);
- $("bass-value").textContent=(v>0?"+":"")+v+" dB";
- if(bassFilter&&ctx)bassFilter.gain.setTargetAtTime(v,ctx.currentTime,.03);
-});
-
-$("treble").addEventListener("input",e=>{
- const v=Number(e.target.value);
- $("treble-value").textContent=(v>0?"+":"")+v+" dB";
- if(trebleFilter&&ctx)trebleFilter.gain.setTargetAtTime(v,ctx.currentTime,.03);
-});
-
-/* ฉากอวกาศ 3 มิติด้วย Three.js */
-const canvas=$("space");
-try{
- scene=new THREE.Scene();
- scene.fog=new THREE.FogExp2(0x03040c,0.0038);
- camera=new THREE.PerspectiveCamera(62,1,.1,1200);
- camera.position.z=90;
- renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
- renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.8));
-
- const positions=new Float32Array(2400*3);
- const colors=new Float32Array(2400*3);
-
- for(let i=0;i<2400;i++){
-  positions[i*3]=(Math.random()-.5)*330;
-  positions[i*3+1]=(Math.random()-.5)*210;
-  positions[i*3+2]=(Math.random()-.5)*650;
-  const c=new THREE.Color().setHSL(.52+Math.random()*.28,.85,.55+Math.random()*.3);
-  colors.set([c.r,c.g,c.b],i*3);
- }
-
- const geo=new THREE.BufferGeometry();
- geo.setAttribute("position",new THREE.BufferAttribute(positions,3));
- geo.setAttribute("color",new THREE.BufferAttribute(colors,3));
-
- stars=new THREE.Points(geo,new THREE.PointsMaterial({
-  size:1.05,vertexColors:true,transparent:true,opacity:.9,depthWrite:false
- }));
- scene.add(stars);
-
- const coreGeo=new THREE.IcosahedronGeometry(17,2);
- coreMat=new THREE.MeshBasicMaterial({
-  color:0xbd00ff,wireframe:true,transparent:true,opacity:.19
- });
- const core=new THREE.Mesh(coreGeo,coreMat);
- scene.add(core);
-
- const ringGeo=new THREE.TorusGeometry(23,.09,8,240);
- const ringMat=new THREE.MeshBasicMaterial({
-  color:0x00f5ff,transparent:true,opacity:.65
- });
- const ring=new THREE.Mesh(ringGeo,ringMat);
- ring.rotation.x=1.05;
- scene.add(ring);
-
- const ring2=new THREE.Mesh(
-  new THREE.TorusGeometry(29,.045,6,240),
-  new THREE.MeshBasicMaterial({color:0xbd00ff,transparent:true,opacity:.55})
- );
- ring2.rotation.y=.9;
- ring2.rotation.x=.4;
- scene.add(ring2);
-
- clock=new THREE.Clock();
-
- function resize3d(){
-  const w=stage.clientWidth,h=stage.clientHeight;
-  camera.aspect=w/h;
-  camera.updateProjectionMatrix();
-  renderer.setSize(w,h,false);
- }
- window.addEventListener("resize",resize3d);
- resize3d();
-
- function render3d(){
-  requestAnimationFrame(render3d);
-  const t=clock.getElapsedTime();
-  stars.rotation.y+=.00045;
-  stars.rotation.x=Math.sin(t*.08)*.025;
-  core.rotation.x=t*.12;
-  core.rotation.y=t*.18;
-  ring.rotation.z=t*.12;
-  ring2.rotation.z=-t*.09;
-
-  let energy=0;
-  if(analyser&&freq&&playing){
-   analyser.getByteFrequencyData(freq);
-   for(let i=0;i<freq.length;i++)energy+=freq[i];
-   energy=energy/freq.length/255;
-  }
-
-  core.scale.setScalar(1+energy*.28);
-  core.rotation.z=t*.06;
-  camera.position.x=Math.sin(t*.09)*2.2;
-  camera.position.y=Math.cos(t*.11)*1.5;
-  camera.lookAt(0,0,0);
-  renderer.render(scene,camera);
- }
- render3d();
-}catch(err){
- console.warn("3D renderer unavailable:",err);
-/* กราฟเสียงหลายเส้น สูงขึ้น และตอบสนองต่อเพลงจริง */
-const wc=$("wave"),wctx=wc.getContext("2d");
-
-function drawWave(){
- requestAnimationFrame(drawWave);
-
- const dpr=Math.min(devicePixelRatio||1,2);
- const w=wc.clientWidth,h=wc.clientHeight;
- if(!w||!h)return;
-
- if(wc.width!==Math.floor(w*dpr)||wc.height!==Math.floor(h*dpr)){
-  wc.width=Math.floor(w*dpr);
-  wc.height=Math.floor(h*dpr);
- }
-
- wctx.setTransform(dpr,0,0,dpr,0,0);
- wctx.clearRect(0,0,w,h);
-
- if(analyser&&waveData&&playing)analyser.getByteTimeDomainData(waveData);
- if(analyser&&freq&&playing)analyser.getByteFrequencyData(freq);
-
- const mid=h*.5;
- const points=Math.max(160,Math.floor(w*.95));
- const barCount=Math.min(100,Math.floor(w/7));
- const barGap=2;
- const barW=Math.max(2,(w-(barCount-1)*barGap)/barCount);
-
- for(let i=0;i<barCount;i++){
-  let level=0;
-
-  if(analyser&&freq&&playing){
-   const j=Math.floor(i/barCount*freq.length);
-   level=freq[j]/255;
-  }else{
-   level=.08+.08*(.5+.5*Math.sin(i*.32+performance.now()*.002));
-  }
-
-  const bh=Math.max(3,level*h*.42);
-  const grad=wctx.createLinearGradient(0,mid-bh,0,mid+bh);
-  grad.addColorStop(0,"#bd00ff");
-  grad.addColorStop(.5,"#ffffff");
-  grad.addColorStop(1,"#00f5ff");
-
-  wctx.fillStyle=grad;
-  wctx.globalAlpha=.65;
-  wctx.fillRect(i*(barW+barGap),mid-bh,barW,bh*2);
- }
-
- wctx.globalAlpha=1;
-
- const palette=["#00f5ff","#bd00ff","#ffffff","#ff45df","#38a8ff"];
-
- for(let layer=0;layer<5;layer++){
-  wctx.beginPath();
-  wctx.lineWidth=layer===0?3.2:layer===1?2:1.2;
-  wctx.strokeStyle=palette[layer];
-  wctx.shadowBlur=layer===0?24:14;
-  wctx.shadowColor=palette[layer];
-
-  for(let i=0;i<=points;i++){
-   const x=i/points*w;
-   let v;
-
-   if(analyser&&waveData&&playing){
-    const j=Math.floor(i/points*(waveData.length-1));
-    v=(waveData[j]-128)/128;
-   }else{
-    v=Math.sin(i*.12+performance.now()*.0015+layer)*.18+
-      Math.sin(i*.035-performance.now()*.001)*.1;
-   }
-
-   const amplitude=(playing?h*.72:h*.28)*(1-layer*.105);
-   const y=mid+v*amplitude+
-     Math.sin(i*.08+performance.now()*.001+layer*1.4)*(2+layer);
-
-   if(i===0)wctx.moveTo(x,y);
-   else wctx.lineTo(x,y);
-  }
-
-  wctx.stroke();
- }
-
- wctx.shadowBlur=0;
-}
-drawWave();
-
-/* โลโก้เคลื่อนไหวจากอนุภาคที่สร้างด้วยพิกเซลของ logo1.jpg */
-const lc=$("logo-motion"),lctx=lc.getContext("2d");
-const bc=$("burst"),bctx=bc.getContext("2d");
-let logoParticles=[],burstMode=0,burstStart=performance.now(),logoImage=null;
-
-function fitCanvas(el,ctx){
- const dpr=Math.min(devicePixelRatio||1,2);
- const w=el.clientWidth,h=el.clientHeight;
-
- if(!w||!h)return null;
-
- if(el.width!==Math.floor(w*dpr)||el.height!==Math.floor(h*dpr)){
-  el.width=Math.floor(w*dpr);
-  el.height=Math.floor(h*dpr);
- }
-
- ctx.setTransform(dpr,0,0,dpr,0,0);
- return {w,h,dpr};
-}
-
-function buildAnimatedLogo(){
- const size=fitCanvas(lc,lctx);
- fitCanvas(bc,bctx);
-
- if(!size||!LOGO)return;
-
- logoImage=new Image();
-
- logoImage.onload=()=>{
-  const off=document.createElement("canvas");
-  const oc=off.getContext("2d");
-
-  off.width=150;
-  off.height=150;
-  oc.clearRect(0,0,150,150);
-  oc.drawImage(logoImage,0,0,150,150);
-
-  const data=oc.getImageData(0,0,150,150).data;
-  logoParticles=[];
-
-  const step=3;
-  const scale=Math.min(size.w,size.h)*.86/150;
-
-  for(let y=0;y<150;y+=step){
-   for(let x=0;x<150;x+=step){
-    const k=(y*150+x)*4;
-    const alpha=data[k+3]/255;
-    if(alpha<.18)continue;
-
-    const tx=size.w/2+(x-75)*scale;
-    const ty=size.h/2+(y-75)*scale;
-    const angle=Math.random()*Math.PI*2;
-    const dist=30+Math.random()*Math.max(size.w,size.h)*.7;
-
-    logoParticles.push({
-     tx,ty,
-     sx:size.w/2+Math.cos(angle)*dist,
-     sy:size.h/2+Math.sin(angle)*dist,
-     r:.7+Math.random()*1.5,
-     color:`rgba(${data[k]},${data[k+1]},${data[k+2]},${Math.max(.35,alpha)})`,
-     phase:Math.random()*Math.PI*2
-    });
-   }
-  }
- };
-
- logoImage.src=LOGO;
-}
-
-function triggerBurst(){
- if(!logoParticles.length)return;
-
- burstMode=burstMode===1?0:1;
- burstStart=performance.now();
-
- $("burst-btn").textContent=burstMode
-  ?"✦ ประกอบโลโก้กลับ"
-  :"✦ แตกตัว / ประกอบโลโก้";
-}
-
-$("burst-btn").onclick=triggerBurst;
-
-function animateLogo(){
- requestAnimationFrame(animateLogo);
-
- const size=fitCanvas(lc,lctx);
- fitCanvas(bc,bctx);
-
- if(!size||!logoParticles.length)return;
-
- const {w,h}=size;
- const now=performance.now();
- const t=now*.001;
-
- let energy=0;
-
- if(analyser&&freq&&playing){
-  analyser.getByteFrequencyData(freq);
-  for(let i=0;i<freq.length;i++)energy+=freq[i];
-  energy=energy/freq.length/255;
- }
-
- lctx.clearRect(0,0,w,h);
- bctx.clearRect(0,0,bc.clientWidth,bc.clientHeight);
-
- const progress=Math.min(1,(now-burstStart)/1300);
- const scatter=burstMode?progress:1-progress;
-
- for(const q of logoParticles){
-  const drift=Math.sin(t*1.7+q.phase)*(1.5+energy*8);
-  const flutter=Math.cos(t*1.3+q.phase)*(1.5+energy*8);
-
-  const tx=q.tx+drift;
-  const ty=q.ty+flutter;
-  const sx=q.sx+Math.sin(t+q.phase)*22;
-  const sy=q.sy+Math.cos(t*.9+q.phase)*22;
-
-  const x=tx+(sx-tx)*scatter;
-  const y=ty+(sy-ty)*scatter;
-  const radius=q.r*(1+energy*1.8)*(1+Math.sin(t*2+q.phase)*.13);
-
-  lctx.beginPath();
-  lctx.fillStyle=q.color;
-  lctx.shadowColor=Math.random()>.5?"#00f5ff":"#bd00ff";
-  lctx.shadowBlur=8+energy*18;
-  lctx.arc(x,y,radius,0,Math.PI*2);
-  lctx.fill();
-
-  if(burstMode&&Math.random()>.68){
-   bctx.beginPath();
-   bctx.fillStyle=q.color;
-   bctx.shadowColor="#00f5ff";
-   bctx.shadowBlur=10;
-   bctx.arc(x,y,Math.max(.6,radius*.65),0,Math.PI*2);
-   bctx.fill();
-  }
- }
-
- lctx.shadowBlur=0;
- bctx.shadowBlur=0;
-}
-
-buildAnimatedLogo();
-animateLogo();
-window.addEventListener("resize",buildAnimatedLogo);
-</script>
-</body>
-</html>"""
-
-player_html = (
-    player_html
-    .replace("__SONGS__", songs_json)
-    .replace("__LOGO__", logo_json)
-)
-
-st.markdown(
-    """
-    <style>
-    #MainMenu, footer, header {visibility:hidden;}
-    .stApp, [data-testid="stAppViewContainer"] {background:#02030b;}
-    .block-container {padding:0 !important;max-width:100% !important;}
-    iframe {border:0 !important;}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-if not songs:
-    st.info("ยังไม่พบไฟล์เพลงในโฟลเดอร์เดียวกับ app.py ให้วางไฟล์ MP3 ไว้ใน GitHub repository เดียวกัน")
-
-st.caption("🌌 ฉากอวกาศสร้างด้วย CSS และ Three.js ภายในแอป ไม่ใช้คลิปหรือภาพสต็อกภายนอก")
-components.html(player_html, height=980, scrolling=False)
+""", unsafe_allow_html=True)
+
+
+def find_logo():
+    candidates = [
+        ROOT / "logo1.jpg",
+        ROOT / "logo1.jpeg",
+        ROOT / "logo1.png",
+        ROOT / "logo.jpg",
+        ROOT / "โลโก้.jpg",
+    ]
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
+def find_songs():
+    songs = []
+    for path in ROOT.rglob("*"):
+        if not path.is_file():
+            continue
+        if path.suffix.lower() not in AUDIO_EXTENSIONS:
+            continue
+        if any(part.startswith(".") for part in path.parts):
+            continue
+        songs.append(path)
+    return sorted(songs, key=lambda p: p.name.lower())
+
+
+def song_label(path):
+    return path.stem
+
+
+def show_header():
+    logo = find_logo()
+
+    if logo:
+        left, center, right = st.columns([1, 3, 1])
+        with center:
+            st.image(str(logo), width=260)
+
+    st.markdown(
+        '<div class="neon-title">TA101</div>',
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        '<div class="neon-subtitle">'
+        'NEON MUSIC • SOUND & SPACE EXPERIENCE'
+        '</div>',
+        unsafe_allow_html=True
+    )
+    st.write("")
+    
+# ==============================
+# PART 2 — MUSIC PLAYER
+# ==============================
+
+def main():
+    show_header()
+
+    songs = find_songs()
+
+    if not songs:
+        st.markdown("""
+        <div class="neon-panel">
+            <h3>🎵 ยังไม่พบไฟล์เพลง</h3>
+            <p>นำไฟล์ MP3 หรือ WAV ใส่ในโฟลเดอร์เดียวกับ app.py</p>
+            <p>จากนั้นรีสตาร์ตแอป Streamlit</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.stop()
+
+    labels = [song_label(p) for p in songs]
+
+    if "track_index" not in st.session_state:
+        st.session_state.track_index = 0
+    if "shuffle_mode" not in st.session_state:
+        st.session_state.shuffle_mode = False
+    if "repeat_mode" not in st.session_state:
+        st.session_state.repeat_mode = False
+
+    # ป้องกัน index เกินจำนวนเพลง
+    st.session_state.track_index %= len(songs)
+
+    st.markdown("""
+    <div class="neon-panel">
+        <h2 style="text-align:center;color:#67e8f9">
+            🎧 MUSIC CONTROL CENTER
+        </h2>
+        <p style="text-align:center;color:#c4b5fd">
+            เลือกเพลง • ปรับเสียง • เพลิดเพลินกับแสงนีออน
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.write("")
+
+    selected = st.selectbox(
+        "🎶 รายชื่อเพลงในโปรเจกต์",
+        options=list(range(len(songs))),
+        index=st.session_state.track_index,
+        format_func=lambda i: labels[i],
+        key="song_selector"
+    )
+
+    if selected != st.session_state.track_index:
+        st.session_state.track_index = selected
+        st.rerun()
+
+    current = songs[st.session_state.track_index]
+
+    st.markdown(
+        '<div class="neon-panel">'
+        '<p style="color:#a5f3fc;text-align:center">NOW PLAYING</p>'
+        f'<h2 style="text-align:center;color:white;'
+        f'text-shadow:0 0 12px #06b6d4">'
+        f'🎵 {escape(current.stem)}</h2>'
+        f'<p style="text-align:center;color:#c4b5fd">'
+        f'TRACK {st.session_state.track_index + 1} / {len(songs)}'
+        '</p></div>',
+        unsafe_allow_html=True
+    )
+
+    st.write("")
+
+    # อ่านไฟล์เสียงโดยตรงจากโปรเจกต์
+    mime_type, _ = mimetypes.guess_type(str(current))
+    if not mime_type:
+        mime_type = "audio/mpeg"
+
+    with open(current, "rb") as audio_file:
+        audio_bytes = audio_file.read()
+
+    st.audio(
+        audio_bytes,
+        format=mime_type,
+        autoplay=False
+    )
+
+    volume = st.slider(
+        "🔊 ระดับเสียง",
+        min_value=0,
+        max_value=100,
+        value=80,
+        key="volume_control"
+    )
+
+    st.caption(
+        "ระดับเสียงที่เลือก: "
+        + str(volume)
+        + "% — ปรับเสียงจากตัวควบคุมของเครื่องเล่นด้วย"
+    )
+
+    st.write("")
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        if st.button("⏮ เพลงก่อนหน้า", use_container_width=True):
+            st.session_state.track_index = (
+                st.session_state.track_index - 1
+            ) % len(songs)
+            st.rerun()
+
+    with c2:
+        if st.button("🔀 สุ่มเพลงถัดไป", use_container_width=True):
+            if len(songs) > 1:
+                choices = [
+                    i for i in range(len(songs))
+                    if i != st.session_state.track_index
+                ]
+                st.session_state.track_index = random.choice(choices)
+            st.rerun()
+
+    with c3:
+        if st.button("⏭ เพลงถัดไป", use_container_width=True):
+            st.session_state.track_index = (
+                st.session_state.track_index + 1
+            ) % len(songs)
+            st.rerun()
+
+    st.write("")
+
+    m1, m2 = st.columns(2)
+
+    with m1:
+        st.session_state.repeat_mode = st.toggle(
+            "🔁 เล่นเพลงเดิมซ้ำ",
+            value=st.session_state.repeat_mode,
+            key="repeat_toggle"
+        )
+
+    with m2:
+        st.session_state.shuffle_mode = st.toggle(
+            "🎲 โหมดสุ่มเพลง",
+            value=st.session_state.shuffle_mode,
+            key="shuffle_toggle"
+        )
+
+    st.write("")
+
+    st.markdown("""
+    <div class="neon-panel">
+        <h3 style="color:#67e8f9">🌌 NEON SOUND SYSTEM</h3>
+        <p>💠 Cyan • 🔮 Purple • 💙 Electric Blue</p>
+        <p>โลโก้และไฟล์เพลงเดิมจะถูกเก็บไว้</p>
+        <p style="color:#c4b5fd">
+            หากหน้าแอปเคยค้างที่โลโก้ โค้ดนี้จะเปิดหน้าเครื่องเล่น
+            โดยตรง ไม่ต้องรอหน้าเปิดตัว
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.expander("📂 ดูรายชื่อไฟล์เพลงทั้งหมด"):
+        for i, path in enumerate(songs, start=1):
+            st.write(f"{i}. {path.name}")
+
+
+if __name__ == "__main__":
+    main()
