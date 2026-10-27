@@ -523,6 +523,7 @@ drawSpectrum();
 </html>
 """
 
+
 page = page.replace("__TRACKS__", TRACKS_JSON)
 page = page.replace("__LOGO__", LOGO_JSON)
 
