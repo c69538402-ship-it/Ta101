@@ -299,8 +299,7 @@ function drawSpectrum() {
 }
 drawSpectrum();
 </script>
-"""
-## ท่อนที่ 2/2 — ฉากอวกาศ 3 มิติและปิดโค้ด
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
 นำส่วนนี้ไปวางต่อจากบรรทัดสุดท้ายของท่อนที่ 1 ทันทีครับ
 
