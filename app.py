@@ -53,9 +53,8 @@ for candidate in (
 
 logo_json = json.dumps(logo_data)
 
-# 3. HTML / Three.js / Web Audio API Component (ใช้ .replace เพื่อความปลอดภัย 100%)
-player_html = (
-    """<!doctype html>
+# 3. HTML / Three.js / Web Audio API Component (แยกตัวแปรและแทนที่อย่างปลอดภัย)
+player_html = """<!doctype html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -265,5 +264,151 @@ function pauseAudio(){
 
 function nextTrack(){
     if(!SONGS.length) return;
-    if(shuffle && SONGS.length > 1
+    if(shuffle && SONGS.length > 1){
+        let n = index;
+        while(n === index) n = Math.floor(Math.random() * SONGS.length);
+        loadTrack(n);
+    } else {
+        loadTrack(index + 1);
+    }
+    if(playing) playAudio();
+}
+
+function prevTrack(){
+    if(audio.currentTime > 3){ audio.currentTime = 0; return; }
+    loadTrack(index - 1);
+    if(playing) playAudio();
+}
+
+function selectTrack(val){
+    loadTrack(Number(val));
+    if(playing) playAudio();
+}
+
+function toggleLoop(){
+    loopList = !loopList;
+    document.getElementById('loop-btn').classList.toggle('active', loopList);
+}
+
+function toggleShuffle(){
+    shuffle = !shuffle;
+    document.getElementById('shuffle-btn').classList.toggle('active', shuffle);
+}
+
+audio.onended = () => {
+    if(loopList) nextTrack();
+    else pauseAudio();
+};
+
+audio.ontimeupdate = () => {
+    if(audio.duration){
+        document.getElementById('fill').style.width = (audio.currentTime / audio.duration * 100) + "%";
+        document.getElementById('elapsed').textContent = formatTime(audio.currentTime);
+        document.getElementById('duration').textContent = formatTime(audio.duration);
+    }
+};
+
+function seekAudio(e){
+    if(audio.duration){
+        const rect = e.currentTarget.getBoundingClientRect();
+        audio.currentTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * audio.duration;
+    }
+}
+
+function formatTime(s){
+    if(!Number.isFinite(s)) return "0:00";
+    s = Math.floor(s);
+    return Math.floor(s/60) + ":" + String(s%60).padStart(2,'0');
+}
+
+let effectState = 0;
+function toggleLogoEffect(){
+    effectState = (effectState + 1) % 3;
+    const logo = document.getElementById('logo');
+    if(effectState === 1) logo.style.transform = "scale(1.25) rotate(15deg)";
+    else if(effectState === 2) logo.style.transform = "scale(0.8) rotate(-15deg)";
+    else logo.style.transform = "scale(1) rotate(0deg)";
+    logo.style.transition = "transform 0.4s ease";
+}
+
+// Three.js 3D Cosmic Background
+let scene, camera, renderer, stars, core;
+try {
+    const canvas = document.getElementById('space');
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 80;
+    renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(1500 * 3);
+    for(let i=0; i<1500*3; i+=3){
+        pos[i] = (Math.random() - 0.5) * 300;
+        pos[i+1] = (Math.random() - 0.5) * 300;
+        pos[i+2] = (Math.random() - 0.5) * 300;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    stars = new THREE.Points(geo, new THREE.PointsMaterial({size: 1.2, color: 0x00f5ff, transparent:true, opacity:0.8}));
+    scene.add(stars);
+
+    const coreGeo = new THREE.IcosahedronGeometry(15, 1);
+    core = new THREE.Mesh(coreGeo, new THREE.MeshBasicMaterial({color: 0xbd00ff, wireframe: true, transparent:true, opacity:0.25}));
+    scene.add(core);
+
+    function animate3d(){
+        requestAnimationFrame(animate3d);
+        if(stars) { stars.rotation.y += 0.0008; stars.rotation.x += 0.0004; }
+        if(core) { core.rotation.x += 0.005; core.rotation.y += 0.008; }
+        renderer.render(scene, camera);
+    }
+    animate3d();
+
+    window.onresize = () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+} catch(e) { console.log(e); }
+
+// Audio Waveform
+const wc = document.getElementById('wave'), wctx = wc.getContext('2d');
+function drawWave(){
+    requestAnimationFrame(drawWave);
+    wc.width = wc.clientWidth; wc.height = wc.clientHeight;
+    wctx.clearRect(0,0,wc.width,wc.height);
+    if(analyser && waveData && playing) analyser.getByteTimeDomainData(waveData);
     
+    wctx.beginPath();
+    wctx.lineWidth = 2;
+    wctx.strokeStyle = '#00f5ff';
+    wctx.shadowBlur = 10;
+    wctx.shadowColor = '#bd00ff';
+    
+    const pts = 80;
+    for(let i=0; i<=pts; i++){
+        const x = i / pts * wc.width;
+        let v = 0;
+        if(analyser && waveData && playing){
+            const j = Math.floor(i / pts * (waveData.length - 1));
+            v = (waveData[j] - 128) / 128;
+        } else {
+            v = Math.sin(i * 0.1 + performance.now() * 0.002) * (playing ? 0.3 : 0.08);
+        }
+        const y = (wc.height / 2) + v * (wc.height * 0.4);
+        if(i === 0) wctx.moveTo(x, y); else wctx.lineTo(x, y);
+    }
+    wctx.stroke();
+    wctx.shadowBlur = 0;
+}
+drawWave();
+</script>
+</body>
+</html>
+"""
+
+# แทนที่ค่าตัวแปรด้านล่างนี้ ป้องกัน SyntaxError 100%
+player_html = player_html.replace("__SONGS_REPLACE__", songs_json)
+player_html = player_html.replace("__LOGO_REPLACE__", logo_json)
+
+components.html(player_html, height=760, scrolling=False)
