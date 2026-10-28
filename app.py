@@ -34,42 +34,41 @@ with col_t4:
 tc = st.session_state.theme_color
 tg = st.session_state.theme_glow
 
-# สไตล์ตกแต่งนีออนอวกาศพร้อมอนิเมชันกระพริบ
-st.markdown(
-    f"""
+# สไตล์ตกแต่งนีออนอวกาศ (ใช้ .format() ป้องกันปัญหาปีกกา CSS ชนกับ Python)
+css_style = """
     <style>
-    .stApp {{
+    .stApp {
         background: radial-gradient(ellipse at 50% 45%, #10133c 0%, #050615 48%, #010208 100%);
         color: #ffffff;
         font-family: 'Prompt', sans-serif;
     }
-    h1 {{
+    h1 {
         font-family: 'Orbitron', sans-serif;
         text-align: center;
         color: {tc};
         text-shadow: 0 0 10px {tc}, 0 0 25px {tg};
         font-size: 1.8rem !important;
         margin-bottom: 0px;
-        animation: flicker 3s infinite alternate;
-    }}
-    @keyframes flicker {{
-        0% {{ opacity: 0.8; }}
-        100% {{ opacity: 1; text-shadow: 0 0 15px {tc}, 0 0 35px {tg}; }}
-    }}
-    .subtitle {{
+        animation: flicker 3.5s infinite alternate;
+    }
+    @keyframes flicker {
+        0% { opacity: 0.8; }
+        100% { opacity: 1; text-shadow: 0 0 15px {tc}, 0 0 35px {tg}; }
+    }
+    .subtitle {
         text-align: center;
         font-size: 0.75rem;
         color: #aeb9dc;
         letter-spacing: 3px;
         margin-bottom: 15px;
-    }}
-    .logo-box {{
+    }
+    .logo-box {
         display: flex;
         justify-content: center;
         align-items: center;
         position: relative;
-    }}
-    .neon-card {{
+    }
+    .neon-card {
         border: 2px solid {tc};
         border-radius: 20px;
         padding: 20px;
@@ -77,15 +76,15 @@ st.markdown(
         box-shadow: 0 0 20px {tc}44, inset 0 0 15px {tg}22;
         backdrop-filter: blur(10px);
         margin-top: 10px;
-    }}
-    .stSelectbox label {{
+    }
+    .stSelectbox label {
         color: {tc} !important;
         font-weight: bold;
-    }}
+    }
     </style>
-""",
-    unsafe_allow_html=True,
-)
+"""
+
+st.markdown(css_style.format(tc=tc, tg=tg), unsafe_allow_html=True)
 
 st.markdown("<h1>TA101 • NEON MUSIC</h1>", unsafe_allow_html=True)
 st.markdown(
