@@ -69,7 +69,7 @@ if logo_path:
         logo_uri = f"data:{mime};base64," + base64.b64encode(logo_path.read_bytes()).decode("ascii")
     except OSError:
         logo_uri = ""
- import json
+import json
 visual_html = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
