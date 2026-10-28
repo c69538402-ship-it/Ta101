@@ -14,8 +14,6 @@ if "theme_color" not in st.session_state:
   st.session_state.theme_color = "#00f5ff"
 if "theme_glow" not in st.session_state:
   st.session_state.theme_glow = "#bd00ff"
-if "cyber_mode" not in st.session_state:
-  st.session_state.cyber_mode = "HYPER DRIVE"
 
 # แผงควบคุมเลือกธีมสีสไตล์ไซเบอร์
 cols = st.columns(4)
@@ -39,15 +37,15 @@ with cols[3]:
 tc = st.session_state.theme_color
 tg = st.session_state.theme_glow
 
-# ตกแต่ง CSS นีออนอวกาศขั้นเทพ
-css_code = f"""
+# ตกแต่ง CSS นีออนอวกาศ (ปลอดภัย 100% ด้วย .replace)
+css_template = """
     <style>
-    .stApp {{
+    .stApp {
         background: radial-gradient(ellipse at 50% 30%, #13183f 0%, #060817 55%, #010208 100%);
         color: #ffffff;
         font-family: 'Prompt', sans-serif;
     }
-    h1 {{
+    h1 {
         font-family: 'Orbitron', sans-serif;
         text-align: center;
         color: {tc};
@@ -55,20 +53,20 @@ css_code = f"""
         font-size: 1.7rem !important;
         margin-bottom: 0px;
         animation: flicker 3s infinite alternate;
-    }}
-    @keyframes flicker {{
-        0% {{ opacity: 0.85; filter: brightness(0.9); }}
-        100% {{ opacity: 1; filter: brightness(1.2); text-shadow: 0 0 20px {tc}, 0 0 40px {tg}; }}
-    }}
-    .sub-title {{
+    }
+    @keyframes flicker {
+        0% { opacity: 0.85; filter: brightness(0.9); }
+        100% { opacity: 1; filter: brightness(1.2); text-shadow: 0 0 20px {tc}, 0 0 40px {tg}; }
+    }
+    .sub-title {
         text-align: center;
         font-size: 0.7rem;
         color: #aeb9dc;
         letter-spacing: 4px;
         margin-bottom: 15px;
         font-family: 'Orbitron', sans-serif;
-    }}
-    .cyber-card {{
+    }
+    .cyber-card {
         border: 2px solid {tc};
         border-radius: 24px;
         padding: 22px;
@@ -76,8 +74,8 @@ css_code = f"""
         box-shadow: 0 0 25px {tc}44, inset 0 0 20px {tg}33;
         backdrop-filter: blur(16px);
         margin-top: 10px;
-    }}
-    .status-badge {{
+    }
+    .status-badge {
         display: inline-block;
         background: {tc}22;
         border: 1px solid {tc};
@@ -88,17 +86,19 @@ css_code = f"""
         font-family: 'Orbitron', sans-serif;
         box-shadow: 0 0 10px {tc}66;
         margin-bottom: 12px;
-    }}
-    .stSelectbox label {{
+    }
+    .stSelectbox label {
         color: {tc} !important;
         font-weight: 600;
-    }}
-    .stAudio {{
+    }
+    .stAudio {
         filter: drop-shadow(0 0 8px {tc});
-    }}
+    }
     </style>
 """
-st.markdown(css_code, unsafe_allow_html=True)
+
+final_css = css_template.replace("{tc}", tc).replace("{tg}", tg)
+st.markdown(final_css, unsafe_allow_html=True)
 
 # หัวข้อหลัก
 st.markdown("<h1>TA101 • NEON SPACE</h1>", unsafe_allow_html=True)
@@ -134,14 +134,12 @@ for candidate in (
 with st.container():
   st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
 
-  # สถานะระบบจำลองแบบล้ำๆ
   st.markdown(
       "<div style='text-align:center;'><span class='status-badge'>⚡ SPACE"
       " ENGINE: ONLINE • AUDIO REACTIVE READY</span></div>",
       unsafe_allow_html=True,
   )
 
-  # แสดงโลโก้ตรงกลางพร้อมกรอบเรืองแสง
   col1, col2, col3 = st.columns([1, 2.2, 1])
   with col2:
     if logo_path:
@@ -162,7 +160,6 @@ with st.container():
         " app.py"
     )
   else:
-    # เลือกเพลง
     song_names = [s.stem for s in songs]
     selected_song_name = st.selectbox("🎵 เลือกแทร็กเสียงในเพลย์ลิสต์", song_names)
 
@@ -171,13 +168,11 @@ with st.container():
 
     st.write("")
 
-    # เครื่องเล่นเพลงแบบเนทีฟ (ลื่นไหล ไม่จอดำ รองรับทุกมือถือ)
     audio_bytes = selected_file.read_bytes()
     st.audio(audio_bytes, format="audio/mp3")
 
   st.markdown("</div>", unsafe_allow_html=True)
 
-# ฟุตเตอร์เท่ๆ
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; font-size: 0.7rem; color:"
