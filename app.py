@@ -458,8 +458,6 @@ function drawWave(){
    }else{
     v=Math.sin(i*.12+performance.now()*.0015+layer)*.08+Math.sin(i*.035-performance.now()*.001)*.04;
    }
-   const amp=(playing?h*.38:h*.18)*(1-layer*.22);
-   const y=mid+v*amp+Math.sin(i*.08
       const amp=(playing?h*.38:h*.18)*(1-layer*.22);
    const y=mid+v*amp+Math.sin(i*.08+performance.now()*.001+layer)*3;
    if(i===0)wctx.moveTo(x,y);else wctx.lineTo(x,y);
