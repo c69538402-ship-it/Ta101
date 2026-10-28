@@ -3,7 +3,6 @@ import json
 import mimetypes
 from pathlib import Path
 import streamlit as st
-import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="TA101 • NEON SPACE MUSIC",
@@ -458,9 +457,9 @@ function drawWave(){
    }else{
     v=Math.sin(i*.12+performance.now()*.0015+layer)*.08+Math.sin(i*.035-performance.now()*.001)*.04;
    }
-      const amp=(playing?h*.38:h*.18)*(1-layer*.22);
+   const amp=(playing?h*.38:h*.18)*(1-layer*.22);
    const y=mid+v*amp+Math.sin(i*.08+performance.now()*.001+layer)*3;
-   if(i===0)wctx.moveTo(x,y);else wctx.lineTo(x,y);
+      if(i===0)wctx.moveTo(x,y);else wctx.lineTo(x,y);
   }
   wctx.stroke();
  }
@@ -530,4 +529,9 @@ updateBurst();
     .replace("__LOGO_REPLACE__", logo_json)
 )
 
-components.html(player_html, height=720, scrolling=False)
+# ใช้ st.iframe ตามมาตรฐานใหม่ของ Streamlit
+html_bytes = player_html.encode("utf-8")
+base64_html = base64.b64encode(html_bytes).decode("ascii")
+st.iframe(
+    f"data:text/html;base64,{base64_html}", height=720, scrolling=False
+)
