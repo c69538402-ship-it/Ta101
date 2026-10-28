@@ -1,4 +1,3 @@
-
 import streamlit as st
 import streamlit.components.v1 as components
 from pathlib import Path
@@ -301,7 +300,6 @@ drawSpectrum();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
-นำส่วนนี้ไปวางต่อจากบรรทัดสุดท้ายของท่อนที่ 1 ทันทีครับ
 
 <CodeBlock language="python" editable>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
