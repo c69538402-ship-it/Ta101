@@ -34,7 +34,7 @@ with col_t4:
 tc = st.session_state.theme_color
 tg = st.session_state.theme_glow
 
-# สไตล์ตกแต่งนีออนอวกาศ (ใช้ .format() ป้องกันปัญหาปีกกา CSS ชนกับ Python)
+# สไตล์ตกแต่งนีออนอวกาศ (ใช้ .replace() เพื่อความปลอดภัยและไม่ให้ปีกกาชนกัน)
 css_style = """
     <style>
     .stApp {
@@ -84,7 +84,9 @@ css_style = """
     </style>
 """
 
-st.markdown(css_style.format(tc=tc, tg=tg), unsafe_allow_html=True)
+# แทนที่ค่าสีด้วย .replace()
+final_css = css_style.replace("{tc}", tc).replace("{tg}", tg)
+st.markdown(final_css, unsafe_allow_html=True)
 
 st.markdown("<h1>TA101 • NEON MUSIC</h1>", unsafe_allow_html=True)
 st.markdown(
