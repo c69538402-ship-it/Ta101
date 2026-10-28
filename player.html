@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Prompt:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--a:#00f5ff;--b:#bd00ff;--panel:rgba(5,8,25,.76)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;color:#fff;font-family:Prompt,sans-serif}
+#stage{position:relative;width:100%;height:100vh;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#10133c 0%,#050615 48%,#010208 100%);isolation:isolate}
+#space{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.hud{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:20px;pointer-events:none}
+.hud>*{pointer-events:auto}
+.brand{font-family:Orbitron,sans-serif;font-weight:900;letter-spacing:4px;font-size:24px;text-align:center;color:#eafcff;text-shadow:0 0 10px var(--a),0 0 20px var(--b)}
+.center{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:320px;height:320px;display:grid;place-items:center;pointer-events:none}
+#logo{width:50%;height:50%;object-fit:contain;border-radius:50%;border:2px solid var(--a);box-shadow:0 0 20px var(--a),0 0 40px var(--b);background:#060817}
+#burst-btn{pointer-events:auto;position:absolute;bottom:calc(100% + 15px);left:50%;transform:translateX(-50%);border:1px solid var(--a);border-radius:30px;background:#060817aa;color:#fff;padding:8px 16px;font:12px Prompt,sans-serif;cursor:pointer;box-shadow:0 0 15px var(--a)}
+.visual{width:100%;height:100px;display:block;margin-bottom:10px}
+.panel{width:100%;max-width:500px;border:1px solid var(--a);border-radius:20px;padding:15px;background:var(--panel);backdrop-filter:blur(15px);box-shadow:0 0 20px rgba(0,255,255,0.2)}
+.tracktext{text-align:center;margin-bottom:10px}
+#track-title{font-size:16px;font-weight:700;color:var(--a)}
+audio{width:100%;margin-top:5px}
+.controls{display:flex;justify-content:center;gap:15px;margin-top:10px}
+.neon-btn{background:linear-gradient(45deg,#ff00ff,#00ffff);border:none;color:white;padding:8px 16px;font-weight:bold;border-radius:20px;cursor:pointer;font-size:12px}
+#start{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;background:#02030bf8}
+#start button{margin-top:15px;padding:12px 24px;border:0;border-radius:25px;color:#fff;font-weight:bold;background:linear-gradient(90deg,#00f5ff,#bd00ff);cursor:pointer;box-shadow:0 0 20px var(--a)}
+</style>
+</head>
+<body>
+<div id="stage">
+ <canvas id="space"></canvas>
+ <div class="center">
+  <img id="logo" alt="Logo" style="display:none">
+  <button id="burst-btn" type="button">✦ ระเบิดโลโก้รวมร่าง</button>
+ </div>
+ <div class="hud">
+  <div class="brand">TA101 NEON MUSIC</div>
+  <canvas class="visual" id="wave"></canvas>
+  <div class="panel">
+   <div class="tracktext">
+    <div id="track-title">เลือกเพลงด้านล่าง</div>
+   </div>
+   <select id="playlist" style="width:100%;padding:8px;background:#060817;color:#fff;border:1px solid var(--a);border-radius:8px;margin-bottom:10px;"></select>
+   <audio id="audio" controls></audio>
+   <div class="controls">
+    <button class="neon-btn" onclick="prevSong()">⏮ ก่อนหน้า</button>
+    <button class="neon-btn" onclick="nextSong()">⏭ ถัดไป</button>
+   </div>
+  </div>
+ </div>
+ <div id="start">
+  <h2>TA101 • NEON 3D</h2>
+  <p>แตะปุ่มด้านล่างเพื่อเข้าสู่ระบบเสียงและภาพ 3 มิติ</p>
+  <button onclick="startApp()">✦ เริ่มต้นใช้งาน</button>
+ </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+let songs = [], currentIndex = 0;
+const audio = document.getElementById('audio');
+
+// รับข้อมูลเพลงและโลโก้จาก Streamlit ผ่าน postMessage หรือฝังตัวแปร
+window.addEventListener('message', (e) => {
+    if(e.data && e.data.songs) {
+        songs = e.data.songs;
+        initPlaylist();
+    }
+    if(e.data && e.data.logo) {
+        if(e.data.logo) {
+            document.getElementById('logo').src = e.data.logo;
+            document.getElementById('logo').style.display = 'block';
+        }
+    }
+});
+
+function startApp(){
+    document.getElementById('start').style.display = 'none';
+    if(songs.length > 0) playSong(0);
+}
+
+function initPlaylist(){
+    const sel = document.getElementById('playlist');
+    sel.innerHTML = '';
+    songs.forEach((s, i) => {
+        let opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = (i+1) + ". " + s.name;
+        sel.appendChild(opt);
+    });
+    sel.onchange = (e) => playSong(Number(e.target.value));
+}
+
+function playSong(i){
+    if(!songs.length) return;
+    currentIndex = (i + songs.length) % songs.length;
+    audio.src = songs[currentIndex].src;
+    document.getElementById('track-title').textContent = "🎵 " + songs[currentIndex].name;
+    document.getElementById('playlist').value = currentIndex;
+    audio.play().catch(e => console.log(e));
+}
+
+audio.onended = () => nextSong();
+function nextSong() { playSong(currentIndex + 1); }
+function prevSong() { playSong(currentIndex - 1); }
+
+// Three.js พื้นฐานป้องกันจอดำ
+const canvas = document.getElementById('space');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
+const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+const geo = new THREE.TorusGeometry(1.5, 0.4, 16, 100);
+const mat = new THREE.MeshStandardMaterial({color: 0x00f5ff, wireframe: true});
+const mesh = new THREE.Mesh(geo, mat);
+scene.add(mesh);
+
+const light = new THREE.PointLight(0xff00ff, 3, 50);
+light.position.set(5,5,5);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0xffffff, 1));
+
+function animate(){
+    requestAnimationFrame(animate);
+    mesh.rotation.x += 0.01;
+    mesh.rotation.y += 0.01;
+    renderer.render(scene, camera);
+}
+animate();
+
+window.onresize = () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+};
+</script>
+</body>
+</html>
