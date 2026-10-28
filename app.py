@@ -51,8 +51,7 @@ for candidate in (
 
 logo_json = json.dumps(logo_data)
 
-player_html = (
-    r"""<!doctype html>
+part_head = """<!doctype html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -62,7 +61,7 @@ player_html = (
 :root{--a:#00f5ff;--b:#bd00ff;--panel:rgba(5,8,25,.76)}
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;color:#fff;font-family:Prompt,sans-serif}
-#stage{position:relative;width:100%;height: min(940px,100vh);min-height:650px;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#10133c 0%,#050615 48%,#010208 100%);isolation:isolate}
+#stage{position:relative;width:100%;height:min(940px,100vh);min-height:650px;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#10133c 0%,#050615 48%,#010208 100%);isolation:isolate}
 #space{position:absolute;inset:0;width:100%;height:100%;z-index:0}
 .aurora{position:absolute;inset:-20%;z-index:1;pointer-events:none;background:conic-gradient(from 30deg at 50% 50%,transparent,#00eaff12,transparent,#b400ff18,transparent);filter:blur(45px);animation:aurora 18s linear infinite}
 @keyframes aurora{to{transform:rotate(360deg)}}
@@ -74,7 +73,6 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;col
 .subtitle{font-size:10px;letter-spacing:4px;color:#c7d6ff;text-align:center}
 .themes{display:flex;gap:10px;margin-top:3px}
 .theme{width:23px;height:23px;border:2px solid #ffffffc9;border-radius:50%;cursor:pointer;box-shadow:0 0 13px currentColor}
-.theme:focus{outline:2px solid white;outline-offset:3px}
 #t1{background:linear-gradient(135deg,#00f5ff,#bd00ff);color:#00f5ff}
 #t2{background:linear-gradient(135deg,#00ff82,#0055ff);color:#00ff82}
 #t3{background:linear-gradient(135deg,#ff7a00,#ff006e);color:#ff7a00}
@@ -104,7 +102,6 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;col
 .times{display:flex;justify-content:space-between;font-size:10px;color:#aeb9dc;margin-top:5px}
 .controls{display:flex;align-items:center;justify-content:center;gap:clamp(13px,4vw,30px);margin-top:14px}
 .ctrl{border:0;background:transparent;color:#eaf5ff;font-size:20px;cursor:pointer;text-shadow:0 0 12px var(--a);padding:6px}
-.ctrl:hover,.ctrl.active{color:var(--a);filter:drop-shadow(0 0 9px var(--a))}
 #play{width:58px;height:58px;border:0;border-radius:50%;font-size:21px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--a),var(--b));box-shadow:0 0 22px var(--a),0 0 45px #bd00ff77}
 .options{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px}
 .pill{font:11px Prompt,sans-serif;color:#e7eaff;border:1px solid #ffffff3d;border-radius:20px;padding:6px 12px;background:#ffffff0a;cursor:pointer}
@@ -114,7 +111,6 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;col
 #start p{color:#c8d4f4;max-width:480px;font-size:13px;line-height:1.8}
 #start button{margin-top:12px;padding:13px 25px;border:0;border-radius:30px;color:#fff;font:700 14px Prompt,sans-serif;background:linear-gradient(100deg,var(--a),var(--b));box-shadow:0 0 25px var(--a);cursor:pointer}
 .foot{font:9px Orbitron,sans-serif;letter-spacing:2px;color:#93a2d2;margin-top:9px;text-align:center}
-@media(max-width:560px){#stage{min-height:620px}.hud{padding:12px}.center{top:40%;width:min(78vw,360px);height:min(78vw,360px);max-height:38vh}.visual{height:75px;margin-bottom:6px}.panel{padding:13px}.thumb{width:43px;height:43px;flex-basis:43px}.controls{gap:15px}#play{width:51px;height:51px}.subtitle{letter-spacing:2px}.foot{font-size:8px}}
 </style>
 </head>
 <body>
@@ -132,10 +128,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;col
    <div class="brand">TA101 • NEON MUSIC</div>
    <div class="subtitle">3D COSMIC AUDIO EXPERIENCE</div>
    <div class="themes">
-    <button class="theme" id="t1" aria-label="Cyber neon"></button>
-    <button class="theme" id="t2" aria-label="Matrix green"></button>
-    <button class="theme" id="t3" aria-label="Solar flare"></button>
-    <button class="theme" id="t4" aria-label="Ice space"></button>
+    <button class="theme" id="t1"></button>
+    <button class="theme" id="t2"></button>
+    <button class="theme" id="t3"></button>
+    <button class="theme" id="t4"></button>
    </div>
   </div>
   <div style="flex:1"></div>
@@ -144,19 +140,19 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;col
    <div class="track">
     <img class="thumb" id="thumb" alt="Album art" style="display:none">
     <div class="tracktext"><div id="track-title">กำลังเตรียมเพลง...</div><div id="track-sub">TA101 LOCAL PLAYLIST</div></div>
-    <select id="playlist" aria-label="เลือกเพลง"><option>กำลังโหลดรายการเพลง</option></select>
+    <select id="playlist"><option>กำลังโหลดรายการเพลง</option></select>
    </div>
    <div class="progress" id="progress"><div id="fill"></div></div>
    <div class="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
    <div class="controls">
-    <button class="ctrl" id="prev" title="เพลงก่อน">⏮</button>
-    <button id="play" title="เล่น / หยุด">▶</button>
-    <button class="ctrl" id="next" title="เพลงถัดไป">⏭</button>
+    <button class="ctrl" id="prev">⏮</button>
+    <button id="play">▶</button>
+    <button class="ctrl" id="next">⏭</button>
    </div>
    <div class="options">
-    <button class="pill active" id="loop">↻ วนซ้ำรายการ</button>
-    <button class="pill" id="shuffle">⤨ สุ่มเพลง</button>
-    <button class="pill" id="single">♪ เล่นเพลงเดียว</button>
+    <button class="pill active" id="loop">↻ วนซ้ำ</button>
+    <button class="pill" id="shuffle">⤨ สุ่ม</button>
+    <button class="pill" id="single">♪ เพลงเดียว</button>
     <button class="pill" id="fullscreen">⛶ เต็มจอ</button>
    </div>
   </div>
@@ -168,6 +164,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;col
   <button id="enter">✦ เริ่มประสบการณ์ TA101</button>
  </div>
 </div>
+"""
+part_script = """
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 const SONGS = __SONGS_REPLACE__;
@@ -233,8 +231,7 @@ $("prev").onclick=()=>{if(audio.currentTime>3){audio.currentTime=0;return}loadTr
 $("playlist").onchange=e=>{loadTrack(Number(e.target.value));playAudio()};
 $("loop").onclick=()=>{loopList=!loopList;$("loop").classList.toggle("active",loopList);if(loopList){single=false;$("single").classList.remove("active")}};
 $("shuffle").onclick=()=>{shuffle=!shuffle;$("shuffle").classList.toggle("active",shuffle)};
-$("single").onclick=()=>{single=!single;$("single").classList.toggle("active",single);if(single){loopList=false;$("loop").classList.remove("active")}else{loop
-single=false;$("single").classList.remove("active")}};
+$("single").onclick=()=>{single=!single;$("single").classList.toggle("active",single);if(single){loopList=false;$("loop").classList.remove("active")}else{loopList=true;$("loop").classList.add("active")}};
 audio.addEventListener("ended",()=>nextTrack(true));
 audio.addEventListener("loadedmetadata",()=>{$("duration").textContent=timeText(audio.duration)});
 audio.addEventListener("timeupdate",()=>{if(audio.duration){$("fill").style.width=(audio.currentTime/audio.duration*100)+"%";$("elapsed").textContent=timeText(audio.currentTime)}});
@@ -242,3 +239,110 @@ $("progress").onclick=e=>{if(audio.duration){const r=e.currentTarget.getBounding
 $("enter").onclick=async()=>{initAudio();if(ctx&&ctx.state==="suspended"){try{await ctx.resume()}catch(e){}}$("start").style.opacity="0";setTimeout(()=>$("start").style.display="none",620);await playAudio();};
 $("fullscreen").onclick=async()=>{try{if(!document.fullscreenElement)await stage.requestFullscreen();else await document.exitFullscreen()}catch(e){}};
 fillPlaylist();
+
+/* Three.js space */
+const canvas=$("space");
+try{
+ scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x03040c,0.0038);
+ camera=new THREE.PerspectiveCamera(62,1,.1,1200);camera.position.z=90;
+ renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.8));
+ const positions=new Float32Array(2400*3), colors=new Float32Array(2400*3);
+ for(let i=0;i<2400;i++){positions[i*3]=(Math.random()-.5)*330;positions[i*3+1]=(Math.random()-.5)*210;positions[i*3+2]=(Math.random()-.5)*650;const c=new THREE.Color().setHSL(.52+Math.random()*.28,.85,.55+Math.random()*.3);colors.set([c.r,c.g,c.b],i*3)}
+ const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.BufferAttribute(positions,3));geo.setAttribute("color",new THREE.BufferAttribute(colors,3));
+ stars=new THREE.Points(geo,new THREE.PointsMaterial({size:1.05,vertexColors:true,transparent:true,opacity:.9,depthWrite:false}));scene.add(stars);
+ const coreGeo=new THREE.IcosahedronGeometry(17,2);coreMat=new THREE.MeshBasicMaterial({color:0xbd00ff,wireframe:true,transparent:true,opacity:.19});core=new THREE.Mesh(coreGeo,coreMat);scene.add(core);
+ const ringGeo=new THREE.TorusGeometry(23,.09,8,240);const ringMat=new THREE.MeshBasicMaterial({color:0x00f5ff,transparent:true,opacity:.65});const ring=new THREE.Mesh(ringGeo,ringMat);ring.rotation.x=1.05;scene.add(ring);
+ const ring2=new THREE.Mesh(new THREE.TorusGeometry(29,.045,6,240),new THREE.MeshBasicMaterial({color:0xbd00ff,transparent:true,opacity:.55}));ring2.rotation.y=.9;ring2.rotation.x=.4;scene.add(ring2);
+ clock=new THREE.Clock();
+ function resize3d(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}
+ window.addEventListener("resize",resize3d);resize3d();
+ function render3d(){
+  requestAnimationFrame(render3d);const t=clock.getElapsedTime();
+  stars.rotation.y+=.00045;stars.rotation.x=Math.sin(t*.08)*.025;
+  core.rotation.x=t*.12;core.rotation.y=t*.18;ring.rotation.z=t*.12;ring2.rotation.z=-t*.09;
+  let energy=0;
+  if(analyser&&freq&&playing){analyser.getByteFrequencyData(freq);for(let i=0;i<freq.length;i++)energy+=freq[i];energy=energy/freq.length/255}
+  const s=1+energy*.28;core.scale.setScalar(s);core.rotation.z=t*.06;
+  camera.position.x=Math.sin(t*.09)*2.2;camera.position.y=Math.cos(t*.11)*1.5;camera.lookAt(0,0,0);
+  renderer.render(scene,camera);
+ }
+ render3d();
+}catch(err){console.warn("3D renderer unavailable:",err)}
+
+/* Audio-reactive waveform */
+const wc=$("wave"),wctx=wc.getContext("2d");
+function drawWave(){
+ requestAnimationFrame(drawWave);
+ const dpr=Math.min(devicePixelRatio||1,2),w=wc.clientWidth,h=wc.clientHeight;
+ if(wc.width!==Math.floor(w*dpr)||wc.height!==Math.floor(h*dpr)){wc.width=Math.floor(w*dpr);wc.height=Math.floor(h*dpr)}
+ wctx.setTransform(dpr,0,0,dpr,0,0);wctx.clearRect(0,0,w,h);
+ if(analyser&&waveData&&playing)analyser.getByteTimeDomainData(waveData);
+ const mid=h*.5,points=Math.max(120,Math.floor(w*.8));
+ for(let layer=0;layer<3;layer++){
+  wctx.beginPath();wctx.lineWidth=layer===0?2.8:1.1;wctx.strokeStyle=layer===0?"#00f5ff":layer===1?"#bd00ff":"#ffffff88";
+  wctx.shadowBlur=layer===0?16:8;wctx.shadowColor=layer===1?"#bd00ff":"#00f5ff";
+  for(let i=0;i<=points;i++){
+   const x=i/points*w;let v=0;
+   if(analyser&&waveData&&playing){const j=Math.floor(i/points*(waveData.length-1));v=(waveData[j]-128)/128}
+   else v=Math.sin(i*.12+performance.now()*.0015+layer)*.08+Math.sin(i*.035-performance.now()*.001)*.04;
+   const amp=(playing? h*.38:h*.18)*(1-layer*.22);
+   const y=mid+v*amp+Math.sin(i*.08+performance.now()*.001+layer)*3;
+   if(i===0)wctx.moveTo(x,y);else wctx.lineTo(x,y);
+  }
+  wctx.stroke();
+ }
+ wctx.shadowBlur=0;
+}
+drawWave();
+
+/* Logo particle burst effect */
+const bc=$("burst"),bctx=bc.getContext("2d");
+let pArr=[],pMode=0;
+function setupBurst(){
+ bc.width=stage.clientWidth;bc.height=stage.clientHeight;
+}
+$("burst-btn").onclick=()=>{
+ const logoImg=$("logo");
+ if(!logoImg.src)return;
+ setupBurst();
+ pArr=[];pMode=1;
+ for(let i=0;i<350;i++){
+  pArr.push({
+   x: bc.width/2 + (Math.random()-.5)*120,
+   y: bc.height/2 + (Math.random()-.5)*120,
+   vx: (Math.random()-.5)*14,
+   vy: (Math.random()-.5)*14,
+   color: Math.random()>.5?"#00f5ff":"#bd00ff",
+   size: Math.random()*3+1.5
+  });
+ }
+ logoImg.style.opacity="0";
+ setTimeout(()=>{ pMode=2; },1200);
+ setTimeout(()=>{ pMode=0;logoImg.style.opacity="1";bctx.clearRect(0,0,bc.width,bc.height); },2500);
+};
+function animParticles(){
+ requestAnimationFrame(animParticles);
+ if(!pMode)return;
+ bctx.clearRect(0,0,bc.width,bc.height);
+ pArr.forEach(p=>{
+  if(pMode===1){p.x+=p.vx;p.y+=p.vy;}
+  else{
+   let tx=bc.width/2, ty=bc.height/2;
+   p.x+=(tx-p.x)*0.08;p.y+=(ty-p.y)*0.08;
+  }
+  bctx.fillStyle=p.color;bctx.beginPath();bctx.arc(p.x,p.y,p.size,0,Math.PI*2);bctx.fill();
+ });
+}
+animParticles();
+</script>
+</body>
+</html>
+"""
+
+player_html = (
+    (part_head + part_script)
+    .replace("__SONGS_REPLACE__", songs_json)
+    .replace("__LOGO_REPLACE__", logo_json)
+)
+
+components.html(player_html, height=800, scrolling=False)
