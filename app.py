@@ -3,6 +3,7 @@ import json
 import mimetypes
 from pathlib import Path
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="TA101 • NEON SPACE MUSIC",
@@ -529,5 +530,5 @@ updateBurst();
     .replace("__LOGO_REPLACE__", logo_json)
 )
 
-# ใช้ st.html ตามมาตรฐานสมัยใหม่ของ Streamlit ในการเรนเดอร์คอมโพเนนต์ HTML/JS ภายนอก
-st.html(f'<iframe srcdoc="{player_html}" width="100%" height="720px" style="border:none;"></iframe>')
+# ใช้ components.html แบบดั้งเดิมที่ปลอดภัยและรองรับการเรนเดอร์ UI 3D ได้สมบูรณ์ที่สุด
+components.html(player_html, height=720, scrolling=False)
