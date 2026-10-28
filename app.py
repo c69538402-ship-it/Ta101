@@ -522,7 +522,33 @@ drawSpectrum();
 page = page.replace("__TRACKS__", TRACKS_JSON)
 page = page.replace("__LOGO__", LOGO_JSON)
 
+# พื้นที่ฉากอวกาศและเครื่องเล่น HTML
 components.html(page, height=760, scrolling=False)
+
+# เครื่องเล่นสำรองใน Streamlit หากฉาก HTML มีปัญหา
+st.markdown("## 🎵 TA101 • MUSIC PLAYER")
+st.caption("เครื่องเล่นสำรอง — ใช้ทดสอบว่าไฟล์เพลงอ่านได้หรือไม่")
+
+song_names = [p.name for p in songs]
+selected_song = st.selectbox(
+    "เลือกเพลง",
+    range(len(songs)),
+    format_func=lambda i: song_names[i],
+    key="ta101_fallback_song"
+)
+
+st.audio(
+    str(songs[selected_song]),
+    format="audio/" + (
+        "mpeg" if songs[selected_song].suffix.lower() == ".mp3"
+        else songs[selected_song].suffix.lower().lstrip(".")
+    )
+)
+
+st.caption(
+    "TA101 • NEON 3D MUSIC | "
+    "เก็บ logo1.jpg และไฟล์เพลงเดิมไว้ในโฟลเดอร์เดียวกับ app.py"
+)
 
 st.caption(
     "TA101 • NEON 3D MUSIC | "
