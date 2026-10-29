@@ -135,8 +135,7 @@ filter:saturate(1.35);animation:nebula-drift 28s ease-in-out infinite alternate}
   <canvas id="logo-motion" aria-label="Animated TA101 logo"></canvas>
   <div id="logo-placeholder">TA101<br>NEON MUSIC</div>
   <canvas id="burst"></canvas>
-  <button id="
-  .burst-btn" type="button">✦ แตกตัว / ประกอบโลโก้</button>
+  <button id="burst-btn" type="button">✦ แตกตัว / ประกอบโลโก้</button>
  </div>
   <div class="hud">
   <div class="top">
@@ -432,12 +431,7 @@ $("bass").addEventListener("input",e=>{
 $("treble").addEventListener("input",e=>{
  const v=Number(e.target.value);
  $("treble-value").textContent=(v>0?"+":"")+v+" dB";
- if(trebleFilter&&ctx)trebleFilter.gain.setTargetAtTime(v,ctx.currentTime,.03);
-});
-
-/* ฉากอวกาศ 3 มิติด้วย Three.js */
-const canvas=$("space");
-try{
+ if(tre
  scene=new THREE.Scene();
  scene.fog=new THREE.FogExp2(0x03040c,0.0038);
  camera=new THREE.PerspectiveCamera(62,1,.1,1200);
@@ -515,6 +509,7 @@ try{
    for(let i=0;i<freq.length;i++)energy+=freq[i];
    energy=energy/freq.length/255;
   }
+
   core.scale.setScalar(1+energy*.28);
   core.rotation.z=t*.06;
   camera.position.x=Math.sin(t*.09)*2.2;
@@ -525,6 +520,8 @@ try{
  render3d();
 }catch(err){
  console.warn("3D renderer unavailable:",err);
+}
+
 /* กราฟเสียงหลายเส้น สูงขึ้น และตอบสนองต่อเพลงจริง */
 const wc=$("wave"),wctx=wc.getContext("2d");
 
@@ -610,7 +607,6 @@ function drawWave(){
  wctx.shadowBlur=0;
 }
 drawWave();
-
 /* โลโก้เคลื่อนไหวจากอนุภาคที่สร้างด้วยพิกเซลของ logo1.jpg */
 const lc=$("logo-motion"),lctx=lc.getContext("2d");
 const bc=$("burst"),bctx=bc.getContext("2d");
@@ -782,4 +778,4 @@ if not songs:
     st.info("ยังไม่พบไฟล์เพลงในโฟลเดอร์เดียวกับ app.py ให้วางไฟล์ MP3 ไว้ใน GitHub repository เดียวกัน")
 
 st.caption("🌌 ฉากอวกาศสร้างด้วย CSS และ Three.js ภายในแอป ไม่ใช้คลิปหรือภาพสต็อกภายนอก")
-components.html(player_html, height=980, scrolling=
+components.html(player_html, height=980, scrolling=False)
