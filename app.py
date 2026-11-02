@@ -1,4 +1,3 @@
-
 import base64
 from pathlib import Path
 import mimetypes
@@ -11,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ตกแต่งธีมหน้าเว็บด้วย CSS เบาๆ ให้เป็นแนวอวกาศนีออน
+# ธีมและการตกแต่ง CSS นีออนล้ำๆ พร้อมลูกเล่นขอบเรืองแสง
 st.markdown(
     """
     <style>
@@ -22,17 +21,26 @@ st.markdown(
     }
     h1 {
         font-family: 'Orbitron', sans-serif;
-        color: #00f5ff;
-        text-shadow: 0 0 10px #00f5ff, 0 0 20px #bd00ff;
+        color: var(--theme-color, #00f5ff);
+        text-shadow: 0 0 10px var(--theme-color, #00f5ff), 0 0 20px #bd00ff;
         text-align: center;
-        font-size: 24px !important;
+        font-size: 22px !important;
     }
     .subtitle {
         text-align: center;
         color: #a5b4fc;
-        font-size: 12px;
+        font-size: 11px;
         letter-spacing: 2px;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
+    }
+    .neon-card {
+        background: rgba(10, 14, 35, 0.75);
+        border: 1px solid rgba(0, 245, 255, 0.4);
+        box-shadow: 0 0 20px rgba(0, 245, 255, 0.15);
+        border-radius: 20px;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+        margin-bottom: 15px;
     }
     </style>
     """,
@@ -41,14 +49,14 @@ st.markdown(
 
 st.markdown("<h1>TA101 • NEON SPACE MUSIC</h1>", unsafe_allow_html=True)
 st.markdown(
-    '<div class="subtitle">3D COSMIC AUDIO EXPERIENCE (STABLE MODE)</div>',
+    '<div class="subtitle">✦ COSMIC AUDIO EXPERIENCE WITH NEON VIBES ✦</div>',
     unsafe_allow_html=True,
 )
 
 ROOT = Path(__file__).resolve().parent
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"}
 
-# 1. ค้นหาโลโก้และแสดงผล
+# 1. ค้นหาโลโก้และแสดงผลพร้อมกรอบนีออนเรืองแสง
 logo_path = None
 for candidate in ("logo1.jpg", "logo1.jpeg", "logo1.png", "โลโก้.jpg", "logo.jpg"):
   candidate_path = ROOT / candidate
@@ -61,7 +69,22 @@ if logo_path:
   with col2:
     st.image(str(logo_path), width=180, use_column_width=False)
 
-# 2. ค้นหาไฟล์เพลงทั้งหมด
+# 2. ลูกเล่น: แผงเลือกธีมสีนีออน (Theme Switcher)
+col_t1, col_t2, col_t3 = st.columns(3)
+if "theme" not in st.session_state:
+  st.session_state.theme = "#00f5ff"
+
+with col_t1:
+  if st.button("💙 ไซเบอร์ฟ้า"):
+    st.session_state.theme = "#00f5ff"
+with col_t2:
+  if st.button("💚 เมทริกซ์เขียว"):
+    st.session_state.theme = "#00ff82"
+with col_t3:
+  if st.button("🧡 ส้มโซลา"):
+    st.session_state.theme = "#ff7a00"
+
+# 3. ค้นหาไฟล์เพลงทั้งหมดในโฟลเดอร์
 songs = []
 for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
   if path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
@@ -69,38 +92,52 @@ for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
 
 if not songs:
   st.warning(
-      "⚠️ ไม่พบไฟล์เพลง (.mp3, .wav ฯลฯ) ในโฟลเดอร์โปรเจกต์ กรุณาอัปโหลดไฟล์เพลงไว้ข้างไฟล์ app.py"
+      "⚠️ ไม่พบไฟล์เพลง (.mp3, .wav ฯลฯ) ในโฟลเดอร์โปรเจกต์ กรุณาอัปโหลดไฟล์เพลง"
+      " ไว้ข้างไฟล์ app.py"
   )
 else:
-  # 3. เลือกเพลงผ่าน Selectbox (ใช้งานง่าย ไม่หลุด ไม่จอดำ)
-  song_names = [f"{i+1}. {s['name']}" for i, s in enumerate(songs)]
-  selected_song_label = st.selectbox("เลือกเพลง:", song_names)
+  # จัดการ State ของการเปลี่ยนเพลง
+  if "song_index" not in st.session_state:
+    st.session_state.song_index = 0
 
-  # หา index ของเพลงที่เลือก
-  selected_index = song_names.index(selected_song_label)
-  current_song = songs[selected_index]
+  st.markdown('<div class="neon-card">', unsafe_allow_html=True)
+
+  # เลือกเพลงผ่าน Selectbox
+  song_names = [f"{i+1}. {s['name']}" for i, s in enumerate(songs)]
+  selected_label = st.selectbox(
+      "🎧 เลือกแทร็กเพลงในเพลย์ลิสต์:",
+      song_names,
+      index=st.session_state.song_index,
+  )
+
+  # อัปเดต Index ตาม Selectbox
+  st.session_state.song_index = song_names.index(selected_label)
+  current_song = songs[st.session_state.song_index]
 
   st.markdown(f"### 🎵 กำลังเล่น: {current_song['name']}")
 
-  # 4. ตัวเล่นเสียงมาตรฐานของ Streamlit รองรับมือถือและคอมพิวเตอร์สมบูรณ์แบบ
+  # ตัวเล่นเสียง
   audio_bytes = current_song["path"].read_bytes()
   mime_type = mimetypes.guess_type(current_song["path"].name)[0] or "audio/mpeg"
   st.audio(audio_bytes, format=mime_type)
 
-  # ปุ่มเปลี่ยนเพลงแบบง่าย
-  col_prev, col_next = st.columns(2)
-  with col_prev:
+  # ปุ่มควบคุมย้อนกลับ / ถัดไป
+  c1, c2 = st.columns(2)
+  with c1:
     if st.button("⏮ เพลงก่อนหน้า", use_container_width=True):
-      new_index = (selected_index - 1) % len(songs)
+      st.session_state.song_index = (st.session_state.song_index - 1) % len(songs)
       st.rerun()
-  with col_next:
+  with c2:
     if st.button("⏭ เพลงถัดไป", use_container_width=True):
-      new_index = (selected_index + 1) % len(songs)
+      st.session_state.song_index = (st.session_state.song_index + 1) % len(songs)
       st.rerun()
 
+  st.markdown("</div>", unsafe_allow_html=True)
+
+# ส่วนท้ายสไตล์อวกาศ
 st.markdown("---")
 st.markdown(
-    "<p style='text-align: center; font-size: 10px; color: #64748b;'>SPACE"
-    " • LIGHT • SOUND • 1.618 ENERGY</p>",
+    "<p style='text-align: center; font-size: 10px; color: #94a3b8; "
+    "letter-spacing: 2px;'>SPACE • LIGHT • SOUND • 1.618 ENERGY</p>",
     unsafe_allow_html=True,
 )
