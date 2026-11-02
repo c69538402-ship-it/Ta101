@@ -57,22 +57,20 @@ audio{width:100%;margin-top:5px}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
-let songs = [], currentIndex = 0;
+let songs = __SONGS__;
+let logoData = __LOGO__;
+let currentIndex = 0;
 const audio = document.getElementById('audio');
 
-// รับข้อมูลเพลงและโลโก้จาก Streamlit ผ่าน postMessage หรือฝังตัวแปร
-window.addEventListener('message', (e) => {
-    if(e.data && e.data.songs) {
-        songs = e.data.songs;
-        initPlaylist();
-    }
-    if(e.data && e.data.logo) {
-        if(e.data.logo) {
-            document.getElementById('logo').src = e.data.logo;
-            document.getElementById('logo').style.display = 'block';
-        }
-    }
-});
+// โหลดข้อมูลโลโก้อัตโนมัติหากมี
+if (logoData) {
+    const logoEl = document.getElementById('logo');
+    logoEl.src = logoData;
+    logoEl.style.display = 'block';
+}
+
+// เริ่มต้นใช้งานเพลย์ลิสต์ทันทีที่โหลดหน้าเว็บ
+initPlaylist();
 
 function startApp(){
     document.getElementById('start').style.display = 'none';
@@ -82,6 +80,12 @@ function startApp(){
 function initPlaylist(){
     const sel = document.getElementById('playlist');
     sel.innerHTML = '';
+    if(songs.length === 0) {
+        let opt = document.createElement('option');
+        opt.textContent = "ไม่พบไฟล์เพลงในระบบ";
+        sel.appendChild(opt);
+        return;
+    }
     songs.forEach((s, i) => {
         let opt = document.createElement('option');
         opt.value = i;
