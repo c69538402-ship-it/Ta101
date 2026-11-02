@@ -57,4 +57,9 @@ player_html = (
     .replace("__LOGO__", logo_json)
 )
 
-components.html(player_html, height=900, scrolling=False)
+# บันทึก player_html ลงเป็นไฟล์ชั่วคราวสำหรับ iframe
+html_file = ROOT / "index.html"
+html_file.write_text(player_html, encoding="utf-8")
+
+# ใช้ st.iframe แทนตามคำเตือนของ Streamlit
+st.iframe(src="app/static/index.html" if (ROOT / "static").exists() else "index.html", height=900, scrolling=False)
