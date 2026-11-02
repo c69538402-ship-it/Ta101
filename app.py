@@ -57,5 +57,5 @@ player_html = (
     .replace("__LOGO__", logo_json)
 )
 
-# ใช้ st.components.v1.html แบบเดิมแต่ปลอดภัยและไม่ติดพารามิเตอร์เกิน
+# ใช้ st.components.v1.html แบบไม่มีปัญหาเรื่องพารามิเตอร์ scrolling เกิน
 components.html(player_html, height=900, scrolling=False)
