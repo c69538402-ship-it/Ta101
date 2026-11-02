@@ -1,3 +1,4 @@
+
 import base64
 import json
 import mimetypes
@@ -29,7 +30,7 @@ for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
     except OSError:
       continue
 
-songs_json = json.dumps(songs, ensure_ascii=False)
+songs_json = json.dumps(songs, ensure_ascii=False).replace("</", "<\\/")
 
 # ค้นหาไฟล์โลโก้
 logo_data = ""
@@ -45,8 +46,8 @@ for candidate in ("logo1.jpg", "logo1.jpeg", "logo1.png", "โลโก้.jpg",
 
 logo_json = json.dumps(logo_data)
 
-# โค้ด HTML / CSS / JavaScript ตัวเล่นเพลงและเอฟเฟกต์อวกาศนีออน (ใช้ Canvas 2D ป้องกันจอดำ 100%)
-player_html = f"""
+# ใช้ triple quotes ธรรมดา (ไม่มีตัว f) เพื่อป้องกันปัญหากับปีกกา {} ใน JavaScript
+player_html = """
 <!doctype html>
 <html lang="th">
 <head>
@@ -54,25 +55,25 @@ player_html = f"""
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Prompt:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{{--a:#00f5ff;--b:#bd00ff;--panel:rgba(5,8,25,0.85)}}
-*{{box-sizing:border-box}}
-html,body{{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;color:#fff;font-family:Prompt,sans-serif}}
-#stage{{position:relative;width:100%;height:100vh;overflow:hidden;background:radial-gradient(circle at center,#10133c 0%,#050615 50%,#010208 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}}
-canvas{{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}}
-.hud{{position:relative;z-index:2;width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;gap:15px}}
-.brand{{font-family:Orbitron,sans-serif;font-weight:900;letter-spacing:3px;font-size:22px;text-align:center;color:#eafcff;text-shadow:0 0 10px var(--a),0 0 20px var(--b)}}
-.logo-box{{width:100px;height:100px;border-radius:50%;border:2px solid var(--a);box-shadow:0 0 20px var(--a),0 0 40px var(--b);overflow:hidden;background:#060817;display:grid;place-items:center}}
-.logo-box img{{width:100%;height:100%;object-fit:cover}}
-.panel{{width:100%;border:1px solid var(--a);border-radius:20px;padding:15px;background:var(--panel);backdrop-filter:blur(15px);box-shadow:0 0 25px rgba(0,255,255,0.25)}}
-#track-title{{font-size:14px;font-weight:700;color:var(--a);text-align:center;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
-select{{width:100%;padding:8px;background:#060817;color:#fff;border:1px solid var(--a);border-radius:8px;margin-bottom:10px;font-family:Prompt,sans-serif}}
-audio{{width:100%;margin-top:5px;filter:drop-shadow(0 0 5px var(--a))}}
-.controls{{display:flex;justify-content:center;gap:12px;margin-top:10px}}
-.neon-btn{{background:linear-gradient(45deg,var(--b),var(--a));border:none;color:white;padding:8px 18px;font-weight:bold;border-radius:20px;cursor:pointer;font-size:12px;box-shadow:0 0 10px var(--a)}}
-#start-screen{{position:fixed;inset:0;background:#02030bf8;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}}
-#start-screen h2{{font-family:Orbitron,sans-serif;color:var(--a);text-shadow:0 0 15px var(--a);margin-bottom:10px}}
-#start-screen p{{color:#a5b4fc;font-size:13px;max-width:350px;line-height:1.6}}
-#start-screen button{{margin-top:15px;padding:12px 28px;border:0;border-radius:25px;color:#fff;font-weight:bold;background:linear-gradient(90deg,var(--a),var(--b));cursor:pointer;box-shadow:0 0 20px var(--a);font-size:14px}}
+:root{--a:#00f5ff;--b:#bd00ff;--panel:rgba(5,8,25,0.85)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;color:#fff;font-family:Prompt,sans-serif}
+#stage{position:relative;width:100%;height:100vh;overflow:hidden;background:radial-gradient(circle at center,#10133c 0%,#050615 50%,#010208 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+canvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.hud{position:relative;z-index:2;width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;gap:15px}
+.brand{font-family:Orbitron,sans-serif;font-weight:900;letter-spacing:3px;font-size:22px;text-align:center;color:#eafcff;text-shadow:0 0 10px var(--a),0 0 20px var(--b)}
+.logo-box{width:100px;height:100px;border-radius:50%;border:2px solid var(--a);box-shadow:0 0 20px var(--a),0 0 40px var(--b);overflow:hidden;background:#060817;display:grid;place-items:center}
+.logo-box img{width:100%;height:100%;object-fit:cover}
+.panel{width:100%;border:1px solid var(--a);border-radius:20px;padding:15px;background:var(--panel);backdrop-filter:blur(15px);box-shadow:0 0 25px rgba(0,255,255,0.25)}
+#track-title{font-size:14px;font-weight:700;color:var(--a);text-align:center;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+select{width:100%;padding:8px;background:#060817;color:#fff;border:1px solid var(--a);border-radius:8px;margin-bottom:10px;font-family:Prompt,sans-serif}
+audio{width:100%;margin-top:5px;filter:drop-shadow(0 0 5px var(--a))}
+.controls{display:flex;justify-content:center;gap:12px;margin-top:10px}
+.neon-btn{background:linear-gradient(45deg,var(--b),var(--a));border:none;color:white;padding:8px 18px;font-weight:bold;border-radius:20px;cursor:pointer;font-size:12px;box-shadow:0 0 10px var(--a)}
+#start-screen{position:fixed;inset:0;background:#02030bf8;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+#start-screen h2{font-family:Orbitron,sans-serif;color:var(--a);text-shadow:0 0 15px var(--a);margin-bottom:10px}
+#start-screen p{color:#a5b4fc;font-size:13px;max-width:350px;line-height:1.6}
+#start-screen button{margin-top:15px;padding:12px 28px;border:0;border-radius:25px;color:#fff;font-weight:bold;background:linear-gradient(90deg,var(--a),var(--b));cursor:pointer;box-shadow:0 0 20px var(--a);font-size:14px}
 </style>
 </head>
 <body>
@@ -104,17 +105,17 @@ audio{{width:100%;margin-top:5px;filter:drop-shadow(0 0 5px var(--a))}}
 </div>
 
 <script>
-const songs = {songs_json};
-const logoData = {logo_json};
+const songs = __SONGS__;
+const logoData = __LOGO__;
 let currentIndex = 0;
 const audio = document.getElementById('audio');
 
-if(logoData) {{
+if(logoData) {
     const img = document.getElementById('logo-img');
     img.src = logoData;
     img.style.display = 'block';
     document.getElementById('logo-text').style.display = 'none';
-}}
+}
 
 function startApp(){
     document.getElementById('start-screen').style.display = 'none';
@@ -131,12 +132,12 @@ function initPlaylist(){
         document.getElementById('track-title').textContent = "ไม่พบไฟล์เพลง (.mp3)";
         return;
     }
-    songs.forEach((s, i) => {{
+    songs.forEach((s, i) => {
         let opt = document.createElement('option');
         opt.value = i;
         opt.textContent = (i+1) + ". " + s.name;
         sel.appendChild(opt);
-    }});
+    });
     sel.onchange = (e) => playSong(Number(e.target.value));
 }
 
@@ -167,25 +168,25 @@ function resize(){
 window.onresize = resize;
 resize();
 
-for(let i=0; i<100; i++){{
-    stars.push({{
+for(let i=0; i<100; i++){
+    stars.push({
         x: Math.random() * width,
         y: Math.random() * height,
         size: Math.random() * 2,
         speed: Math.random() * 0.4 + 0.1
-    }});
-}});
+    });
+}
 
 function animate(){
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = "#00f5ff";
-    stars.forEach(s => {{
+    stars.forEach(s => {
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
         ctx.fill();
         s.y -= s.speed;
         if(s.y < 0) s.y = height;
-    }});
+    });
     requestAnimationFrame(animate);
 }
 animate();
@@ -193,5 +194,12 @@ animate();
 </body>
 </html>
 """
+
+# แทนที่ค่าตัวแปรเพลงและโลโก้ลงใน HTML
+player_html = (
+    player_html
+    .replace("__SONGS__", songs_json)
+    .replace("__LOGO__", logo_json)
+)
 
 components.html(player_html, height=720, scrolling=False)
