@@ -431,351 +431,44 @@ $("bass").addEventListener("input",e=>{
 $("treble").addEventListener("input",e=>{
  const v=Number(e.target.value);
  $("treble-value").textContent=(v>0?"+":"")+v+" dB";
- if(tre
- scene=new THREE.Scene();
- scene.fog=new THREE.FogExp2(0x03040c,0.0038);
- camera=new THREE.PerspectiveCamera(62,1,.1,1200);
- camera.position.z=90;
- renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
- renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.8));
+ if(trebleFilter&&ctx)trebleFilter.gain.setTargetAtTime(v,ctx.currentTime,.03);
+});
 
- const positions=new Float32Array(2400*3);
- const colors=new Float32Array(2400*3);
+/* Canvas Visualizer Wave */
+const canvasWave = $("wave");
+const wCtx = canvasWave.getContext("2d");
 
- for(let i=0;i<2400;i++){
-  positions[i*3]=(Math.random()-.5)*330;
-  positions[i*3+1]=(Math.random()-.5)*210;
-  positions[i*3+2]=(Math.random()-.5)*650;
-  const c=new THREE.Color().setHSL(.52+Math.random()*.28,.85,.55+Math.random()*.3);
-  colors.set([c.r,c.g,c.b],i*3);
- }
+function resizeWave(){
+ canvasWave.width = canvasWave.clientWidth * window.devicePixelRatio;
+ canvasWave.height = canvasWave.clientHeight * window.devicePixelRatio;
+}
+window.addEventListener("resize", resizeWave);
+resizeWave();
 
- const geo=new THREE.BufferGeometry();
- geo.setAttribute("position",new THREE.BufferAttribute(positions,3));
- geo.setAttribute("color",new THREE.BufferAttribute(colors,3));
-
- stars=new THREE.Points(geo,new THREE.PointsMaterial({
-  size:1.05,vertexColors:true,transparent:true,opacity:.9,depthWrite:false
- }));
- scene.add(stars);
-
- const coreGeo=new THREE.IcosahedronGeometry(17,2);
- coreMat=new THREE.MeshBasicMaterial({
-  color:0xbd00ff,wireframe:true,transparent:true,opacity:.19
- });
- const core=new THREE.Mesh(coreGeo,coreMat);
- scene.add(core);
-
- const ringGeo=new THREE.TorusGeometry(23,.09,8,240);
- const ringMat=new THREE.MeshBasicMaterial({
-  color:0x00f5ff,transparent:true,opacity:.65
- });
- const ring=new THREE.Mesh(ringGeo,ringMat);
- ring.rotation.x=1.05;
- scene.add(ring);
-
- const ring2=new THREE.Mesh(
-  new THREE.TorusGeometry(29,.045,6,240),
-  new THREE.MeshBasicMaterial({color:0xbd00ff,transparent:true,opacity:.55})
- );
- ring2.rotation.y=.9;
- ring2.rotation.x=.4;
- scene.add(ring2);
-
- clock=new THREE.Clock();
-
- function resize3d(){
-  const w=stage.clientWidth,h=stage.clientHeight;
-  camera.aspect=w/h;
-  camera.updateProjectionMatrix();
-  renderer.setSize(w,h,false);
- }
- window.addEventListener("resize",resize3d);
- resize3d();
-
- function render3d(){
-  requestAnimationFrame(render3d);
-  const t=clock.getElapsedTime();
-  stars.rotation.y+=.00045;
-  stars.rotation.x=Math.sin(t*.08)*.025;
-  core.rotation.x=t*.12;
-  core.rotation.y=t*.18;
-  ring.rotation.z=t*.12;
-  ring2.rotation.z=-t*.09;
-
-  let energy=0;
-  if(analyser&&freq&&playing){
-   analyser.getByteFrequencyData(freq);
-   for(let i=0;i<freq.length;i++)energy+=freq[i];
-   energy=energy/freq.length/255;
+function drawVisualizer(){
+ requestAnimationFrame(drawVisualizer);
+ wCtx.clearRect(0, 0, canvasWave.width, canvasWave.height);
+ 
+ if(analyser && playing){
+  analyser.getByteTimeDomainData(waveData);
+  wCtx.lineWidth = 2 * window.devicePixelRatio;
+  wCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--a').trim() || "#00f5ff";
+  wCtx.beginPath();
+  
+  const sliceWidth = canvasWave.width / waveData.length;
+  let x = 0;
+  for(let i=0; i<waveData.length; i++){
+   const v = waveData[i] / 128.0;
+   const y = v * canvasWave.height / 2;
+   if(i === 0) wCtx.moveTo(x, y);
+   else wCtx.lineTo(x, y);
+   x += sliceWidth;
   }
-
-  core.scale.setScalar(1+energy*.28);
-  core.rotation.z=t*.06;
-  camera.position.x=Math.sin(t*.09)*2.2;
-  camera.position.y=Math.cos(t*.11)*1.5;
-  camera.lookAt(0,0,0);
-  renderer.render(scene,camera);
+  wCtx.lineTo(canvasWave.width, canvasWave.height/2);
+  wCtx.stroke();
  }
- render3d();
-}catch(err){
- console.warn("3D renderer unavailable:",err);
 }
-
-/* กราฟเสียงหลายเส้น สูงขึ้น และตอบสนองต่อเพลงจริง */
-const wc=$("wave"),wctx=wc.getContext("2d");
-
-function drawWave(){
- requestAnimationFrame(drawWave);
-
- const dpr=Math.min(devicePixelRatio||1,2);
- const w=wc.clientWidth,h=wc.clientHeight;
- if(!w||!h)return;
-
- if(wc.width!==Math.floor(w*dpr)||wc.height!==Math.floor(h*dpr)){
-  wc.width=Math.floor(w*dpr);
-  wc.height=Math.floor(h*dpr);
- }
-
- wctx.setTransform(dpr,0,0,dpr,0,0);
- wctx.clearRect(0,0,w,h);
-
- if(analyser&&waveData&&playing)analyser.getByteTimeDomainData(waveData);
- if(analyser&&freq&&playing)analyser.getByteFrequencyData(freq);
-
- const mid=h*.5;
- const points=Math.max(160,Math.floor(w*.95));
- const barCount=Math.min(100,Math.floor(w/7));
- const barGap=2;
- const barW=Math.max(2,(w-(barCount-1)*barGap)/barCount);
-
- for(let i=0;i<barCount;i++){
-  let level=0;
-
-  if(analyser&&freq&&playing){
-   const j=Math.floor(i/barCount*freq.length);
-   level=freq[j]/255;
-  }else{
-   level=.08+.08*(.5+.5*Math.sin(i*.32+performance.now()*.002));
-  }
-
-  const bh=Math.max(3,level*h*.42);
-  const grad=wctx.createLinearGradient(0,mid-bh,0,mid+bh);
-  grad.addColorStop(0,"#bd00ff");
-  grad.addColorStop(.5,"#ffffff");
-  grad.addColorStop(1,"#00f5ff");
-
-  wctx.fillStyle=grad;
-  wctx.globalAlpha=.65;
-  wctx.fillRect(i*(barW+barGap),mid-bh,barW,bh*2);
- }
-
- wctx.globalAlpha=1;
-
- const palette=["#00f5ff","#bd00ff","#ffffff","#ff45df","#38a8ff"];
-
- for(let layer=0;layer<5;layer++){
-  wctx.beginPath();
-  wctx.lineWidth=layer===0?3.2:layer===1?2:1.2;
-  wctx.strokeStyle=palette[layer];
-  wctx.shadowBlur=layer===0?24:14;
-  wctx.shadowColor=palette[layer];
-
-  for(let i=0;i<=points;i++){
-   const x=i/points*w;
-   let v;
-
-   if(analyser&&waveData&&playing){
-    const j=Math.floor(i/points*(waveData.length-1));
-    v=(waveData[j]-128)/128;
-   }else{
-    v=Math.sin(i*.12+performance.now()*.0015+layer)*.18+
-      Math.sin(i*.035-performance.now()*.001)*.1;
-   }
-
-   const amplitude=(playing?h*.72:h*.28)*(1-layer*.105);
-   const y=mid+v*amplitude+
-     Math.sin(i*.08+performance.now()*.001+layer*1.4)*(2+layer);
-
-   if(i===0)wctx.moveTo(x,y);
-   else wctx.lineTo(x,y);
-  }
-
-  wctx.stroke();
- }
-
- wctx.shadowBlur=0;
-}
-drawWave();
-/* โลโก้เคลื่อนไหวจากอนุภาคที่สร้างด้วยพิกเซลของ logo1.jpg */
-const lc=$("logo-motion"),lctx=lc.getContext("2d");
-const bc=$("burst"),bctx=bc.getContext("2d");
-let logoParticles=[],burstMode=0,burstStart=performance.now(),logoImage=null;
-
-function fitCanvas(el,ctx){
- const dpr=Math.min(devicePixelRatio||1,2);
- const w=el.clientWidth,h=el.clientHeight;
-
- if(!w||!h)return null;
-
- if(el.width!==Math.floor(w*dpr)||el.height!==Math.floor(h*dpr)){
-  el.width=Math.floor(w*dpr);
-  el.height=Math.floor(h*dpr);
- }
-
- ctx.setTransform(dpr,0,0,dpr,0,0);
- return {w,h,dpr};
-}
-
-function buildAnimatedLogo(){
- const size=fitCanvas(lc,lctx);
- fitCanvas(bc,bctx);
-
- if(!size||!LOGO)return;
-
- logoImage=new Image();
-
- logoImage.onload=()=>{
-  const off=document.createElement("canvas");
-  const oc=off.getContext("2d");
-
-  off.width=150;
-  off.height=150;
-  oc.clearRect(0,0,150,150);
-  oc.drawImage(logoImage,0,0,150,150);
-
-  const data=oc.getImageData(0,0,150,150).data;
-  logoParticles=[];
-
-  const step=3;
-  const scale=Math.min(size.w,size.h)*.86/150;
-
-  for(let y=0;y<150;y+=step){
-   for(let x=0;x<150;x+=step){
-    const k=(y*150+x)*4;
-    const alpha=data[k+3]/255;
-    if(alpha<.18)continue;
-
-    const tx=size.w/2+(x-75)*scale;
-    const ty=size.h/2+(y-75)*scale;
-    const angle=Math.random()*Math.PI*2;
-    const dist=30+Math.random()*Math.max(size.w,size.h)*.7;
-
-    logoParticles.push({
-     tx,ty,
-     sx:size.w/2+Math.cos(angle)*dist,
-     sy:size.h/2+Math.sin(angle)*dist,
-     r:.7+Math.random()*1.5,
-     color:`rgba(${data[k]},${data[k+1]},${data[k+2]},${Math.max(.35,alpha)})`,
-     phase:Math.random()*Math.PI*2
-    });
-   }
-  }
- };
-
- logoImage.src=LOGO;
-}
-
-function triggerBurst(){
- if(!logoParticles.length)return;
-
- burstMode=burstMode===1?0:1;
- burstStart=performance.now();
-
- $("burst-btn").textContent=burstMode
-  ?"✦ ประกอบโลโก้กลับ"
-  :"✦ แตกตัว / ประกอบโลโก้";
-}
-
-$("burst-btn").onclick=triggerBurst;
-
-function animateLogo(){
- requestAnimationFrame(animateLogo);
-
- const size=fitCanvas(lc,lctx);
- fitCanvas(bc,bctx);
-
- if(!size||!logoParticles.length)return;
-
- const {w,h}=size;
- const now=performance.now();
- const t=now*.001;
-
- let energy=0;
-
- if(analyser&&freq&&playing){
-  analyser.getByteFrequencyData(freq);
-  for(let i=0;i<freq.length;i++)energy+=freq[i];
-  energy=energy/freq.length/255;
- }
-
- lctx.clearRect(0,0,w,h);
- bctx.clearRect(0,0,bc.clientWidth,bc.clientHeight);
-
- const progress=Math.min(1,(now-burstStart)/1300);
- const scatter=burstMode?progress:1-progress;
-
- for(const q of logoParticles){
-  const drift=Math.sin(t*1.7+q.phase)*(1.5+energy*8);
-  const flutter=Math.cos(t*1.3+q.phase)*(1.5+energy*8);
-
-  const tx=q.tx+drift;
-  const ty=q.ty+flutter;
-  const sx=q.sx+Math.sin(t+q.phase)*22;
-  const sy=q.sy+Math.cos(t*.9+q.phase)*22;
-
-  const x=tx+(sx-tx)*scatter;
-  const y=ty+(sy-ty)*scatter;
-  const radius=q.r*(1+energy*1.8)*(1+Math.sin(t*2+q.phase)*.13);
-
-  lctx.beginPath();
-  lctx.fillStyle=q.color;
-  lctx.shadowColor=Math.random()>.5?"#00f5ff":"#bd00ff";
-  lctx.shadowBlur=8+energy*18;
-  lctx.arc(x,y,radius,0,Math.PI*2);
-  lctx.fill();
-
-  if(burstMode&&Math.random()>.68){
-   bctx.beginPath();
-   bctx.fillStyle=q.color;
-   bctx.shadowColor="#00f5ff";
-   bctx.shadowBlur=10;
-   bctx.arc(x,y,Math.max(.6,radius*.65),0,Math.PI*2);
-   bctx.fill();
-  }
- }
-
- lctx.shadowBlur=0;
- bctx.shadowBlur=0;
-}
-
-buildAnimatedLogo();
-animateLogo();
-window.addEventListener("resize",buildAnimatedLogo);
+drawVisualizer();
 </script>
 </body>
-</html>"""
-
-player_html = (
-    player_html
-    .replace("__SONGS__", songs_json)
-    .replace("__LOGO__", logo_json)
-)
-
-st.markdown(
-    """
-    <style>
-    #MainMenu, footer, header {visibility:hidden;}
-    .stApp, [data-testid="stAppViewContainer"] {background:#02030b;}
-    .block-container {padding:0 !important;max-width:100% !important;}
-    iframe {border:0 !important;}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-if not songs:
-    st.info("ยังไม่พบไฟล์เพลงในโฟลเดอร์เดียวกับ app.py ให้วางไฟล์ MP3 ไว้ใน GitHub repository เดียวกัน")
-
-st.caption("🌌 ฉากอวกาศสร้างด้วย CSS และ Three.js ภายในแอป ไม่ใช้คลิปหรือภาพสต็อกภายนอก")
-components.html(player_html, height=980, scrolling=False)
+</html>
