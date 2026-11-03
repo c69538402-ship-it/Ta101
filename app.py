@@ -23,7 +23,7 @@ if "shuffle_mode" not in st.session_state:
 
 theme_color = st.session_state.neon_color
 
-# CSS ออกแบบสไตล์ Hi-Fi MP3 Player นีออนล้ำๆ
+# CSS ออกแบบสไตล์ Hi-Fi MP3 พร้อมแอนิเมชันคลื่นเสียงเต้นตามจังหวะ
 st.markdown(f"""
     <style>
     .stApp {{
@@ -66,6 +66,35 @@ st.markdown(f"""
         text-align: center;
         margin-bottom: 15px;
     }}
+    /* แอนิเมชันคลื่นเสียงเต้นตามเพลง */
+    .equalizer {{
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        gap: 4px;
+        height: 25px;
+        margin-top: 8px;
+    }}
+    .bar {{
+        width: 4px;
+        background: {theme_color};
+        box-shadow: 0 0 8px {theme_color};
+        border-radius: 2px;
+        animation: bounce 0.8s infinite ease-in-out alternate;
+    }}
+    .bar:nth-child(1) {{ animation-delay: 0.1s; height: 10px; }}
+    .bar:nth-child(2) {{ animation-delay: 0.3s; height: 20px; }}
+    .bar:nth-child(3) {{ animation-delay: 0.2s; height: 15px; }}
+    .bar:nth-child(4) {{ animation-delay: 0.5s; height: 25px; }}
+    .bar:nth-child(5) {{ animation-delay: 0.2s; height: 18px; }}
+    .bar:nth-child(6) {{ animation-delay: 0.4s; height: 12px; }}
+    .bar:nth-child(7) {{ animation-delay: 0.1s; height: 22px; }}
+    
+    @keyframes bounce {{
+        0% {{ transform: scaleY(0.3); opacity: 0.5; }}
+        100% {{ transform: scaleY(1.2); opacity: 1; filter: drop-shadow(0 0 6px {theme_color}); }}
+    }}
+
     .badge {{
         display: inline-block;
         padding: 3px 10px;
@@ -164,11 +193,21 @@ else:
 
     current_song = songs[st.session_state.song_index]
 
-    # หน้าจอ LCD จำลองแสดงเพลงที่กำลังเล่น
+    # หน้าจอ LCD จำลองแสดงเพลงที่กำลังเล่น + แถบคลื่นเสียงเต้นระบำ (Equalizer)
     st.markdown(f"""
         <div class="lcd-screen">
             <div style="font-size: 10px; color: #a5b4fc; letter-spacing: 2px; margin-bottom: 4px;">NOW PLAYING MP3</div>
             <div style="color: {theme_color}; font-weight: bold; font-size: 14px; text-shadow: 0 0 8px {theme_color};">🎵 {current_song['name']}</div>
+            
+            <div class="equalizer">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -177,10 +216,38 @@ else:
     mime_type = mimetypes.guess_type(current_song["path"].name)[0] or "audio/mpeg"
     st.audio(audio_bytes, format=mime_type)
 
-    # 4. แผงปุ่มควบคุมสไตล์เครื่องเล่น MP3 (ก่อนหน้า, สุ่ม, วนซ้ำ, ถัดไป)
+    # 4. แผงปุ่มควบคุมสไตล์เครื่องเล่น MP3
     col_ctrl1, col_ctrl2, col_ctrl3, col_ctrl4 = st.columns(4)
     
     with col_ctrl1:
         if st.button("⏮ ก่อนหน้า"):
-            st
+            st.session_state.song_index = (st.session_state.song_index - 1) % len(songs)
+            st.rerun()
             
+    with col_ctrl2:
+        shuffle_label = "🔀 สุ่ม: เปิด" if st.session_state.shuffle_mode else "🔀 สุ่ม: ปิด"
+        if st.button(shuffle_label):
+            st.session_state.shuffle_mode = not st.session_state.shuffle_mode
+            if st.session_state.shuffle_mode:
+                st.session_state.song_index = random.randint(0, len(songs) - 1)
+            st.rerun()
+            
+    with col_ctrl3:
+        loop_label = "🔁 วนซ้ำ" if not st.session_state.loop_mode else "⏹ หยุดวน"
+        if st.button(loop_label):
+            st.session_state.loop_mode = not st.session_state.loop_mode
+            st.rerun()
+            
+    with col_ctrl4:
+        if st.button("ถัดไป ⏭"):
+            if st.session_state.shuffle_mode:
+                st.session_state.song_index = random.randint(0, len(songs) - 1)
+            else:
+                st.session_state.song_index = (st.session_state.song_index + 1) % len(songs)
+            st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ส่วนท้าย
+st.markdown("---")
+st.markdown("<p style='text-align: center; font-size: 9px; color: #64748b; letter-spacing: 2px;'>TA101 HI-FI DIGITAL AUDIO PLAYER • STABLE ENGINE</p>", unsafe_allow_html=True)
