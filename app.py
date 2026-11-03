@@ -279,6 +279,248 @@ else:
             
     with col_ctrl4:
         if st.button("ถัดไป ⏭"):
+            if st.import base64
+from pathlib import Path
+import mimetypes
+import streamlit as st
+import random
+
+st.set_page_config(
+    page_title="TA101 • CYBERPUNK HI-FI SPACE",
+    page_icon="🌌",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
+
+# จัดการค่าเริ่มต้นใน Session State
+if "neon_color" not in st.session_state:
+    st.session_state.neon_color = "#00f5ff" # สีฟ้าไซเบอร์
+if "song_index" not in st.session_state:
+    st.session_state.song_index = 0
+if "loop_mode" not in st.session_state:
+    st.session_state.loop_mode = False
+if "shuffle_mode" not in st.session_state:
+    st.session_state.shuffle_mode = False
+
+theme_color = st.session_state.neon_color
+
+# CSS ออกแบบระดับไฮเอนด์ หรูหรา ล้ำอนาคต มิติลอยตัว
+st.markdown(f"""
+    <style>
+    .stApp {{
+        background: radial-gradient(circle at center, #090d29 0%, #03040f 55%, #010206 100%);
+        color: #ffffff;
+        font-family: 'Prompt', sans-serif;
+    }}
+    h1 {{
+        font-family: 'Orbitron', sans-serif;
+        color: {theme_color};
+        text-shadow: 0 0 15px {theme_color}, 0 0 30px {theme_color}, 0 0 50px #7000ff;
+        text-align: center;
+        font-size: 22px !important;
+        letter-spacing: 3px;
+        margin-bottom: 0px;
+    }}
+    .subtitle {{
+        text-align: center;
+        color: #a5b4fc;
+        font-size: 10px;
+        letter-spacing: 4px;
+        margin-bottom: 15px;
+        text-shadow: 0 0 8px rgba(165,180,252,0.6);
+    }}
+    /* โลโก้โฮโลแกรมลอยตัวระดับไฮเอนด์ */
+    .hologram-wrap {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 15px;
+    }}
+    .hologram-ring {{
+        width: 135px;
+        height: 135px;
+        border-radius: 50%;
+        border: 2px solid {theme_color};
+        box-shadow: 0 0 25px {theme_color}, inset 0 0 20px {theme_color}, 0 15px 30px rgba(0,0,0,0.8);
+        overflow: hidden;
+        animation: pulseGlow 3s ease-in-out infinite alternate;
+        background: #02040a;
+    }}
+    @keyframes pulseGlow {{
+        0% {{ box-shadow: 0 0 15px {theme_color}, inset 0 0 15px {theme_color}; transform: scale(1); }}
+        100% {{ box-shadow: 0 0 35px {theme_color}, inset 0 0 25px {theme_color}; transform: scale(1.03); }}
+    }}
+    .hologram-ring img {{
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }}
+    /* การ์ดเครื่องเล่น Hi-Fi มิติเชิงลึก */
+    .hi-fi-card {{
+        background: rgba(8, 12, 32, 0.9);
+        border: 2px solid {theme_color};
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.95), 0 0 30px {theme_color}55, inset 0 0 20px {theme_color}33;
+        border-radius: 26px;
+        padding: 22px;
+        backdrop-filter: blur(20px);
+        margin-top: 5px;
+        margin-bottom: 15px;
+    }}
+    /* หน้าจอ LCD ไฮเอนด์ */
+    .hi-fi-lcd {{
+        background: linear-gradient(135deg, #02040a 0%, #0d1330 100%);
+        border: 1px solid {theme_color};
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.9), 0 0 12px {theme_color}55;
+        border-radius: 16px;
+        padding: 16px;
+        text-align: center;
+        margin-bottom: 15px;
+    }}
+    .badge {{
+        display: inline-block;
+        padding: 4px 12px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid {theme_color};
+        color: {theme_color};
+        border-radius: 20px;
+        font-size: 11px;
+        box-shadow: inset 0 0 8px {theme_color}44;
+    }}
+    /* ปุ่มกดสไตล์ Hi-Fi 3D หรูหรา */
+    .stButton>button {{
+        width: 100%;
+        background: linear-gradient(135deg, #12183d 0%, #070b1f 100%);
+        color: {theme_color};
+        border: 1px solid {theme_color};
+        border-radius: 14px;
+        font-weight: bold;
+        font-size: 12px;
+        box-shadow: 0 5px 12px rgba(0,0,0,0.7), 0 0 10px {theme_color}44;
+        transition: 0.25s;
+    }}
+    .stButton>button:hover {{
+        background: {theme_color};
+        color: #000;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.9), 0 0 25px {theme_color};
+        transform: translateY(-2px);
+    }}
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown("<h1>TA101 • CYBER HI-FI</h1>", unsafe_allow_html=True)
+st.markdown('<div class="subtitle">✦ IMMERSIVE NEON SPACE ENGINE ✦</div>', unsafe_allow_html=True)
+
+ROOT = Path(__file__).resolve().parent
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"}
+
+# 1. โลโก้โฮโลแกรมลอยตัว
+logo_path = None
+for candidate in ("logo1.jpg", "logo1.jpeg", "logo1.png", "โลโก้.jpg", "logo.jpg"):
+    candidate_path = ROOT / candidate
+    if candidate_path.is_file():
+        logo_path = candidate_path
+        break
+
+if logo_path:
+    encoded_logo = base64.b64encode(logo_path.read_bytes()).decode("ascii")
+    mime_logo = mimetypes.guess_type(logo_path.name)[0] or "image/jpeg"
+    st.markdown(f"""
+        <div class="hologram-wrap">
+            <div class="hologram-ring">
+                <img src="data:{mime_logo};base64,{encoded_logo}" alt="Logo">
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+# 2. ปุ่มเปลี่ยนธีมสีนีออนไฮเอนด์
+st.markdown("<p style='text-align: center; font-size: 11px; color: #94a3b8; margin-bottom: 8px;'>✨ เลือกระบบแสงสีนีออน</p>", unsafe_allow_html=True)
+col_b1, col_b2, col_b3 = st.columns(3)
+with col_b1:
+    if st.button("💙 ไซเบอร์ฟ้า"):
+        st.session_state.neon_color = "#00f5ff"
+        st.rerun()
+with col_b2:
+    if st.button("💚 เมทริกซ์เขียว"):
+        st.session_state.neon_color = "#00ff88"
+        st.rerun()
+with col_b3:
+    if st.button("💜 เลเซอร์ชมพู"):
+        st.session_state.neon_color = "#ff00d4"
+        st.rerun()
+
+# 3. ค้นหาไฟล์เพลง
+songs = []
+for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
+    if path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
+        songs.append({"name": path.stem, "path": path})
+
+if not songs:
+    st.warning("⚠️ ไม่พบไฟล์เพลง (.mp3, .wav ฯลฯ) ในโฟลเดอร์โปรเจกต์ กรุณาอัปโหลดไฟล์เพลงไว้ข้างไฟล์ app.py")
+else:
+    st.markdown('<div class="hi-fi-card">', unsafe_allow_html=True)
+    
+    # ข้อมูลสถิติแทร็ก
+    col_info1, col_info2 = st.columns(2)
+    with col_info1:
+        st.markdown(f'<span class="badge">📂 แทร็ก {st.session_state.song_index + 1} / {len(songs)}</span>', unsafe_allow_html=True)
+    with col_info2:
+        mode_text = "🔁 วนซ้ำ: เปิด" if st.session_state.loop_mode else "🔁 วนซ้ำ: ปิด"
+        st.markdown(f'<div style="text-align: right;"><span class="badge">{mode_text}</span></div>', unsafe_allow_html=True)
+
+    # เลือกเพลงผ่าน Dropdown
+    song_names = [f"{i+1}. {s['name']}" for i, s in enumerate(songs)]
+    
+    selected_label = st.selectbox(
+        "🎧 เลือกแทร็กเพลงในเพลย์ลิสต์:",
+        song_names,
+        index=st.session_state.song_index
+    )
+
+    selected_index = song_names.index(selected_label)
+    if selected_index != st.session_state.song_index:
+        st.session_state.song_index = selected_index
+        st.rerun()
+
+    current_song = songs[st.session_state.song_index]
+
+    # หน้าจอ LCD Hi-Fi ล้ำสมัย (ตัดปัญหาโค้ดดิบหลุดออกหน้าจอ)
+    st.markdown(f"""
+        <div class="hi-fi-lcd">
+            <div style="font-size: 9px; color: #a5b4fc; letter-spacing: 3px; margin-bottom: 5px;">HIGH-FIDELITY STREAM</div>
+            <div style="color: {theme_color}; font-weight: bold; font-size: 15px; text-shadow: 0 0 12px {theme_color};">🎵 {current_song['name']}</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 6px; letter-spacing: 1px;">SYSTEM STATUS: ACTIVE & SECURE</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # ตัวเล่นเสียง Streamlit
+    audio_bytes = current_song["path"].read_bytes()
+    mime_type = mimetypes.guess_type(current_song["path"].name)[0] or "audio/mpeg"
+    st.audio(audio_bytes, format=mime_type)
+
+    # 4. ปุ่มควบคุมสไตล์ Hi-Fi (ก่อนหน้า, สุ่ม, วนซ้ำ, ถัดไป)
+    col_ctrl1, col_ctrl2, col_ctrl3, col_ctrl4 = st.columns(4)
+    
+    with col_ctrl1:
+        if st.button("⏮ ก่อนหน้า"):
+            st.session_state.song_index = (st.session_state.song_index - 1) % len(songs)
+            st.rerun()
+            
+    with col_ctrl2:
+        shuffle_label = "🔀 สุ่ม: เปิด" if st.session_state.shuffle_mode else "🔀 สุ่ม: ปิด"
+        if st.button(shuffle_label):
+            st.session_state.shuffle_mode = not st.session_state.shuffle_mode
+            if st.session_state.shuffle_mode:
+                st.session_state.song_index = random.randint(0, len(songs) - 1)
+            st.rerun()
+            
+    with col_ctrl3:
+        loop_label = "🔁 วนซ้ำ" if not st.session_state.loop_mode else "⏹ หยุดวน"
+        if st.button(loop_label):
+            st.session_state.loop_mode = not st.session_state.loop_mode
+            st.rerun()
+            
+    with col_ctrl4:
+        if st.button("ถัดไป ⏭"):
             if st.session_state.shuffle_mode:
                 st.session_state.song_index = random.randint(0, len(songs) - 1)
             else:
@@ -289,4 +531,18 @@ else:
 
 # ส่วนท้าย
 st.markdown("---")
+st.markdown("<p style='text-align: center; font-size: 9px; color: #64748b; letter-spacing: 2px;'>TA101 CYBERPUNK HI-FI AUDIO SYSTEM • PRO GRADE</p>", unsafe_allow_html=True)
+.shuffle_mode:
+                st.session_state.song_index = random.randint(0, len(songs) - 1)
+            else:
+                st.session_state.song_index = (st.session_state.song_index + 1) % len(songs)
+            st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ส่วนท้าย
+st.markdown("---")
 st.markdown("<p style='text-align: center; font-size: 9px; color: #64748b; letter-spacing: 2px;'>TA101 3D MULTI-DIMENSIONAL AUDIO ENGINE • STABLE</p>", unsafe_allow_html=True)
+# ส่วนท้าย
+st.markdown("---")
+st.markdown("<p style='text-align: center; font-size: 9px; color: #64748b; letter-spacing: 2px;'>TA101 CYBERPUNK HI-FI AUDIO SYSTEM • PRO GRADE</p>", unsafe_allow_html=True)
