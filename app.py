@@ -1,548 +1,338 @@
 import base64
-from pathlib import Path
+import json
 import mimetypes
+from pathlib import Path
 import streamlit as st
-import random
+import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="TA101 • MULTI-DIMENSIONAL NEON SPACE",
+    page_title="TA101 • NEON SPACE VISUALIZER",
     page_icon="🌌",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
 
-# จัดการค่าเริ่มต้นใน Session State
-if "neon_color" not in st.session_state:
-    st.session_state.neon_color = "#00f5ff" # สีฟ้าไซเบอร์
-if "song_index" not in st.session_state:
-    st.session_state.song_index = 0
-if "loop_mode" not in st.session_state:
-    st.session_state.loop_mode = False
-if "shuffle_mode" not in st.session_state:
-    st.session_state.shuffle_mode = False
-
-theme_color = st.session_state.neon_color
-
-# CSS ออกแบบหน้าแอปให้มีหลายมิติ (Multi-Dimensional Depth & 3D Hologram Effect)
-st.markdown(f"""
-    <style>
-    .stApp {{
-        background: radial-gradient(circle at center, #0f133a 0%, #050716 50%, #010208 100%);
-        color: #ffffff;
-        font-family: 'Prompt', sans-serif;
-    }}
-    h1 {{
-        font-family: 'Orbitron', sans-serif;
-        color: {theme_color};
-        text-shadow: 0 0 10px {theme_color}, 0 0 25px {theme_color}, 0 0 40px #7000ff;
-        text-align: center;
-        font-size: 21px !important;
-        letter-spacing: 3px;
-        margin-bottom: 0px;
-    }}
-    .subtitle {{
-        text-align: center;
-        color: #a5b4fc;
-        font-size: 10px;
-        letter-spacing: 4px;
-        margin-bottom: 15px;
-        text-shadow: 0 0 5px rgba(165,180,252,0.5);
-    }}
-    /* เอฟเฟกต์โฮโลแกรมโลโก้ลอยตัว (Floating Animation) */
-    .hologram-container {{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 15px;
-    }}
-    .hologram-box {{
-        width: 130px;
-        height: 130px;
-        border-radius: 50%;
-        border: 2px solid {theme_color};
-        box-shadow: 0 0 20px {theme_color}, inset 0 0 15px {theme_color}, 0 15px 25px rgba(0,0,0,0.8);
-        overflow: hidden;
-        animation: float 3s ease-in-out infinite;
-        background: #02040a;
-    }}
-    @keyframes float {{
-        0% {{ transform: translateY(0px) scale(1); box-shadow: 0 0 15px {theme_color}, inset 0 0 15px {theme_color}; }}
-        50% {{ transform: translateY(-8px) scale(1.02); box-shadow: 0 0 30px {theme_color}, inset 0 0 25px {theme_color}; }}
-        100% {{ transform: translateY(0px) scale(1); box-shadow: 0 0 15px {theme_color}, inset 0 0 15px {theme_color}; }}
-    }}
-    .hologram-box img {{
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }}
-    /* กล่องเครื่องเล่นมิติซ้อน (Multi-Layer Card) */
-    .mp3-player-card {{
-        background: rgba(8, 12, 30, 0.85);
-        border: 2px solid {theme_color};
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.9), 0 0 25px {theme_color}66, inset 0 0 20px {theme_color}33;
-        border-radius: 24px;
-        padding: 20px;
-        backdrop-filter: blur(15px);
-        margin-top: 5px;
-        margin-bottom: 15px;
-    }}
-    /* หน้าจอ LCD มิติเชิงลึก */
-    .lcd-screen {{
-        background: linear-gradient(135deg, #010308 0%, #0a0f24 100%);
-        border: 1px solid {theme_color};
-        box-shadow: inset 0 0 15px rgba(0,0,0,0.9), 0 0 10px {theme_color}44;
-        border-radius: 14px;
-        padding: 14px;
-        text-align: center;
-        margin-bottom: 15px;
-    }}
-    /* แถบคลื่นเสียง 3 มิติ */
-    .equalizer {{
-        display: flex;
-        justify-content: center;
-        align-items: flex-end;
-        gap: 5px;
-        height: 28px;
-        margin-top: 10px;
-    }}
-    .bar {{
-        width: 5px;
-        background: linear-gradient(to top, #02040a, {theme_color});
-        box-shadow: 0 0 10px {theme_color};
-        border-radius: 3px;
-        animation: bounce 0.8s infinite ease-in-out alternate;
-    }}
-    .bar:nth-child(1) {{ animation-delay: 0.1s; height: 12px; }}
-    .bar:nth-child(2) {{ animation-delay: 0.3s; height: 22px; }}
-    .bar:nth-child(3) {{ animation-delay: 0.2s; height: 16px; }}
-    .bar:nth-child(4) {{ animation-delay: 0.5s; height: 26px; }}
-    .bar:nth-child(5) {{ animation-delay: 0.2s; height: 20px; }}
-    .bar:nth-child(6) {{ animation-delay: 0.4s; height: 14px; }}
-    .bar:nth-child(7) {{ animation-delay: 0.1s; height: 24px; }}
-    
-    @keyframes bounce {{
-        0% {{ transform: scaleY(0.3); opacity: 0.4; }}
-        100% {{ transform: scaleY(1.25); opacity: 1; filter: drop-shadow(0 0 8px {theme_color}); }}
-    }}
-
-    .badge {{
-        display: inline-block;
-        padding: 4px 12px;
-        background: rgba(0, 0, 0, 0.4);
-        border: 1px solid {theme_color};
-        color: {theme_color};
-        border-radius: 20px;
-        font-size: 11px;
-        box-shadow: inset 0 0 5px {theme_color}44;
-    }}
-    /* ปุ่มกดสไตล์ 3D นูนต่ำ */
-    .stButton>button {{
-        width: 100%;
-        background: linear-gradient(135deg, #101535 0%, #070a1a 100%);
-        color: {theme_color};
-        border: 1px solid {theme_color};
-        border-radius: 12px;
-        font-weight: bold;
-        font-size: 12px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.6), 0 0 8px {theme_color}44;
-        transition: 0.2s;
-    }}
-    .stButton>button:hover {{
-        background: {theme_color};
-        color: #000;
-        box-shadow: 0 6px 15px rgba(0,0,0,0.8), 0 0 20px {theme_color};
-        transform: translateY(-2px);
-    }}
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown("<h1>TA101 • MULTI-DIMENSION</h1>", unsafe_allow_html=True)
-st.markdown('<div class="subtitle">✦ HOLOGRAPHIC SPACE AUDIO SYSTEM ✦</div>', unsafe_allow_html=True)
-
 ROOT = Path(__file__).resolve().parent
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"}
 
-# 1. ค้นหาโลโก้และแสดงผลด้วยเอฟเฟกต์โฮโลแกรมลอยตัว
-logo_path = None
-for candidate in ("logo1.jpg", "logo1.jpeg", "logo1.png", "โลโก้.jpg", "logo.jpg"):
-    candidate_path = ROOT / candidate
-    if candidate_path.is_file():
-        logo_path = candidate_path
-        break
-
-if logo_path:
-    encoded_logo = base64.b64encode(logo_path.read_bytes()).decode("ascii")
-    mime_logo = mimetypes.guess_type(logo_path.name)[0] or "image/jpeg"
-    st.markdown(f"""
-        <div class="hologram-container">
-            <div class="hologram-box">
-                <img src="data:{mime_logo};base64,{encoded_logo}" alt="Logo">
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-# 2. แผงเปลี่ยนธีมสีนีออนแนวนอน
-st.markdown("<p style='text-align: center; font-size: 11px; color: #94a3b8; margin-bottom: 8px;'>🌌 เลือกระบบมิติแสงสี</p>", unsafe_allow_html=True)
-col_b1, col_b2, col_b3 = st.columns(3)
-with col_b1:
-    if st.button("💙 ไซเบอร์ฟ้า"):
-        st.session_state.neon_color = "#00f5ff"
-        st.rerun()
-with col_b2:
-    if st.button("💚 เมทริกซ์เขียว"):
-        st.session_state.neon_color = "#00ff88"
-        st.rerun()
-with col_b3:
-    if st.button("💜 เลเซอร์ชมพู"):
-        st.session_state.neon_color = "#ff00d4"
-        st.rerun()
-
-# 3. ค้นหาไฟล์เพลงทั้งหมด
+# ค้นหาไฟล์เพลงทั้งหมดในโฟลเดอร์
 songs = []
 for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
     if path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
-        songs.append({"name": path.stem, "path": path})
+        try:
+            mime = mimetypes.guess_type(path.name)[0] or "audio/mpeg"
+            encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+            songs.append({
+                "name": path.stem,
+                "src": f"data:{mime};base64,{encoded}",
+            })
+        except OSError:
+            continue
 
-if not songs:
-    st.warning("⚠️ ไม่พบไฟล์เพลง (.mp3, .wav ฯลฯ) ในโฟลเดอร์โปรเจกต์ กรุณาอัปโหลดไฟล์เพลงไว้ข้างไฟล์ app.py")
-else:
-    st.markdown('<div class="mp3-player-card">', unsafe_allow_html=True)
+songs_json = json.dumps(songs, ensure_ascii=False).replace("</", "<\\/")
+
+# ค้นหาไฟล์โลโก้
+logo_data = ""
+for candidate in ("logo1.jpg", "logo1.jpeg", "logo1.png", "โลโก้.jpg", "logo.jpg"):
+    logo_path = ROOT / candidate
+    if logo_path.is_file():
+        try:
+            mime = mimetypes.guess_type(logo_path.name)[0] or "image/jpeg"
+            logo_data = f"data:{mime};base64,{base64.b64encode(logo_path.read_bytes()).decode('ascii')}"
+            break
+        except OSError:
+            pass
+
+logo_json = json.dumps(logo_data)
+
+# โค้ด HTML / JS เครื่องเล่น MP3 + กราฟวิชวลไลเซอร์เต้นตามเพลงสุดล้ำ
+player_html = """
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Prompt:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --theme: #00f5ff;
+    --glow: rgba(0, 245, 255, 0.4);
+}
+* { box-sizing: border-box; }
+html, body {
+    margin: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at center, #070a24 0%, #02030a 60%, #000104 100%);
+    color: #fff; font-family: 'Prompt', sans-serif;
+    overflow: hidden;
+}
+.app-container {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 100%; height: 100%; padding: 10px;
+}
+h1 {
+    font-family: 'Orbitron', sans-serif; color: var(--theme);
+    text-shadow: 0 0 15px var(--theme), 0 0 30px var(--theme);
+    font-size: 18px; margin: 0 0 5px 0; letter-spacing: 2px; text-align: center;
+}
+.subtitle {
+    font-size: 9px; color: #a5b4fc; letter-spacing: 3px; margin-bottom: 12px; text-align: center;
+}
+/* โลโก้ฮิปๆ วนแสงนีออน */
+.logo-ring {
+    width: 110px; height: 110px; border-radius: 50%;
+    border: 2px solid var(--theme);
+    box-shadow: 0 0 25px var(--theme), inset 0 0 15px var(--theme);
+    overflow: hidden; margin-bottom: 12px; background: #010206;
+    display: grid; place-items: center; animation: pulse 3s infinite alternate;
+}
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 15px var(--theme); }
+    100% { transform: scale(1.04); box-shadow: 0 0 30px var(--theme); }
+}
+.logo-ring img { width: 100%; height: 100%; object-fit: cover; }
+
+/* การ์ดเครื่องเล่นไซเบอร์พังก์ */
+.card {
+    width: 100%; max-width: 380px;
+    background: rgba(6, 9, 26, 0.9);
+    border: 2px solid var(--theme);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.9), 0 0 25px var(--glow);
+    border-radius: 20px; padding: 15px; backdrop-filter: blur(15px);
+}
+.theme-selector {
+    display: flex; justify-content: center; gap: 8px; margin-bottom: 10px;
+}
+.theme-btn {
+    background: rgba(255,255,255,0.05); border: 1px solid var(--theme);
+    color: var(--theme); padding: 4px 10px; border-radius: 10px; font-size: 10px;
+    cursor: pointer; font-weight: bold; transition: 0.2s;
+}
+.theme-btn:hover { background: var(--theme); color: #000; }
+
+select {
+    width: 100%; padding: 8px; background: #02040a; color: #fff;
+    border: 1px solid var(--theme); border-radius: 10px; font-family: Prompt, sans-serif;
+    font-size: 12px; margin-bottom: 10px; outline: none;
+}
+/* หน้าจอ LCD + กราฟเสียง Visualizer */
+.lcd {
+    background: linear-gradient(135deg, #010206 0%, #0b102b 100%);
+    border: 1px solid var(--theme); border-radius: 12px; padding: 10px;
+    text-align: center; margin-bottom: 10px;
+}
+.track-title {
+    color: var(--theme); font-weight: bold; font-size: 13px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-shadow: 0 0 8px var(--theme); margin-bottom: 8px;
+}
+/* แคนวาสกราฟเสียงเต้นตามเพลง */
+canvas {
+    display: block; width: 100%; height: 45px; background: rgba(0,0,0,0.4);
+    border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
+}
+audio { width: 100%; margin: 8px 0; height: 32px; filter: drop-shadow(0 0 5px var(--theme)); }
+
+.controls {
+    display: grid; grid-template-columns: repeat(4, 1fr;); gap: 6px;
+}
+.ctrl-btn {
+    background: linear-gradient(135deg, #0d1235, #040614);
+    color: var(--theme); border: 1px solid var(--theme); border-radius: 10px;
+    padding: 8px 4px; font-size: 11px; font-weight: bold; cursor: pointer; text-align: center;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.5); transition: 0.2s;
+}
+.ctrl-btn:hover { background: var(--theme); color: #000; }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>TA101 • VISUALIZER</h1>
+    <div class="subtitle">✦ QUANTUM AUDIO SPECTRUM ✦</div>
     
-    # สถิติแทร็ก
-    col_info1, col_info2 = st.columns(2)
-    with col_info1:
-        st.markdown(f'<span class="badge">📂 แทร็ก {st.session_state.song_index + 1} / {len(songs)}</span>', unsafe_allow_html=True)
-    with col_info2:
-        mode_text = "🔁 วนซ้ำ: เปิด" if st.session_state.loop_mode else "🔁 วนซ้ำ: ปิด"
-        st.markdown(f'<div style="text-align: right;"><span class="badge">{mode_text}</span></div>', unsafe_allow_html=True)
+    <div class="logo-ring">
+        <img id="logo-img" style="display:none;" alt="Logo">
+        <span id="logo-text" style="font-family:Orbitron;font-size:10px;color:var(--theme);">TA101</span>
+    </div>
 
-    # เลือกเพลงผ่าน Dropdown
-    song_names = [f"{i+1}. {s['name']}" for i, s in enumerate(songs)]
-    
-    selected_label = st.selectbox(
-        "🎧 เลือกเพลงจากเพลย์ลิสต์:",
-        song_names,
-        index=st.session_state.song_index
-    )
-
-    selected_index = song_names.index(selected_label)
-    if selected_index != st.session_state.song_index:
-        st.session_state.song_index = selected_index
-        st.rerun()
-
-    current_song = songs[st.session_state.song_index]
-
-    # หน้าจอ LCD มิติเชิงลึก + คลื่นเสียง 3 มิติ
-    st.markdown(f"""
-        <div class="lcd-screen">
-            <div style="font-size: 9px; color: #a5b4fc; letter-spacing: 3px; margin-bottom: 4px;">HOLOGRAPHIC STREAM</div>
-            <div style="color: {theme_color}; font-weight: bold; font-size: 14px; text-shadow: 0 0 10px {theme_color};">🎵 {current_song['name']}</div>
-            
-            <div class="equalizer">
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-            </div>
+    <div class="card">
+        <div class="theme-selector">
+            <button class="theme-btn" onclick="setTheme('#00f5ff', 'rgba(0,245,255,0.4)')">💙 ไซเบอร์ฟ้า</button>
+            <button class="theme-btn" onclick="setTheme('#00ff88', 'rgba(0,255,136,0.4)')">💚 เมทริกซ์เขียว</button>
+            <button class="theme-btn" onclick="setTheme('#ff00d4', 'rgba(255,0,212,0.4)')">💜 เลเซอร์ชมพู</button>
         </div>
-    """, unsafe_allow_html=True)
 
-    # ตัวเล่นเสียง Streamlit
-    audio_bytes = current_song["path"].read_bytes()
-    mime_type = mimetypes.guess_type(current_song["path"].name)[0] or "audio/mpeg"
-    st.audio(audio_bytes, format=mime_type)
+        <select id="playlist" onchange="selectSong(this.value)"></select>
 
-    # 4. ปุ่มควบคุม 3 มิติ (ก่อนหน้า, สุ่ม, วนซ้ำ, ถัดไป)
-    col_ctrl1, col_ctrl2, col_ctrl3, col_ctrl4 = st.columns(4)
-    
-    with col_ctrl1:
-        if st.button("⏮ ก่อนหน้า"):
-            st.session_state.song_index = (st.session_state.song_index - 1) % len(songs)
-            st.rerun()
-            
-    with col_ctrl2:
-        shuffle_label = "🔀 สุ่ม: เปิด" if st.session_state.shuffle_mode else "🔀 สุ่ม: ปิด"
-        if st.button(shuffle_label):
-            st.session_state.shuffle_mode = not st.session_state.shuffle_mode
-            if st.session_state.shuffle_mode:
-                st.session_state.song_index = random.randint(0, len(songs) - 1)
-            st.rerun()
-            
-    with col_ctrl3:
-        loop_label = "🔁 วนซ้ำ" if not st.session_state.loop_mode else "⏹ หยุดวน"
-        if st.button(loop_label):
-            st.session_state.loop_mode = not st.session_state.loop_mode
-            st.rerun()
-            
-    with col_ctrl4:
-        if st.button("ถัดไป ⏭"):
-            if st.import base64
-from pathlib import Path
-import mimetypes
-import streamlit as st
-import random
+        <div class="lcd">
+            <div id="track-title" class="track-title">กำลังโหลดเพลง...</div>
+            <canvas id="visualizer"></canvas>
+        </div>
 
-st.set_page_config(
-    page_title="TA101 • CYBERPUNK HI-FI SPACE",
-    page_icon="🌌",
-    layout="centered",
-    initial_sidebar_state="collapsed",
+        <audio id="audio" controls crossorigin="anonymous"></audio>
+
+        <div class="controls">
+            <button class="ctrl-btn" onclick="prevSong()">⏮ ก่อนหน้า</button>
+            <button class="ctrl-btn" id="shuffle-btn" onclick="toggleShuffle()">🔀 สุ่ม: ปิด</button>
+            <button class="ctrl-btn" id="loop-btn" onclick="toggleLoop()">🔁 วน: ปิด</button>
+            <button class="ctrl-btn" onclick="nextSong()">ถัดไป ⏭</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const songs = __SONGS__;
+const logoData = __LOGO__;
+let currentIndex = 0;
+let isShuffle = false;
+let isLoop = false;
+
+const audio = document.getElementById('audio');
+const titleEl = document.getElementById('track-title');
+const playlistEl = document.getElementById('playlist');
+
+if(logoData) {
+    const img = document.getElementById('logo-img');
+    img.src = logoData;
+    img.style.display = 'block';
+    document.getElementById('logo-text').style.display = 'none';
+}
+
+function setTheme(color, glow){
+    document.documentElement.style.setProperty('--theme', color);
+    document.documentElement.style.setProperty('--glow', glow);
+}
+
+function initPlaylist(){
+    playlistEl.innerHTML = '';
+    if(songs.length === 0){
+        let opt = document.createElement('option');
+        opt.textContent = "ไม่พบไฟล์เพลงในโฟลเดอร์";
+        playlistEl.appendChild(opt);
+        titleEl.textContent = "ไม่พบไฟล์เพลง (.mp3)";
+        return;
+    }
+    songs.forEach((s, i) => {
+        let opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = (i+1) + ". " + s.name;
+        playlistEl.appendChild(opt);
+    });
+    loadSong(0);
+}
+
+function loadSong(i){
+    if(!songs.length) return;
+    currentIndex = (i + songs.length) % songs.length;
+    audio.src = songs[currentIndex].src;
+    titleEl.textContent = "🎵 " + songs[currentIndex].name;
+    playlistEl.value = currentIndex;
+}
+
+function selectSong(val){
+    loadSong(Number(val));
+    audio.play().catch(e => console.log(e));
+}
+
+function nextSong(){
+    if(isShuffle){
+        currentIndex = Math.floor(Math.random() * songs.length);
+    } else {
+        currentIndex = (currentIndex + 1) % songs.length;
+    }
+    loadSong(currentIndex);
+    audio.play().catch(e => console.log(e));
+}
+
+function prevSong(){
+    currentIndex = (currentIndex - 1 + songs.length) % songs.length;
+    loadSong(currentIndex);
+    audio.play().catch(e => console.log(e));
+}
+
+function toggleShuffle(){
+    isShuffle = !isShuffle;
+    document.getElementById('shuffle-btn').textContent = isShuffle ? "🔀 สุ่ม: เปิด" : "🔀 สุ่ม: ปิด";
+}
+
+function toggleLoop(){
+    isLoop = !isLoop;
+    audio.loop = isLoop;
+    document.getElementById('loop-btn').textContent = isLoop ? "🔁 วน: เปิด" : "🔁 วน: ปิด";
+}
+
+audio.onended = () => {
+    if(!isLoop) nextSong();
+};
+
+initPlaylist();
+
+// Web Audio API วิชวลไลเซอร์กราฟเสียงเต้นตามเพลงจริง
+let audioCtx, analyser, source, canvasCtx, canvasEl;
+function initVisualizer(){
+    if(audioCtx) return;
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        source = audioCtx.createMediaElementSource(audio);
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        analyser.fftSize = 64;
+
+        canvasEl = document.getElementById('visualizer');
+        canvasCtx = canvasEl.getContext('2d');
+        
+        function draw(){
+            requestAnimationFrame(draw);
+            let bufferLength = analyser.frequencyBinCount;
+            let dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+
+            canvasEl.width = canvasEl.offsetWidth;
+            canvasEl.height = canvasEl.offsetHeight;
+            let width = canvasEl.width;
+            let height = canvasEl.height;
+
+            canvasCtx.fillStyle = 'rgba(2, 4, 10, 0.4)';
+            canvasCtx.fillRect(0, 0, width, height);
+
+            let barWidth = (width / bufferLength) * 2.2;
+            let barHeight;
+            let x = 0;
+
+            let computedTheme = getComputedStyle(document.documentElement).getPropertyValue('--theme').trim();
+
+            for(let i = 0; i < bufferLength; i++) {
+                barHeight = (dataArray[i] / 255) * height;
+
+                canvasCtx.fillStyle = computedTheme;
+                canvasCtx.fillRect(x, height - barHeight, barWidth - 2, barHeight);
+
+                x += barWidth + 2;
+            }
+        }
+        draw();
+    } catch(e) {
+        console.log("Audio API not allowed yet", e);
+    }
+}
+
+audio.onplay = () => {
+    if(!audioCtx || audioCtx.state === 'suspended') {
+        initVisualizer();
+        if(audioCtx) audioCtx.resume();
+    }
+};
+</script>
+</body>
+</html>
+"""
+
+# แทนที่ค่าตัวแปรลงใน HTML
+player_html = (
+    player_html
+    .replace("__SONGS__", songs_json)
+    .replace("__LOGO__", logo_json)
 )
 
-# จัดการค่าเริ่มต้นใน Session State
-if "neon_color" not in st.session_state:
-    st.session_state.neon_color = "#00f5ff" # สีฟ้าไซเบอร์
-if "song_index" not in st.session_state:
-    st.session_state.song_index = 0
-if "loop_mode" not in st.session_state:
-    st.session_state.loop_mode = False
-if "shuffle_mode" not in st.session_state:
-    st.session_state.shuffle_mode = False
-
-theme_color = st.session_state.neon_color
-
-# CSS ออกแบบระดับไฮเอนด์ หรูหรา ล้ำอนาคต มิติลอยตัว
-st.markdown(f"""
-    <style>
-    .stApp {{
-        background: radial-gradient(circle at center, #090d29 0%, #03040f 55%, #010206 100%);
-        color: #ffffff;
-        font-family: 'Prompt', sans-serif;
-    }}
-    h1 {{
-        font-family: 'Orbitron', sans-serif;
-        color: {theme_color};
-        text-shadow: 0 0 15px {theme_color}, 0 0 30px {theme_color}, 0 0 50px #7000ff;
-        text-align: center;
-        font-size: 22px !important;
-        letter-spacing: 3px;
-        margin-bottom: 0px;
-    }}
-    .subtitle {{
-        text-align: center;
-        color: #a5b4fc;
-        font-size: 10px;
-        letter-spacing: 4px;
-        margin-bottom: 15px;
-        text-shadow: 0 0 8px rgba(165,180,252,0.6);
-    }}
-    /* โลโก้โฮโลแกรมลอยตัวระดับไฮเอนด์ */
-    .hologram-wrap {{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 15px;
-    }}
-    .hologram-ring {{
-        width: 135px;
-        height: 135px;
-        border-radius: 50%;
-        border: 2px solid {theme_color};
-        box-shadow: 0 0 25px {theme_color}, inset 0 0 20px {theme_color}, 0 15px 30px rgba(0,0,0,0.8);
-        overflow: hidden;
-        animation: pulseGlow 3s ease-in-out infinite alternate;
-        background: #02040a;
-    }}
-    @keyframes pulseGlow {{
-        0% {{ box-shadow: 0 0 15px {theme_color}, inset 0 0 15px {theme_color}; transform: scale(1); }}
-        100% {{ box-shadow: 0 0 35px {theme_color}, inset 0 0 25px {theme_color}; transform: scale(1.03); }}
-    }}
-    .hologram-ring img {{
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }}
-    /* การ์ดเครื่องเล่น Hi-Fi มิติเชิงลึก */
-    .hi-fi-card {{
-        background: rgba(8, 12, 32, 0.9);
-        border: 2px solid {theme_color};
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.95), 0 0 30px {theme_color}55, inset 0 0 20px {theme_color}33;
-        border-radius: 26px;
-        padding: 22px;
-        backdrop-filter: blur(20px);
-        margin-top: 5px;
-        margin-bottom: 15px;
-    }}
-    /* หน้าจอ LCD ไฮเอนด์ */
-    .hi-fi-lcd {{
-        background: linear-gradient(135deg, #02040a 0%, #0d1330 100%);
-        border: 1px solid {theme_color};
-        box-shadow: inset 0 0 20px rgba(0,0,0,0.9), 0 0 12px {theme_color}55;
-        border-radius: 16px;
-        padding: 16px;
-        text-align: center;
-        margin-bottom: 15px;
-    }}
-    .badge {{
-        display: inline-block;
-        padding: 4px 12px;
-        background: rgba(0, 0, 0, 0.5);
-        border: 1px solid {theme_color};
-        color: {theme_color};
-        border-radius: 20px;
-        font-size: 11px;
-        box-shadow: inset 0 0 8px {theme_color}44;
-    }}
-    /* ปุ่มกดสไตล์ Hi-Fi 3D หรูหรา */
-    .stButton>button {{
-        width: 100%;
-        background: linear-gradient(135deg, #12183d 0%, #070b1f 100%);
-        color: {theme_color};
-        border: 1px solid {theme_color};
-        border-radius: 14px;
-        font-weight: bold;
-        font-size: 12px;
-        box-shadow: 0 5px 12px rgba(0,0,0,0.7), 0 0 10px {theme_color}44;
-        transition: 0.25s;
-    }}
-    .stButton>button:hover {{
-        background: {theme_color};
-        color: #000;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.9), 0 0 25px {theme_color};
-        transform: translateY(-2px);
-    }}
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown("<h1>TA101 • CYBER HI-FI</h1>", unsafe_allow_html=True)
-st.markdown('<div class="subtitle">✦ IMMERSIVE NEON SPACE ENGINE ✦</div>', unsafe_allow_html=True)
-
-ROOT = Path(__file__).resolve().parent
-AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"}
-
-# 1. โลโก้โฮโลแกรมลอยตัว
-logo_path = None
-for candidate in ("logo1.jpg", "logo1.jpeg", "logo1.png", "โลโก้.jpg", "logo.jpg"):
-    candidate_path = ROOT / candidate
-    if candidate_path.is_file():
-        logo_path = candidate_path
-        break
-
-if logo_path:
-    encoded_logo = base64.b64encode(logo_path.read_bytes()).decode("ascii")
-    mime_logo = mimetypes.guess_type(logo_path.name)[0] or "image/jpeg"
-    st.markdown(f"""
-        <div class="hologram-wrap">
-            <div class="hologram-ring">
-                <img src="data:{mime_logo};base64,{encoded_logo}" alt="Logo">
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-# 2. ปุ่มเปลี่ยนธีมสีนีออนไฮเอนด์
-st.markdown("<p style='text-align: center; font-size: 11px; color: #94a3b8; margin-bottom: 8px;'>✨ เลือกระบบแสงสีนีออน</p>", unsafe_allow_html=True)
-col_b1, col_b2, col_b3 = st.columns(3)
-with col_b1:
-    if st.button("💙 ไซเบอร์ฟ้า"):
-        st.session_state.neon_color = "#00f5ff"
-        st.rerun()
-with col_b2:
-    if st.button("💚 เมทริกซ์เขียว"):
-        st.session_state.neon_color = "#00ff88"
-        st.rerun()
-with col_b3:
-    if st.button("💜 เลเซอร์ชมพู"):
-        st.session_state.neon_color = "#ff00d4"
-        st.rerun()
-
-# 3. ค้นหาไฟล์เพลง
-songs = []
-for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
-    if path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
-        songs.append({"name": path.stem, "path": path})
-
-if not songs:
-    st.warning("⚠️ ไม่พบไฟล์เพลง (.mp3, .wav ฯลฯ) ในโฟลเดอร์โปรเจกต์ กรุณาอัปโหลดไฟล์เพลงไว้ข้างไฟล์ app.py")
-else:
-    st.markdown('<div class="hi-fi-card">', unsafe_allow_html=True)
-    
-    # ข้อมูลสถิติแทร็ก
-    col_info1, col_info2 = st.columns(2)
-    with col_info1:
-        st.markdown(f'<span class="badge">📂 แทร็ก {st.session_state.song_index + 1} / {len(songs)}</span>', unsafe_allow_html=True)
-    with col_info2:
-        mode_text = "🔁 วนซ้ำ: เปิด" if st.session_state.loop_mode else "🔁 วนซ้ำ: ปิด"
-        st.markdown(f'<div style="text-align: right;"><span class="badge">{mode_text}</span></div>', unsafe_allow_html=True)
-
-    # เลือกเพลงผ่าน Dropdown
-    song_names = [f"{i+1}. {s['name']}" for i, s in enumerate(songs)]
-    
-    selected_label = st.selectbox(
-        "🎧 เลือกแทร็กเพลงในเพลย์ลิสต์:",
-        song_names,
-        index=st.session_state.song_index
-    )
-
-    selected_index = song_names.index(selected_label)
-    if selected_index != st.session_state.song_index:
-        st.session_state.song_index = selected_index
-        st.rerun()
-
-    current_song = songs[st.session_state.song_index]
-
-    # หน้าจอ LCD Hi-Fi ล้ำสมัย (ตัดปัญหาโค้ดดิบหลุดออกหน้าจอ)
-    st.markdown(f"""
-        <div class="hi-fi-lcd">
-            <div style="font-size: 9px; color: #a5b4fc; letter-spacing: 3px; margin-bottom: 5px;">HIGH-FIDELITY STREAM</div>
-            <div style="color: {theme_color}; font-weight: bold; font-size: 15px; text-shadow: 0 0 12px {theme_color};">🎵 {current_song['name']}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 6px; letter-spacing: 1px;">SYSTEM STATUS: ACTIVE & SECURE</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # ตัวเล่นเสียง Streamlit
-    audio_bytes = current_song["path"].read_bytes()
-    mime_type = mimetypes.guess_type(current_song["path"].name)[0] or "audio/mpeg"
-    st.audio(audio_bytes, format=mime_type)
-
-    # 4. ปุ่มควบคุมสไตล์ Hi-Fi (ก่อนหน้า, สุ่ม, วนซ้ำ, ถัดไป)
-    col_ctrl1, col_ctrl2, col_ctrl3, col_ctrl4 = st.columns(4)
-    
-    with col_ctrl1:
-        if st.button("⏮ ก่อนหน้า"):
-            st.session_state.song_index = (st.session_state.song_index - 1) % len(songs)
-            st.rerun()
-            
-    with col_ctrl2:
-        shuffle_label = "🔀 สุ่ม: เปิด" if st.session_state.shuffle_mode else "🔀 สุ่ม: ปิด"
-        if st.button(shuffle_label):
-            st.session_state.shuffle_mode = not st.session_state.shuffle_mode
-            if st.session_state.shuffle_mode:
-                st.session_state.song_index = random.randint(0, len(songs) - 1)
-            st.rerun()
-            
-    with col_ctrl3:
-        loop_label = "🔁 วนซ้ำ" if not st.session_state.loop_mode else "⏹ หยุดวน"
-        if st.button(loop_label):
-            st.session_state.loop_mode = not st.session_state.loop_mode
-            st.rerun()
-            
-    with col_ctrl4:
-        if st.button("ถัดไป ⏭"):
-            if st.session_state.shuffle_mode:
-                st.session_state.song_index = random.randint(0, len(songs) - 1)
-            else:
-                st.session_state.song_index = (st.session_state.song_index + 1) % len(songs)
-            st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ส่วนท้าย
-st.markdown("---")
-st.markdown("<p style='text-align: center; font-size: 9px; color: #64748b; letter-spacing: 2px;'>TA101 CYBERPUNK HI-FI AUDIO SYSTEM • PRO GRADE</p>", unsafe_allow_html=True)
-.shuffle_mode:
-                st.session_state.song_index = random.randint(0, len(songs) - 1)
-            else:
-                st.session_state.song_index = (st.session_state.song_index + 1) % len(songs)
-            st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ส่วนท้าย
-st.markdown("---")
-st.markdown("<p style='text-align: center; font-size: 9px; color: #64748b; letter-spacing: 2px;'>TA101 3D MULTI-DIMENSIONAL AUDIO ENGINE • STABLE</p>", unsafe_allow_html=True)
-# ส่วนท้าย
-st.markdown("---")
-st.markdown("<p style='text-align: center; font-size: 9px; color: #64748b; letter-spacing: 2px;'>TA101 CYBERPUNK HI-FI AUDIO SYSTEM • PRO GRADE</p>", unsafe_allow_html=True)
+components.html(player_html, height=540, scrolling=False)
