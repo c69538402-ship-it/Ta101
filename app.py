@@ -1,355 +1,251 @@
+from pathlib import Path
 import base64
 import json
 import mimetypes
-from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="TA101 • NEON SPACE VISUALIZER",
-    page_icon="🌌",
-    layout="centered",
+    page_title="TA101 • NEON HI-FI MUSIC",
+    page_icon="🎧",
+    layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 ROOT = Path(__file__).resolve().parent
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".flac"}
+LOGO_NAMES = ("logo1.jpg", "logo1.jpeg", "logo1.png", "logo.jpg", "logo.jpeg", "โลโก้.jpg")
 
-# ค้นหาไฟล์เพลงทั้งหมดในโฟลเดอร์
-songs = []
-for path in sorted(ROOT.iterdir(), key=lambda p: p.name.lower()):
-    if path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
-        try:
-            mime = mimetypes.guess_type(path.name)[0] or "audio/mpeg"
-            encoded = base64.b64encode(path.read_bytes()).decode("ascii")
-            songs.append({
-                "name": path.stem,
-                "src": f"data:{mime};base64,{encoded}",
-            })
-        except OSError:
+st.markdown("""
+<style>
+.stApp {
+  background: radial-gradient(ellipse at 50% -10%, #14264b 0%, #070b19 48%, #02040a 100%);
+  color: #eef7ff;
+}
+header[data-testid="stHeader"] { background: transparent; }
+.block-container { max-width: 1500px; padding-top: .8rem; padding-bottom: 1rem; }
+h1,h2,h3 { color:#eafaff; text-shadow:0 0 14px #00d9ff88; }
+</style>
+""", unsafe_allow_html=True)
+
+def find_logo():
+    for name in LOGO_NAMES:
+        path = ROOT / name
+        if path.is_file():
+            return path
+    return None
+
+def find_songs():
+    found = []
+    for path in ROOT.rglob("*"):
+        if not path.is_file() or path.suffix.lower() not in AUDIO_EXTENSIONS:
             continue
-
-songs_json = json.dumps(songs, ensure_ascii=False).replace("</", "<\\/")
-
-# ค้นหาไฟล์โลโก้
-logo_data = ""
-for candidate in ("logo1.jpg", "logo1.jpeg", "logo1.png", "โลโก้.jpg", "logo.jpg"):
-    logo_path = ROOT / candidate
-    if logo_path.is_file():
         try:
-            mime = mimetypes.guess_type(logo_path.name)[0] or "image/jpeg"
-            logo_data = f"data:{mime};base64,{base64.b64encode(logo_path.read_bytes()).decode('ascii')}"
-            break
-        except OSError:
+            rel = path.relative_to(ROOT)
+            if any(part.startswith(".") or part in {"venv", ".venv", "__pycache__"} for part in rel.parts):
+                continue
+            found.append(path)
+        except (OSError, ValueError):
             pass
+    return sorted(found, key=lambda p: (p.name.casefold(), str(p).casefold()))
 
-logo_json = json.dumps(logo_data)
+songs = find_songs()
+logo_path = find_logo()
 
-# โค้ด HTML / JS พร้อมปุ่ม Start ป้องกันจอดำและปลดล็อก Audio API
-player_html = """
-<!doctype html>
+st.markdown("""
+<div style="text-align:center;padding:5px 0 14px">
+  <div style="font-size:clamp(30px,5vw,58px);font-weight:950;letter-spacing:3px;
+  color:#f4fbff;text-shadow:0 0 12px #00d9ff,0 0 32px #9d4dff">
+  🎧 TA101 • NEON HI-FI
+  </div>
+  <div style="color:#73eaff;letter-spacing:5px;font-size:11px">MUSIC • DREAM • TOGETHER</div>
+</div>
+""", unsafe_allow_html=True)
+
+# Encode local audio so the custom player can process it through Web Audio EQ.
+# Keep the total embedded audio size moderate for Streamlit Cloud.
+MAX_TOTAL_MB = 80
+tracks = []
+total_bytes = 0
+for path in songs:
+    try:
+        size = path.stat().st_size
+        if total_bytes + size > MAX_TOTAL_MB * 1024 * 1024:
+            continue
+        mime = mimetypes.guess_type(path.name)[0] or "audio/mpeg"
+        data = base64.b64encode(path.read_bytes()).decode("ascii")
+        tracks.append({
+            "name": path.stem,
+            "file": path.name,
+            "mime": mime,
+            "src": f"data:{mime};base64,{data}",
+        })
+        total_bytes += size
+    except OSError:
+        continue
+
+logo_data = ""
+if logo_path:
+    try:
+        logo_mime = mimetypes.guess_type(logo_path.name)[0] or "image/jpeg"
+        logo_data = "data:" + logo_mime + ";base64," + base64.b64encode(logo_path.read_bytes()).decode("ascii")
+    except OSError:
+        pass
+
+if not songs:
+    st.warning("ยังไม่พบไฟล์เพลง กรุณาวางไฟล์ MP3 / WAV / M4A ไว้ในโฟลเดอร์เดียวกับ app.py หรือโฟลเดอร์ย่อย")
+elif not tracks:
+    st.error("พบไฟล์เพลง แต่ขนาดรวมเกินขีดจำกัด 80 MB สำหรับเครื่องเล่น EQ รุ่นนี้ กรุณาลดขนาดหรือแบ่งเพลงเป็นชุด")
+elif len(tracks) < len(songs):
+    st.info(f"พบเพลง {len(songs)} เพลง แต่ฝังในเครื่องเล่นได้ {len(tracks)} เพลงแรก เนื่องจากจำกัดข้อมูลรวมไว้ที่ 80 MB")
+
+PLAYER_HTML = r"""<!doctype html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Prompt:wght@400;500;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-:root {
-    --theme: #00f5ff;
-    --glow: rgba(0, 245, 255, 0.4);
-}
-* { box-sizing: border-box; }
-html, body {
-    margin: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle at center, #070a24 0%, #02030a 60%, #000104 100%);
-    color: #fff; font-family: 'Prompt', sans-serif;
-    overflow: hidden;
-}
-/* หน้าต่างเริ่มต้นเพื่อปลดล็อกจอดำและเสียง */
-#splash {
-    position: fixed; inset: 0; background: #02030bf8; z-index: 99;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 20px;
-}
-#splash h2 {
-    font-family: 'Orbitron', sans-serif; color: var(--theme);
-    text-shadow: 0 0 15px var(--theme); margin-bottom: 10px; font-size: 20px;
-}
-#splash p { color: #a5b4fc; font-size: 12px; max-width: 320px; line-height: 1.5; margin-bottom: 20px; }
-#splash button {
-    padding: 12px 30px; border: 0; border-radius: 25px; color: #fff; font-weight: bold;
-    background: linear-gradient(90deg, var(--theme), #7000ff); cursor: pointer;
-    box-shadow: 0 0 20px var(--theme); font-size: 14px; font-family: Prompt, sans-serif;
-}
-
-.app-container {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    width: 100%; height: 100%; padding: 10px;
-}
-h1 {
-    font-family: 'Orbitron', sans-serif; color: var(--theme);
-    text-shadow: 0 0 15px var(--theme), 0 0 30px var(--theme);
-    font-size: 18px; margin: 0 0 5px 0; letter-spacing: 2px; text-align: center;
-}
-.subtitle {
-    font-size: 9px; color: #a5b4fc; letter-spacing: 3px; margin-bottom: 10px; text-align: center;
-}
-.logo-ring {
-    width: 100px; height: 100px; border-radius: 50%;
-    border: 2px solid var(--theme);
-    box-shadow: 0 0 25px var(--theme), inset 0 0 15px var(--theme);
-    overflow: hidden; margin-bottom: 10px; background: #010206;
-    display: grid; place-items: center;
-}
-.logo-ring img { width: 100%; height: 100%; object-fit: cover; }
-
-.card {
-    width: 100%; max-width: 380px;
-    background: rgba(6, 9, 26, 0.9);
-    border: 2px solid var(--theme);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.9), 0 0 25px var(--glow);
-    border-radius: 20px; padding: 15px; backdrop-filter: blur(15px);
-}
-.theme-selector {
-    display: flex; justify-content: center; gap: 8px; margin-bottom: 8px;
-}
-.theme-btn {
-    background: rgba(255,255,255,0.05); border: 1px solid var(--theme);
-    color: var(--theme); padding: 4px 10px; border-radius: 10px; font-size: 10px;
-    cursor: pointer; font-weight: bold; transition: 0.2s;
-}
-.theme-btn:hover { background: var(--theme); color: #000; }
-
-select {
-    width: 100%; padding: 7px; background: #02040a; color: #fff;
-    border: 1px solid var(--theme); border-radius: 10px; font-family: Prompt, sans-serif;
-    font-size: 12px; margin-bottom: 8px; outline: none;
-}
-.lcd {
-    background: linear-gradient(135deg, #010206 0%, #0b102b 100%);
-    border: 1px solid var(--theme); border-radius: 12px; padding: 10px;
-    text-align: center; margin-bottom: 8px;
-}
-.track-title {
-    color: var(--theme); font-weight: bold; font-size: 12px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    text-shadow: 0 0 8px var(--theme); margin-bottom: 6px;
-}
-canvas {
-    display: block; width: 100%; height: 40px; background: rgba(0,0,0,0.4);
-    border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
-}
-audio { width: 100%; margin: 6px 0; height: 30px; filter: drop-shadow(0 0 5px var(--theme)); }
-
-.controls {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
-}
-.ctrl-btn {
-    background: linear-gradient(135deg, #0d1235, #040614);
-    color: var(--theme); border: 1px solid var(--theme); border-radius: 10px;
-    padding: 8px 2px; font-size: 10px; font-weight: bold; cursor: pointer; text-align: center;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.5); transition: 0.2s;
-}
-.ctrl-btn:hover { background: var(--theme); color: #000; }
+:root{--cyan:#35eaff;--purple:#a855f7;--blue:#397bff;--panel:#0a1224}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#030611;color:#eef7ff;font-family:Arial,'Noto Sans Thai',sans-serif}
+body{padding:12px;background:radial-gradient(ellipse at 50% 0%,#14264b 0%,#070b19 52%,#02040a 100%)}
+.shell{max-width:1200px;margin:auto;border:1px solid #35eaff55;border-radius:24px;padding:clamp(12px,2.5vw,25px);background:linear-gradient(145deg,#0d1930ed,#050916f5);box-shadow:0 0 28px #00cfff22,inset 0 0 25px #7c3aed12;position:relative;overflow:hidden}
+.shell:before{content:"";position:absolute;inset:-2px;background:linear-gradient(110deg,transparent,#35eaff16,transparent,#a855f716,transparent);pointer-events:none}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative}
+.kicker{font-size:10px;letter-spacing:3px;color:#78edff}.status{font-size:10px;color:#9caecb;border:1px solid #385071;padding:7px 10px;border-radius:30px}
+.hero{display:grid;grid-template-columns:minmax(150px,260px) 1fr;gap:clamp(16px,4vw,42px);align-items:center;padding:24px 3%}
+.art{aspect-ratio:1;border-radius:22px;border:1px solid #48ddff88;background:radial-gradient(circle,#203c68,#080e1e 70%);box-shadow:0 0 24px #12dfff33,0 0 45px #8b5cf633;display:grid;place-items:center;overflow:hidden;position:relative}
+.art:after{content:"";position:absolute;inset:10%;border:1px solid #63eaff55;border-radius:50%;box-shadow:0 0 24px #35eaff44;animation:spin 18s linear infinite}
+.art img{width:76%;height:76%;object-fit:contain;filter:drop-shadow(0 0 16px #35eaff);z-index:1;animation:breathe 3s ease-in-out infinite}
+.disc{font-size:clamp(65px,10vw,115px);text-shadow:0 0 20px #35eaff,0 0 40px #a855f7;animation:spin 16s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes breathe{50%{transform:scale(1.05);filter:drop-shadow(0 0 28px #a855f7)}}
+.tracklabel{font-size:10px;letter-spacing:3px;color:#63eaff}.trackname{font-size:clamp(23px,4vw,42px);font-weight:900;line-height:1.15;margin:9px 0;text-shadow:0 0 16px #27dfff66;overflow-wrap:anywhere}
+.filename{font-size:12px;color:#9eb1d0}.time{display:flex;justify-content:space-between;color:#8da5c7;font-size:11px;margin-top:7px}
+input[type=range]{width:100%;accent-color:#39e7ff;cursor:pointer}
+.progress{height:6px}
+.controls{display:flex;align-items:center;justify-content:center;gap:clamp(8px,2vw,20px);margin:18px 0;flex-wrap:wrap}
+button{border:1px solid #35eaff66;background:linear-gradient(145deg,#142744,#091226);color:#dffaff;border-radius:15px;padding:12px 16px;font-size:17px;cursor:pointer;box-shadow:0 0 13px #00d9ff18;transition:.2s}
+button:hover{border-color:#35eaff;box-shadow:0 0 20px #00d9ff66;transform:translateY(-2px)}
+button.main{width:62px;height:62px;border-radius:50%;font-size:25px;background:linear-gradient(145deg,#167caa,#5731a3);box-shadow:0 0 25px #21dfff66}
+button.active{color:#43efff;border-color:#43efff;box-shadow:0 0 14px #43efff55}
+.section{margin-top:15px;border:1px solid #294365;border-radius:17px;padding:16px;background:#050c1bd9;position:relative}
+.sectionhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.sectionhead b{font-size:13px;letter-spacing:2px;color:#a7f4ff}.sectionhead span{font-size:10px;color:#8099bc}
+.eq{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:10px}
+.band{text-align:center;min-width:0}.band input{height:105px;writing-mode:vertical-lr;direction:rtl;width:22px;max-width:100%;accent-color:#4beaff}
+.band small{display:block;color:#91a8ca;font-size:10px;margin-top:7px}.band output{display:block;color:#55eaff;font-size:10px;margin-top:4px}
+.tone{display:grid;grid-template-columns:1fr 1fr;gap:22px}.tone label{font-size:11px;color:#a9c0df;display:flex;justify-content:space-between}
+.visual{height:100px;width:100%;display:block;border-radius:12px;background:#030917;border:1px solid #18304e}
+.playlist{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:220px;overflow:auto}
+.song{display:flex;align-items:center;gap:9px;text-align:left;width:100%;padding:11px;font-size:12px;border-radius:11px;min-width:0}
+.song span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.song.current{border-color:#36eaff;background:#102b43;color:#75f3ff}
+.footer{text-align:center;color:#607b9e;font-size:10px;letter-spacing:2px;padding:16px 0 2px}
+@media(max-width:650px){.hero{grid-template-columns:110px 1fr;padding:18px 0;gap:14px}.art{border-radius:15px}.art img{width:82%;height:82%}.eq{grid-template-columns:repeat(5,1fr);row-gap:15px}.band input{height:75px}.playlist{grid-template-columns:1fr}.status{font-size:9px}.section{padding:12px}}
 </style>
 </head>
 <body>
-
-<div id="splash">
-    <h2>TA101 • NEON SPACE</h2>
-    <p>แตะปุ่มด้านล่างเพื่อเปิดระบบเสียงและเริ่มต้นใช้งานเครื่องเล่นเพลง</p>
-    <button onclick="startApp()">✦ เริ่มต้นใช้งานระบบ</button>
+<div class="shell">
+ <div class="topline"><div><div class="kicker">TA101 AUDIO LAB • HI-FI SYSTEM</div><div style="font-size:19px;font-weight:900;letter-spacing:2px;margin-top:4px">NEON MUSIC PLAYER</div></div><div class="status" id="status">● READY TO PLAY</div></div>
+ <div class="hero">
+  <div class="art" id="art"><div class="disc" id="disc">♫</div><img id="logo" alt="TA101 logo" style="display:none"></div>
+  <div><div class="tracklabel">NOW PLAYING</div><div class="trackname" id="trackname">เลือกเพลงจากรายการ</div><div class="filename" id="filename">MUSIC • DREAM • TOGETHER</div>
+   <div style="margin-top:19px"><input class="progress" id="seek" type="range" min="0" max="1000" value="0"><div class="time"><span id="elapsed">00:00</span><span id="duration">00:00</span></div></div>
+  </div>
+ </div>
+ <div class="controls">
+  <button id="shuffle" title="สุ่มเพลง">🔀</button><button id="prev" title="เพลงก่อนหน้า">⏮</button><button class="main" id="play" title="เล่น">▶</button><button id="next" title="เพลงถัดไป">⏭</button><button id="repeat" title="วนเพลง">🔁</button>
+ </div>
+ <div class="section"><div class="sectionhead"><b>◈ LIVE AUDIO SPECTRUM</b><span>REAL-TIME SOUND RESPONSE</span></div><canvas class="visual" id="visual"></canvas></div>
+ <div class="section"><div class="sectionhead"><b>◈ 10-BAND EQUALIZER</b><span>ปรับเสียงได้จริง • REAL EQ</span><button id="eqreset" style="padding:6px 10px;font-size:10px">RESET</button></div><div class="eq" id="eq"></div></div>
+ <div class="section"><div class="sectionhead"><b>◈ TONE CONTROL</b><span>BASS / TREBLE</span></div><div class="tone">
+  <div><label><span>BASS</span><output id="bassval">0 dB</output></label><input id="bass" type="range" min="-12" max="12" value="0"></div>
+  <div><label><span>TREBLE</span><output id="trebleval">0 dB</output></label><input id="treble" type="range" min="-12" max="12" value="0"></div>
+ </div></div>
+ <div class="section"><div class="sectionhead"><b>◈ PLAYLIST</b><span id="count">0 TRACKS</span></div><div class="playlist" id="playlist"></div></div>
+ <div class="footer">TA101 • MUSIC • DREAM • TOGETHER</div>
 </div>
-
-<div class="app-container">
-    <h1>TA101 • VISUALIZER</h1>
-    <div class="subtitle">✦ QUANTUM AUDIO SPECTRUM ✦</div>
-    
-    <div class="logo-ring">
-        <img id="logo-img" style="display:none;" alt="Logo">
-        <span id="logo-text" style="font-family:Orbitron;font-size:10px;color:var(--theme);">TA101</span>
-    </div>
-
-    <div class="card">
-        <div class="theme-selector">
-            <button class="theme-btn" onclick="setTheme('#00f5ff', 'rgba(0,245,255,0.4)')">💙 ฟ้า</button>
-            <button class="theme-btn" onclick="setTheme('#00ff88', 'rgba(0,255,136,0.4)')">💚 เขียว</button>
-            <button class="theme-btn" onclick="setTheme('#ff00d4', 'rgba(255,0,212,0.4)')">💜 ชมพู</button>
-        </div>
-
-        <select id="playlist" onchange="selectSong(this.value)"></select>
-
-        <div class="lcd">
-            <div id="track-title" class="track-title">พร้อมใช้งาน</div>
-            <canvas id="visualizer"></canvas>
-        </div>
-
-        <audio id="audio" controls crossorigin="anonymous"></audio>
-
-        <div class="controls">
-            <button class="ctrl-btn" onclick="prevSong()">⏮ ก่อนหน้า</button>
-            <button class="ctrl-btn" id="shuffle-btn" onclick="toggleShuffle()">🔀 สุ่ม: ปิด</button>
-            <button class="ctrl-btn" id="loop-btn" onclick="toggleLoop()">🔁 วน: ปิด</button>
-            <button class="ctrl-btn" onclick="nextSong()">ถัดไป ⏭</button>
-        </div>
-    </div>
-</div>
-
+<audio id="audio" preload="metadata" crossorigin="anonymous"></audio>
 <script>
-const songs = __SONGS__;
-const logoData = __LOGO__;
-let currentIndex = 0;
-let isShuffle = false;
-let isLoop = false;
-let audioCtx, analyser, source, canvasEl, canvasCtx;
-
-const audio = document.getElementById('audio');
-const titleEl = document.getElementById('track-title');
-const playlistEl = document.getElementById('playlist');
-
-if(logoData) {
-    const img = document.getElementById('logo-img');
-    img.src = logoData;
-    img.style.display = 'block';
-    document.getElementById('logo-text').style.display = 'none';
+const TRACKS=__TRACKS__;
+const LOGO=__LOGO__;
+const audio=document.getElementById('audio');
+const $=id=>document.getElementById(id);
+if(LOGO){$('logo').src=LOGO;$('logo').style.display='block';$('disc').style.display='none';}
+let current=0,shuffle=false,repeat=false,playing=false,ctx=null,source=null,analyser=null,filters=[],bassFilter=null,trebleFilter=null;
+const bands=[60,120,250,500,1000,2000,4000,8000,12000,16000];
+const labels=['60','120','250','500','1K','2K','4K','8K','12K','16K'];
+function fmt(s){if(!isFinite(s))return '00:00';return String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');}
+function setupAudio(){
+ if(ctx)return;
+ const AC=window.AudioContext||window.webkitAudioContext;
+ if(!AC){$('status').textContent='AUDIO API NOT SUPPORTED';return;}
+ ctx=new AC();source=ctx.createMediaElementSource(audio);analyser=ctx.createAnalyser();analyser.fftSize=256;
+ let node=source;
+ bands.forEach((freq,i)=>{const f=ctx.createBiquadFilter();f.type='peaking';f.frequency.value=freq;f.Q.value=1;f.gain.value=0;filters.push(f);node.connect(f);node=f;});
+ bassFilter=ctx.createBiquadFilter();bassFilter.type='lowshelf';bassFilter.frequency.value=120;node.connect(bassFilter);
+ trebleFilter=ctx.createBiquadFilter();trebleFilter.type='highshelf';trebleFilter.frequency.value=5000;bassFilter.connect(trebleFilter);
+ trebleFilter.connect(analyser);analyser.connect(ctx.destination);
 }
-
-function startApp(){
-    document.getElementById('splash').style.display = 'none';
-    initAudioContext();
-    initPlaylist();
-    if(songs.length > 0) {
-        loadSong(0);
-        audio.play().catch(e => console.log(e));
-    }
+function loadTrack(i,autoplay=false){
+ if(!TRACKS.length)return;
+ current=(i+TRACKS.length)%TRACKS.length;audio.src=TRACKS[current].src;audio.load();
+ $('trackname').textContent=TRACKS[current].name;$('filename').textContent=TRACKS[current].file;
+ document.querySelectorAll('.song').forEach((el,n)=>el.classList.toggle('current',n===current));
+ $('play').textContent='▶';playing=false;
+ if(autoplay)playTrack();
 }
-
-function setTheme(color, glow){
-    document.documentElement.style.setProperty('--theme', color);
-    document.documentElement.style.setProperty('--glow', glow);
+async function playTrack(){
+ if(!TRACKS.length)return;
+ setupAudio();if(ctx&&ctx.state==='suspended')await ctx.resume();
+ try{await audio.play();playing=true;$('play').textContent='❚❚';$('status').textContent='● PLAYING';}
+ catch(e){$('status').textContent='TAP PLAY TO START';}
 }
-
-function initAudioContext(){
-    if(audioCtx) return;
-    try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioCtx.createAnalyser();
-        source = audioCtx.createMediaElementSource(audio);
-        source.connect(analyser);
-        analyser.connect(audioCtx.destination);
-        analyser.fftSize = 64;
-
-        canvasEl = document.getElementById('visualizer');
-        canvasCtx = canvasEl.getContext('2d');
-        
-        function draw(){
-            requestAnimationFrame(draw);
-            let bufferLength = analyser.frequencyBinCount;
-            let dataArray = new Uint8Array(bufferLength);
-            analyser.getByteFrequencyData(dataArray);
-
-            if(canvasEl.width !== canvasEl.offsetWidth || canvasEl.height !== canvasEl.offsetHeight) {
-                canvasEl.width = canvasEl.offsetWidth;
-                canvasEl.height = canvasEl.offsetHeight;
-            }
-            let width = canvasEl.width;
-            let height = canvasEl.height;
-
-            canvasCtx.fillStyle = 'rgba(2, 4, 10, 0.4)';
-            canvasCtx.fillRect(0, 0, width, height);
-
-            let barWidth = (width / bufferLength) * 2.2;
-            let barHeight;
-            let x = 0;
-
-            let computedTheme = getComputedStyle(document.documentElement).getPropertyValue('--theme').trim();
-
-            for(let i = 0; i < bufferLength; i++) {
-                barHeight = (dataArray[i] / 255) * height;
-                canvasCtx.fillStyle = computedTheme;
-                canvasCtx.fillRect(x, height - barHeight, barWidth - 2, barHeight);
-                x += barWidth + 2;
-            }
-        }
-        draw();
-    } catch(e) {
-        console.log("Audio Context Error", e);
-    }
+function pauseTrack(){audio.pause();playing=false;$('play').textContent='▶';$('status').textContent='Ⅱ PAUSED';}
+function nextTrack(){let n;if(shuffle&&TRACKS.length>1){do{n=Math.floor(Math.random()*TRACKS.length)}while(n===current)}else n=current+1;loadTrack(n,true);}
+function renderPlaylist(){
+ $('count').textContent=TRACKS.length+' TRACKS';
+ const list=$('playlist');list.innerHTML='';
+ TRACKS.forEach((t,i)=>{const b=document.createElement('button');b.className='song';b.innerHTML='<span>♫</span><span></span>';b.lastElementChild.textContent=t.name;b.onclick=()=>loadTrack(i,true);list.appendChild(b);});
+ if(TRACKS.length)loadTrack(0,false);
+ else $('trackname').textContent='ไม่พบไฟล์เพลง';
 }
-
-function initPlaylist(){
-    playlistEl.innerHTML = '';
-    if(songs.length === 0){
-        let opt = document.createElement('option');
-        opt.textContent = "ไม่พบไฟล์เพลงในโฟลเดอร์";
-        playlistEl.appendChild(opt);
-        titleEl.textContent = "ไม่พบไฟล์เพลง (.mp3)";
-        return;
-    }
-    songs.forEach((s, i) => {
-        let opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = (i+1) + ". " + s.name;
-        playlistEl.appendChild(opt);
-    });
+$('play').onclick=()=>playing?pauseTrack():playTrack();
+$('prev').onclick=()=>loadTrack(current-1,true);
+$('next').onclick=nextTrack;
+$('shuffle').onclick=()=>{shuffle=!shuffle;$('shuffle').classList.toggle('active',shuffle);};
+$('repeat').onclick=()=>{repeat=!repeat;$('repeat').classList.toggle('active',repeat);};
+audio.addEventListener('ended',()=>{if(repeat){audio.currentTime=0;playTrack();}else if(current<TRACKS.length-1||shuffle)nextTrack();else{pauseTrack();audio.currentTime=0;}});
+audio.addEventListener('timeupdate',()=>{if(audio.duration){$('seek').value=audio.currentTime/audio.duration*1000;$('elapsed').textContent=fmt(audio.currentTime);$('duration').textContent=fmt(audio.duration);}});
+$('seek').addEventListener('input',()=>{if(audio.duration)audio.currentTime=Number($('seek').value)/1000*audio.duration;});
+const eq=$('eq');
+bands.forEach((freq,i)=>{const d=document.createElement('div');d.className='band';d.innerHTML='<input type="range" min="-12" max="12" value="0" step="1"><output>0 dB</output><small>'+labels[i]+'</small>';const input=d.querySelector('input');input.addEventListener('input',()=>{if(filters[i])filters[i].gain.value=Number(input.value);d.querySelector('output').textContent=input.value+' dB';});eq.appendChild(d);});
+function tone(id,filter,out){$(id).addEventListener('input',()=>{const v=Number($(id).value);if(filter)filter.gain.value=v;$(out).textContent=v+' dB';});}
+tone('bass',bassFilter,'bassval');tone('treble',trebleFilter,'trebleval');
+$('eqreset').onclick=()=>{eq.querySelectorAll('input').forEach((input,i)=>{input.value=0;if(filters[i])filters[i].gain.value=0;input.parentElement.querySelector('output').textContent='0 dB';});$('bass').value=0;$('treble').value=0;if(bassFilter)bassFilter.gain.value=0;if(trebleFilter)trebleFilter.gain.value=0;$('bassval').textContent='0 dB';$('trebleval').textContent='0 dB';};
+const canvas=$('visual'),g=canvas.getContext('2d');
+function draw(){
+ const dpr=window.devicePixelRatio||1,w=canvas.clientWidth,h=canvas.clientHeight;
+ if(canvas.width!==Math.floor(w*dpr)||canvas.height!==Math.floor(h*dpr)){canvas.width=Math.floor(w*dpr);canvas.height=Math.floor(h*dpr);}
+ g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+ const grad=g.createLinearGradient(0,0,w,0);grad.addColorStop(0,'#20dfff');grad.addColorStop(.5,'#a855f7');grad.addColorStop(1,'#ff4fd8');
+ const data=new Uint8Array(analyser?analyser.frequencyBinCount:64);if(analyser)analyser.getByteFrequencyData(data);
+ const n=48,bw=w/n;
+ for(let i=0;i<n;i++){const v=analyser?data[Math.floor(i*data.length/n)]/255:(.08+.06*Math.sin(Date.now()/350+i));const bh=Math.max(3,v*h*.88);g.fillStyle=grad;g.shadowBlur=12;g.shadowColor='#21dfff';g.fillRect(i*(bw+1),h-bh,bw*.72,bh);}
+ g.shadowBlur=0;requestAnimationFrame(draw);
 }
-
-function loadSong(i){
-    if(!songs.length) return;
-    currentIndex = (i + songs.length) % songs.length;
-    audio.src = songs[currentIndex].src;
-    titleEl.textContent = "🎵 " + songs[currentIndex].name;
-    playlistEl.value = currentIndex;
-    if(audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-}
-
-function selectSong(val){
-    loadSong(Number(val));
-    audio.play().catch(e => console.log(e));
-}
-
-function nextSong(){
-    if(isShuffle){
-        currentIndex = Math.floor(Math.random() * songs.length);
-    } else {
-        currentIndex = (currentIndex + 1) % songs.length;
-    }
-    loadSong(currentIndex);
-    audio.play().catch(e => console.log(e));
-}
-
-function prevSong(){
-    currentIndex = (currentIndex - 1 + songs.length) % songs.length;
-    loadSong(currentIndex);
-    audio.play().catch(e => console.log(e));
-}
-
-function toggleShuffle(){
-    isShuffle = !isShuffle;
-    document.getElementById('shuffle-btn').textContent = isShuffle ? "🔀 สุ่ม: เปิด" : "🔀 สุ่ม: ปิด";
-}
-
-function toggleLoop(){
-    isLoop = !isLoop;
-    audio.loop = isLoop;
-    document.getElementById('loop-btn').textContent = isLoop ? "🔁 วน: เปิด" : "🔁 วน: ปิด";
-}
-
-audio.onended = () => {
-    if(!isLoop) nextSong();
-};
+renderPlaylist();draw();
 </script>
-</body>
-</html>
-"""
+</body></html>"""
 
-# แทนที่ค่าตัวแปรลงใน HTML
-player_html = (
-    player_html
-    .replace("__SONGS__", songs_json)
-    .replace("__LOGO__", logo_json)
-)
+if tracks:
+    tracks_json = json.dumps(tracks, ensure_ascii=False).replace("</", "<\\/")
+    logo_json = json.dumps(logo_data)
+    page = PLAYER_HTML.replace("__TRACKS__", tracks_json).replace("__LOGO__", logo_json)
+    components.html(page, height=1120, scrolling=True)
+else:
+    st.info("เมื่อเพิ่มไฟล์เพลงในโฟลเดอร์แอปแล้ว เครื่องเล่นจะปรากฏที่นี่")
+    st.markdown("### โครงสร้างไฟล์ที่แนะนำ")
+    st.code("app.py\nlogo1.jpg\nเพลงของคุณ.mp3", language="text")
 
-components.html(player_html, height=540, scrolling=False)
+st.caption(f"พบไฟล์เพลงทั้งหมด {len(songs)} เพลง • ฝังในเครื่องเล่น {len(tracks)} เพลง • โลโก้: {logo_path.name if logo_path else 'ไม่พบ'}")
+st.caption("หมายเหตุ: EQ ทำงานเมื่อเล่นเสียงผ่านเครื่องเล่นนี้ และเบราว์เซอร์อาจต้องให้แตะปุ่ม Play ก่อนเริ่มเสียง")
