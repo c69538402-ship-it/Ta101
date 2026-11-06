@@ -102,7 +102,7 @@ filter:saturate(1.35);animation:nebula-drift 28s ease-in-out infinite alternate}
 @keyframes title-flow{to{background-position:240% center}}
 #track-sub{font-size:10px;color:var(--a);margin-top:5px;letter-spacing:2px;text-shadow:0 0 9px var(--a)}
 .mixer{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:17px;padding:12px 14px;border:1px solid #ffffff20;border-radius:15px;background:linear-gradient(120deg,#00eaff0b,#bd00ff12);box-shadow:inset 0 0 18px #00eaff09}
-.mix-channel{min-width:0}
+mix-channel{min-width:0}
 .mix-head{display:flex;justify-content:space-between;gap:6px;font:10px Orbitron,sans-serif;letter-spacing:1px;color:#dceaff;margin-bottom:8px}
 .mix-head b{color:var(--a);font-weight:700}
 .mix-channel input{width:100%;height:5px;accent-color:var(--a);cursor:pointer;filter:drop-shadow(0 0 4px var(--a))}
@@ -135,7 +135,8 @@ filter:saturate(1.35);animation:nebula-drift 28s ease-in-out infinite alternate}
   <canvas id="logo-motion" aria-label="Animated TA101 logo"></canvas>
   <div id="logo-placeholder">TA101<br>NEON MUSIC</div>
   <canvas id="burst"></canvas>
-  <button id="burst-btn" type="button">✦ แตกตัว / ประกอบโลโก้</button>
+  <button id="
+  .burst-btn" type="button">✦ แตกตัว / ประกอบโลโก้</button>
  </div>
   <div class="hud">
   <div class="top">
@@ -162,7 +163,7 @@ filter:saturate(1.35);animation:nebula-drift 28s ease-in-out infinite alternate}
     <button class="ctrl" id="prev" title="เพลงก่อน">⏮</button>
     <button id="play" title="เล่น / หยุด">▶</button>
     <button class="ctrl" id="next" title="เพลงถัดไป">⏭</button>
-   </div>   
+   </div>
    <div class="mixer-title">✦ NEON MIX CONSOLE ✦</div>
    <div class="mixer">
     <div class="mix-channel"><div class="mix-head"><span>VOLUME</span><b id="vol-value">80%</b></div><input id="volume" type="range" min="0" max="100" value="80" aria-label="ปรับความดัง"></div>
@@ -196,7 +197,6 @@ let index=0, playing=false, shuffle=false, loopList=true, single=false;
 let ctx=null, analyser=null, source=null, freq=null, waveData=null, bassFilter=null, trebleFilter=null, masterGain=null;
 let scene,camera,renderer,stars,core,coreMat,clock;
 const stage=$("stage");
-
 function setTheme(a,b){
  document.documentElement.style.setProperty("--a",a);
  document.documentElement.style.setProperty("--b",b);
@@ -220,6 +220,7 @@ function timeText(s){
  s=Math.max(0,Math.floor(s));
  return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
 }
+
 function initAudio(){
  if(ctx)return;
  const AC=window.AudioContext||window.webkitAudioContext;
@@ -285,7 +286,6 @@ function loadTrack(i){
  $("elapsed").textContent="0:00";
  $("duration").textContent="0:00";
 }
-
 async function playAudio(){
  if(!SONGS.length)return;
  initAudio();
@@ -350,7 +350,6 @@ $("playlist").onchange=e=>{
  loadTrack(Number(e.target.value));
  playAudio();
 };
-
 $("loop").onclick=()=>{
  loopList=!loopList;
  $("loop").classList.toggle("active",loopList);
@@ -376,6 +375,7 @@ $("single").onclick=()=>{
   $("loop").classList.add("active");
  }
 };
+
 audio.addEventListener("ended",()=>nextTrack(true));
 audio.addEventListener("loadedmetadata",()=>{
  $("duration").textContent=timeText(audio.duration);
@@ -412,7 +412,6 @@ $("fullscreen").onclick=async()=>{
 };
 
 fillPlaylist();
-
 /* มิกเซอร์: ปรับความดัง เบส และเสียงแหลม */
 $("volume").addEventListener("input",e=>{
  const v=Number(e.target.value);
@@ -523,8 +522,6 @@ try{
  render3d();
 }catch(err){
  console.warn("3D renderer unavailable:",err);
-}
-
 /* กราฟเสียงหลายเส้น สูงขึ้น และตอบสนองต่อเพลงจริง */
 const wc=$("wave"),wctx=wc.getContext("2d");
 
@@ -561,6 +558,7 @@ function drawWave(){
   }else{
    level=.08+.08*(.5+.5*Math.sin(i*.32+performance.now()*.002));
   }
+
   const bh=Math.max(3,level*h*.42);
   const grad=wctx.createLinearGradient(0,mid-bh,0,mid+bh);
   grad.addColorStop(0,"#bd00ff");
@@ -609,7 +607,94 @@ function drawWave(){
  wctx.shadowBlur=0;
 }
 drawWave();
+render3d();
+}catch(err){
+ console.warn("3D renderer unavailable:",err);
+/* กราฟเสียงหลายเส้น สูงขึ้น และตอบสนองต่อเพลงจริง */
+const wc=$("wave"),wctx=wc.getContext("2d");
 
+function drawWave(){
+ requestAnimationFrame(drawWave);
+
+ const dpr=Math.min(devicePixelRatio||1,2);
+ const w=wc.clientWidth,h=wc.clientHeight;
+ if(!w||!h)return;
+
+ if(wc.width!==Math.floor(w*dpr)||wc.height!==Math.floor(h*dpr)){
+  wc.width=Math.floor(w*dpr);
+  wc.height=Math.floor(h*dpr);
+ }
+
+ wctx.setTransform(dpr,0,0,dpr,0,0);
+ wctx.clearRect(0,0,w,h);
+
+ if(analyser&&waveData&&playing)analyser.getByteTimeDomainData(waveData);
+ if(analyser&&freq&&playing)analyser.getByteFrequencyData(freq);
+
+ const mid=h*.5;
+ const points=Math.max(160,Math.floor(w*.95));
+ const barCount=Math.min(100,Math.floor(w/7));
+ const barGap=2;
+ const barW=Math.max(2,(w-(barCount-1)*barGap)/barCount);
+
+ for(let i=0;i<barCount;i++){
+  let level=0;
+
+  if(analyser&&freq&&playing){
+   const j=Math.floor(i/barCount*freq.length);
+   level=freq[j]/255;
+  }else{
+   level=.08+.08*(.5+.5*Math.sin(i*.32+performance.now()*.002));
+  }
+
+  const bh=Math.max(3,level*h*.42);
+  const grad=wctx.createLinearGradient(0,mid-bh,0,mid+bh);
+  grad.addColorStop(0,"#bd00ff");
+  grad.addColorStop(.5,"#ffffff");
+  grad.addColorStop(1,"#00f5ff");
+
+  wctx.fillStyle=grad;
+  wctx.globalAlpha=.65;
+  wctx.fillRect(i*(barW+barGap),mid-bh,barW,bh*2);
+ }
+
+ wctx.globalAlpha=1;
+
+ const palette=["#00f5ff","#bd00ff","#ffffff","#ff45df","#38a8ff"];
+
+ for(let layer=0;layer<5;layer++){
+  wctx.beginPath();
+  wctx.lineWidth=layer===0?3.2:layer===1?2:1.2;
+  wctx.strokeStyle=palette[layer];
+  wctx.shadowBlur=layer===0?24:14;
+  wctx.shadowColor=palette[layer];
+
+  for(let i=0;i<=points;i++){
+   const x=i/points*w;
+   let v;
+
+   if(analyser&&waveData&&playing){
+    const j=Math.floor(i/points*(waveData.length-1));
+    v=(waveData[j]-128)/128;
+   }else{
+    v=Math.sin(i*.12+performance.now()*.0015+layer)*.18+
+      Math.sin(i*.035-performance.now()*.001)*.1;
+   }
+
+   const amplitude=(playing?h*.72:h*.28)*(1-layer*.105);
+   const y=mid+v*amplitude+
+     Math.sin(i*.08+performance.now()*.001+layer*1.4)*(2+layer);
+
+   if(i===0)wctx.moveTo(x,y);
+   else wctx.lineTo(x,y);
+  }
+
+  wctx.stroke();
+ }
+
+ wctx.shadowBlur=0;
+}
+drawWave();
 /* โลโก้เคลื่อนไหวจากอนุภาคที่สร้างด้วยพิกเซลของ logo1.jpg */
 const lc=$("logo-motion"),lctx=lc.getContext("2d");
 const bc=$("burst"),bctx=bc.getContext("2d");
@@ -721,7 +806,6 @@ function animateLogo(){
  for(const q of logoParticles){
   const drift=Math.sin(t*1.7+q.phase)*(1.5+energy*8);
   const flutter=Math.cos(t*1.3+q.phase)*(1.5+energy*8);
-
   const tx=q.tx+drift;
   const ty=q.ty+flutter;
   const sx=q.sx+Math.sin(t+q.phase)*22;
@@ -747,6 +831,7 @@ function animateLogo(){
    bctx.fill();
   }
  }
+
  lctx.shadowBlur=0;
  bctx.shadowBlur=0;
 }
