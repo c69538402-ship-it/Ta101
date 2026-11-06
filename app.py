@@ -1,250 +1,166 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TA101 NEON HI-FI MUSIC</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
-    <!-- FontAwesome สำหรับไอคอน -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        body {
-            font-family: 'Prompt', 'Orbitron', sans-serif;
-            background: radial-gradient(circle at center, #1b0a3f 0%, #05020d 100%);
-            color: #fff;
-            overflow-x: hidden;
-        (
-        .neon-box {
-            background: rgba(10, 5, 30, 0.75);
-            border: 2px solid rgba(0, 243, 255, 0.4);
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2), inset 0 0 15px rgba(189, 0, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border-radius: 1.5rem;
-        }
-        .neon-text-cyan {
-            color: #00f3ff;
-            text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
-        }
-        .neon-text-pink {
-            color: #ff007f;
-            text-shadow: 0 0 10px rgba(255, 0, 127, 0.6);
-        }
-        .neon-button {
-            background: linear-gradient(135deg, rgba(0,243,255,0.2), rgba(255,0,127,0.2));
-            border: 1px solid #00f3ff;
-            box-shadow: 0 0 10px rgba(0,243,255,0.4);
-            transition: all 0.3s ease;
-        }
-        .neon-button:hover {
-            background: linear-gradient(135deg, rgba(0,243,255,0.4), rgba(255,0,127,0.4));
-            box-shadow: 0 0 20px rgba(0,243,255,0.8);
-            transform: scale(1.05);
-        }
-        /* แถบ Equalizer จำลอง */
-        .eq-bar {
-            background: linear-gradient(to top, #ff007f, #00f3ff);
-            box-shadow: 0 0 8px #00f3ff;
-            animation: bounce 1.2s infinite ease-in-out alternate;
-        }
-        @keyframes bounce {
-            0% { height: 20%; }
-            100% { height: 95%; }
-        }
-    </style>
-</head>
-<body class="min-h-screen p-4 md:p-6 flex flex-col justify-between">
+import streamlit as st
 
-    <!-- ส่วนหัว (Header) -->
-    <header class="flex justify-between items-center mb-6">
-        <div class="flex items-center space-x-3">
-            <div class="neon-button p-3 rounded-full text-cyan-400">
-                <i class="fa-solid fa-headphones text-xl"></i>
-            </div>
-            <span class="text-xs tracking-widest text-green-400 font-semibold bg-green-950/60 px-3 py-1 rounded-full border border-green-500/40">
+# ตั้งค่าหน้าเว็บให้เป็นแบบ Wide Mode
+st.set_page_config(
+    page_title="TA101 NEON HI-FI MUSIC",
+    page_icon="🎵",
+    layout="wide"
+)
+
+# ส่วนตกแต่ง CSS สำหรับธีมนีออน Sci-Fi
+st.markdown("""
+    <style>
+    .stApp {
+        background: radial-gradient(circle at center, #1b0a3f 0%, #05020d 100%);
+        color: #ffffff;
+    }
+    .neon-box {
+        background: rgba(10, 5, 30, 0.75);
+        border: 2px solid rgba(0, 243, 255, 0.4);
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.2), inset 0 0 15px rgba(189, 0, 255, 0.2);
+        backdrop-filter: blur(10px);
+        border-radius: 1.5rem;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .neon-text-cyan {
+        color: #00f3ff;
+        text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+        font-family: 'Orbitron', sans-serif;
+    }
+    .neon-text-pink {
+        color: #ff007f;
+        text-shadow: 0 0 10px rgba(255, 0, 127, 0.6);
+        font-family: 'Orbitron', sans-serif;
+    }
+    /*ซ่อน Streamlit Header และ Footer เดิมเพื่อความสวยงาม*/
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    </style>
+""", unsafe_allow_html=True)
+
+# --- ส่วนหัว (Header) ---
+col_head1, col_head2, col_head3 = st.columns([1, 2, 1])
+
+with col_head1:
+    st.markdown("""
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="background: rgba(0, 255, 0, 0.2); border: 1px solid rgba(0, 255, 0, 0.5); color: #00ff00; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold;">
                 ● LIVE MUSIC
             </span>
         </div>
-        <div class="text-center">
-            <h1 class="text-3xl md:text-5xl font-extrabold tracking-wider font-['Orbitron'] neon-text-cyan">
-                TA101 <span class="neon-text-pink">NEON HI-FI</span>
+    """, unsafe_allow_html=True)
+
+with col_head2:
+    st.markdown("""
+        <div style="text-align: center;">
+            <h1 style="margin: 0; font-size: 2.2rem; font-weight: 800; color: #00f3ff; text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);">
+                TA101 <span style="color: #ff007f; text-shadow: 0 0 10px rgba(255, 0, 127, 0.6);">NEON HI-FI</span>
             </h1>
-            <p class="text-xs tracking-widest text-purple-300">MUSIC • DREAM • TOGETHER</p>
+            <p style="margin: 0; font-size: 10px; letter-spacing: 2px; color: #d8b4fe;">MUSIC • DREAM • TOGETHER</p>
         </div>
-        <div class="neon-button px-4 py-2 rounded-full text-sm font-semibold flex items-center space-x-2 text-cyan-300">
-            <i class="fa-solid fa-music"></i>
-            <span>Now Playing</span>
-        </div>
-    </header>
+    """, unsafe_allow_html=True)
 
-    <!-- ส่วนเนื้อหาหลัก (Main Dashboard) -->
-    <main class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center max-w-7xl mx-auto w-full">
+with col_head3:
+    st.markdown("""
+        <div style="text-align: right;">
+            <span style="background: rgba(0, 243, 255, 0.2); border: 1px solid #00f3ff; color: #00f3ff; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: bold;">
+                🎵 Now Playing
+            </span>
+        </div>
+    """, unsafe_allow_html=True)
+
+st.write("---")
+
+# --- ส่วนเนื้อหาหลัก (Main Dashboard) ---
+col_left, col_mid, col_right = st.columns([4, 5, 3])
+
+# ซ้าย: แสดงโลโก้ logo1.jpg
+with col_left:
+    st.markdown('<div class="neon-box" style="text-align: center;">', unsafe_allow_html=True)
+    st.markdown('<h3 class="neon-text-cyan" style="font-size: 1.1rem; margin-bottom: 10px;">LOGO DISPLAY</h3>', unsafe_allow_html=True)
+    
+    try:
+        # พยายามโหลดไฟล์รูปภาพ logo1.jpg ที่อยู่ในโฟลเดอร์เดียวกัน
+        st.image("logo1.jpg", caption="TA101 Logo", use_container_width=True)
+    except Exception:
+        # กรณีที่ยังหาไฟล์ไม่พบ ให้แจ้งเตือนคำแนะนำ
+        st.warning("⚠️ ยังไม่พบไฟล์รูปภาพชื่อ `logo1.jpg` ในโฟลเดอร์โปรเจกต์ กรุณาอัปโหลดไฟล์ `logo1.jpg` ไว้ที่เดียวกับ `app.py` บน GitHub ครับ")
         
-        <!-- ซ้าย: โลโก้แผ่นเสียง / หูฟังเรืองแสง -->
-        <div class="lg:col-span-4 flex flex-col items-center justify-center">
-            <div class="relative w-64 h-64 md:w-72 md:h-72 rounded-full neon-box flex items-center justify-center p-4">
-                <!-- วงแหวนหมุนจำลอง -->
-                <div class="absolute inset-2 rounded-full border-2 border-dashed border-cyan-500/50 animate-[spin_20s_linear_infinite]"></div>
-                <div class="absolute inset-6 rounded-full border border-pink-500/40"></div>
-                <div class="text-center z-10">
-                    <i class="fa-solid fa-headphones text-6xl md:text-7xl neon-text-pink mb-2"></i>
-                    <h2 class="text-2xl font-black font-['Orbitron'] neon-text-cyan">TA101</h2>
-                    <p class="text-xs text-purple-200 tracking-wider">NEON HI-FI</p>
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# กลาง: เครื่องเล่นเพลง / ควบคุม / คลื่นเสียงจำลอง
+with col_mid:
+    # กล่องชื่อเพลงและเวลา
+    st.markdown("""
+        <div class="neon-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div>
+                    <h4 style="margin: 0; color: #fff; font-size: 1rem;">🎧 ใส่ใจในเรื่องของ</h4>
+                    <p style="margin: 0; font-size: 0.8rem; color: #00f3ff;">TA101</p>
                 </div>
+                <span style="font-family: monospace; font-size: 0.8rem; color: #ccc;">01:32 / 04:12</span>
+            </div>
+            <div style="background: #111; height: 8px; border-radius: 4px; overflow: hidden;">
+                <div style="background: linear-gradient(to right, #00f3ff, #ff007f); width: 35%; height: 100%;"></div>
             </div>
         </div>
+    """, unsafe_allow_html=True)
 
-        <!-- กลาง: เครื่องเล่น + Equalizer + แผงควบคุม -->
-        <div class="lg:col-span-5 flex flex-col space-y-4">
-            <!-- แสดงชื่อเพลงและหลอดเวลา -->
-            <div class="neon-box p-4">
-                <div class="flex justify-between items-center mb-2">
-                    <div class="flex items-center space-x-3">
-                        <i class="fa-solid fa-music neon-text-cyan text-lg"></i>
-                        <div>
-                            <h3 id="song-title" class="font-semibold text-white text-sm md:text-base">ใส่ใจในเรื่องของ</h3>
-                            <p id="artist-name" class="text-xs text-cyan-400">TA101</p>
-                        </div>
-                    </div>
-                    <span id="time-display" class="text-xs font-mono text-gray-300">01:32 / 04:12</span>
-                </div>
-                <!-- Progress Bar -->
-                <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden cursor-pointer relative">
-                    <div id="progress-bar" class="bg-gradient-to-r from-cyan-400 to-pink-500 h-full w-[35%] rounded-full shadow-[0_0_10px_#00f3ff]"></div>
-                </div>
+    # จำลองปุ่มควบคุมการเล่นเพลงด้วย Streamlit Columns
+    c_btn1, c_btn2, c_btn3, c_btn4, c_btn5 = st.columns(5)
+    with c_btn1:
+        st.button("🔀", use_container_width=True)
+    with c_btn2:
+        st.button("⏮️", use_container_width=True)
+    with c_btn3:
+        st.button("⏸️", use_container_width=True)
+    with c_btn4:
+        st.button("⏭️", use_container_width=True)
+    with c_btn5:
+        st.button("🔁", use_container_width=True)
+
+# ขวา: Playlist
+with col_right:
+    st.markdown("""
+        <div class="neon-box">
+            <h4 class="neon-text-cyan" style="font-size: 1rem; margin-top: 0; border-bottom: 1px solid rgba(0,243,255,0.3); padding-bottom: 8px;">
+                📑 Playlist
+            </h4>
+            <div style="background: rgba(0,243,255,0.1); border: 1px solid rgba(0,243,255,0.4); padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 0.9px; color: #00f3ff;">
+                ▶ 1. ใส่ใจในเรื่องของ
             </div>
-
-            <!-- Visualizer (Equalizer Bars จำลอง) -->
-            <div class="neon-box p-4 h-28 flex items-end justify-between space-x-1">
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.1s;"></div>
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.4s;"></div>
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.2s;"></div>
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.6s;"></div>
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.3s;"></div>
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.5s;"></div>
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.1s;"></div>
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.7s;"></div>
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.2s;"></div>
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.4s;"></div>
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.6s;"></div>
-                <div class="eq-bar w-full rounded-t" style="animation-delay: 0.3s;"></div>
+            <div style="padding: 8px; font-size: 0.9rem; color: #ccc;">
+                2. ทางของรอยยิ้ม
             </div>
-
-            <!-- ปุ่มควบคุมการเล่นเพลง (Play/Pause/Skip) -->
-            <div class="flex items-center justify-center space-x-4 py-2">
-                <button class="neon-button w-10 h-10 rounded-full flex items-center justify-center text-cyan-300 text-sm">
-                    <i class="fa-solid fa-shuffle"></i>
-                </button>
-                <button class="neon-button w-12 h-12 rounded-full flex items-center justify-center text-cyan-300 text-lg">
-                    <i class="fa-solid fa-backward-step"></i>
-                </button>
-                <button id="play-btn" class="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-500 to-pink-600 flex items-center justify-center text-white text-xl shadow-[0_0_20px_#ff007f] hover:scale-110 transition-transform">
-                    <i id="play-icon" class="fa-solid fa-pause"></i>
-                </button>
-                <button class="neon-button w-12 h-12 rounded-full flex items-center justify-center text-cyan-300 text-lg">
-                    <i class="fa-solid fa-forward-step"></i>
-                </button>
-                <button class="neon-button w-10 h-10 rounded-full flex items-center justify-center text-cyan-300 text-sm">
-                    <i class="fa-solid fa-repeat"></i>
-                </button>
+            <div style="padding: 8px; font-size: 0.9rem; color: #ccc;">
+                3. 4.mp3
             </div>
         </div>
+    """, unsafe_allow_html=True)
 
-        <!-- ขวา: รายการเพลย์ลิสต์ (Playlist) -->
-        <div class="lg:col-span-3">
-            <div class="neon-box p-4">
-                <div class="flex justify-between items-center mb-3 border-b border-cyan-500/30 pb-2">
-                    <div class="flex items-center space-x-2 text-cyan-300 font-semibold text-sm">
-                        <i class="fa-solid fa-list"></i>
-                        <span>Playlist</span>
-                    </div>
-                    <div class="flex space-x-2 text-xs text-gray-400">
-                        <i class="fa-solid fa-shuffle cursor-pointer hover:text-cyan-400"></i>
-                        <i class="fa-solid fa-repeat cursor-pointer hover:text-cyan-400"></i>
-                    </div>
-                </div>
-                <!-- รายชื่อเพลงในเพลย์ลิสต์ -->
-                <ul class="space-y-2 text-sm">
-                    <li class="flex items-center justify-between p-2 rounded-lg bg-cyan-950/50 border border-cyan-500/40 text-cyan-300">
-                        <div class="flex items-center space-x-2">
-                            <i class="fa-solid fa-play text-xs"></i>
-                            <span class="truncate">ใส่ใจในเรื่องของ</span>
-                        </div>
-                    </li>
-                    <li class="flex items-center justify-between p-2 rounded-lg hover:bg-purple-900/30 text-gray-300 cursor-pointer transition">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs text-gray-500">2</span>
-                            <span class="truncate">ทางของรอยยิ้ม</span>
-                        </div>
-                    </li>
-                    <li class="flex items-center justify-between p-2 rounded-lg hover:bg-purple-900/30 text-gray-300 cursor-pointer transition">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs text-gray-500">3</span>
-                            <span class="truncate">4.mp3</span>
-                        </div>
-                    </li>
-                </ul>
-            </div>
+# --- ส่วนล่าง: ปรับแต่งเสียง (Equalizer & Volume) ---
+col_bot1, col_bot2 = st.columns(2)
+
+with col_bot1:
+    st.markdown("""
+        <div class="neon-box" style="padding: 15px;">
+            <p class="neon-text-cyan" style="margin: 0 0 10px 0; font-size: 0.9rem; font-weight: bold;">🎛️ Equalizer Panel</p>
         </div>
+    """, unsafe_allow_html=True)
+    eq1, eq2, eq3 = st.columns(3)
+    with eq1:
+        st.slider("Bass (+6 dB)", 0, 12, 6)
+    with eq2:
+        st.slider("Treble (+4 dB)", 0, 12, 4)
+    with eq3:
+        st.slider("Volume", 0, 100, 75)
 
-    </main>
-
-    <!-- ส่วนล่าง: Equalizer sliders เล็กๆ และ Volume -->
-    <footer class="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <!-- Equalizer แผงย่อย -->
-        <div class="neon-box p-3 flex items-center justify-between overflow-x-auto space-x-4">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-sliders neon-text-cyan text-sm"></i>
-                <span class="text-xs font-semibold">Equalizer</span>
-            </div>
-            <!-- จำลองสไลเดอร์ความถี่ -->
-            <div class="flex space-x-3 text-center text-[10px] text-gray-400">
-                <div><input type="range" orient="vertical" class="w-12 h-16 accent-cyan-400 cursor-pointer" value="60"><br>60</div>
-                <div><input type="range" orient="vertical" class="w-12 h-16 accent-cyan-400 cursor-pointer" value="50"><br>170</div>
-                <div><input type="range" orient="vertical" class="w-12 h-16 accent-cyan-400 cursor-pointer" value="70"><br>310</div>
-                <div><input type="range" orient="vertical" class="w-12 h-16 accent-cyan-400 cursor-pointer" value="40"><br>600</div>
-                <div><input type="range" orient="vertical" class="w-12 h-16 accent-cyan-400 cursor-pointer" value="80"><br>1K</div>
-                <div><input type="range" orient="vertical" class="w-12 h-16 accent-cyan-400 cursor-pointer" value="65"><br>3K</div>
-            </div>
+with col_bot2:
+    st.markdown("""
+        <div class="neon-box" style="padding: 15px; text-align: center;">
+            <p class="neon-text-pink" style="margin: 0 0 10px 0; font-size: 0.9rem; font-weight: bold;">✨ STATUS SYSTEM</p>
+            <p style="margin: 0; font-size: 0.8rem; color: #d8b4fe;">System Connected • Neon Hi-Fi Audio Engine Active</p>
         </div>
-
-        <!-- Volume & Bass/Treble ควบคุมเสียง -->
-        <div class="neon-box p-3 flex items-center justify-around">
-            <div class="text-center">
-                <p class="text-[10px] text-gray-400 mb-1">Bass</p>
-                <div class="w-10 h-10 rounded-full border border-cyan-400 flex items-center justify-center text-xs font-bold text-cyan-300 shadow-[0_0_5px_#00f3ff]">6 dB</div>
-            </div>
-            <div class="text-center">
-                <p class="text-[10px] text-gray-400 mb-1">Treble</p>
-                <div class="w-10 h-10 rounded-full border border-pink-400 flex items-center justify-center text-xs font-bold text-pink-400 shadow-[0_0_5px_#ff007f]">4 dB</div>
-            </div>
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-volume-high text-cyan-400 text-sm"></i>
-                <input type="range" class="w-24 accent-cyan-400 cursor-pointer" min="0" max="100" value="75">
-                <span class="text-xs font-mono text-cyan-300">75%</span>
-            </div>
-        </div>
-    </footer>
-
-    <!-- JavaScript เบื้องต้นสำหรับการกดปุ่ม Play/Pause -->
-    <script>
-        const playBtn = document.getElementById('play-btn');
-        const playIcon = document.getElementById('play-icon');
-        let isPlaying = true;
-
-        playBtn.addEventListener('click', () => {
-            isPlaying = !isPlaying;
-            if (isPlaying) {
-                playIcon.classList.remove('fa-play');
-                playIcon.classList.add('fa-pause');
-            } else {
-                playIcon.classList.remove('fa-pause');
-                playIcon.classList.add('fa-play');
-            }
-        });
-    </script>
-</body>
-</html>
+    """, unsafe_allow_html=True)
+    
