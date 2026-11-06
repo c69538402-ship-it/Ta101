@@ -17,7 +17,7 @@
             background: radial-gradient(circle at center, #1b0a3f 0%, #05020d 100%);
             color: #fff;
             overflow-x: hidden;
-        }
+        (
         .neon-box {
             background: rgba(10, 5, 30, 0.75);
             border: 2px solid rgba(0, 243, 255, 0.4);
