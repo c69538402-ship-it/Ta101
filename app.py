@@ -104,7 +104,7 @@ def find_logo():
         if p.is_file():
             return p
     return None
- def find_songs():
+def find_songs():    
     found = []
     for p in ROOT.rglob("*"):
         if not p.is_file() or p.suffix.lower() not in AUDIO_EXTENSIONS:
