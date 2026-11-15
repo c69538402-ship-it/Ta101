@@ -28,8 +28,10 @@ st.markdown("""
   background: radial-gradient(ellipse at 50% 0%, #102b55 0%, #071225 42%, #030711 100%);
   color: #f4f8ff;
 }
-[data-testid="stHeader"] {background: transparent;}
-.block-container {padding-top: 1rem; padding-bottom: 2rem; max-width: 1500px;}
+[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"],
+[data-testid="stStatusWidget"], #MainMenu, footer {display:none !important; visibility:hidden !important;}
+header {height:0 !important; min-height:0 !important;}
+.block-container {padding-top: .35rem; padding-bottom: 1rem; max-width: 1500px;}
 h1,h2,h3 {color:#eaf8ff;}
 div[data-testid="stMetric"] {
   background:linear-gradient(145deg,#101f3b,#081323);
@@ -120,7 +122,7 @@ html = r"""
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#030914;color:#f5fbff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-#map{height:68vh;min-height:470px;width:100%;position:relative;background:#101c2b}
+#map{height:58vh;min-height:360px;width:100%;position:relative;background:#101c2b}
 .topbar{position:absolute;z-index:2000;top:10px;left:10px;right:10px;display:flex;gap:7px;flex-wrap:wrap;pointer-events:none}
 .topbar button{pointer-events:auto;border:1px solid #ffffff66;border-radius:11px;padding:10px 13px;background:#07172bef;color:#fff;font-weight:800;font-size:14px;box-shadow:0 0 12px #00cfff55}
 #gps{border-color:#00d9ff;color:#9ff5ff}#pin{border-color:#00ff9d;color:#baffdd}
@@ -136,7 +138,7 @@ html,body{margin:0;padding:0;background:#030914;color:#f5fbff;font-family:system
 .card{background:linear-gradient(145deg,#142643,#091426);border:1px solid #23527a;border-radius:11px;padding:10px;min-width:0}
 .label{font-size:12px;color:#8fdcf7}.value{font-size:19px;font-weight:850;margin-top:3px;color:#fff;overflow-wrap:anywhere}
 #status{grid-column:1/-1;color:#b9d8e8;font-size:13px;padding:5px}
-@media(max-width:700px){#map{height:65vh;min-height:440px}.topbar{gap:5px}.topbar button{padding:9px 10px;font-size:12px}.panel{grid-template-columns:repeat(2,minmax(0,1fr))}.value{font-size:17px}}
+@media(max-width:700px){#map{height:56vh;min-height:340px}.topbar{gap:5px}.topbar button{padding:9px 10px;font-size:12px}.panel{grid-template-columns:repeat(2,minmax(0,1fr))}.value{font-size:17px}}
 @media print{html,body{background:white!important}#map{height:100vh!important;min-height:100vh!important}.panel,.topbar,#loading{display:none!important}.leaflet-control-zoom,.leaflet-control-attribution{display:none!important}}
 </style>
 </head>
@@ -172,13 +174,13 @@ function showLoading(t){$("loading").textContent=t;$("loading").style.display="b
 function hideLoading(){$("loading").style.display="none"}
 if(typeof L==="undefined"){showLoading("โหลด Leaflet ไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วรีเฟรช");status("ไม่สามารถโหลดระบบแผนที่ได้");return}
 
-const VIEW_KEY="mon101_galaxy_view_v12";
-const POINT_KEY="mon101_galaxy_points_v12";
-const defaultView={lat:17.4138,lng:102.7875,zoom:17};
+const VIEW_KEY="mon101_galaxy_view_v13";
+const POINT_KEY="mon101_galaxy_points_v13";
+const defaultView={lat:17.4138,lng:102.7875,zoom:15};
 function load(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback}catch(e){return fallback}}
 function save(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch(e){}}
 const savedView=load(VIEW_KEY,defaultView);
-const map=L.map("map",{center:[Number(savedView.lat)||defaultView.lat,Number(savedView.lng)||defaultView.lng],zoom:Number(savedView.zoom)||defaultView.zoom,zoomControl:true,maxZoom:20,minZoom:3});
+const map=L.map("map",{center:[Number(savedView.lat)||defaultView.lat,Number(savedView.lng)||defaultView.lng],zoom:Number(savedView.zoom)||defaultView.zoom,zoomControl:true,maxZoom:20,minZoom:1});
 const SAT_URL="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 let satellite=L.tileLayer(SAT_URL,{maxZoom:20,maxNativeZoom:19,attribution:"Tiles © Esri"}).addTo(map);
 let gotTile=false, tileErrors=0;
@@ -256,8 +258,43 @@ render();
 </html>
 """
 
+
+# Compact music area: tap the menu to reveal the available tracks.
+if AUDIO_FILES:
+    st.markdown("""
+    <style>
+    div[data-testid="stExpander"] {
+      border:1px solid #167eaa !important;border-radius:15px !important;
+      background:linear-gradient(135deg,#071326,#111c35) !important;
+      box-shadow:0 0 16px #00cfff20;
+    }
+    div[data-testid="stAudio"] {width:100%;}
+    </style>
+    """, unsafe_allow_html=True)
+    music_col, logo_col = st.columns([5, 1], vertical_alignment="center")
+    with music_col:
+        with st.expander("🎵 เปิดเมนูเพลง — แตะเพื่อดูรายชื่อเพลง", expanded=False):
+            chosen_song = st.selectbox(
+                "เลือกรายชื่อเพลง",
+                AUDIO_FILES,
+                format_func=lambda name: os.path.splitext(name)[0],
+                key="mon101_song_choice",
+            )
+            song_path = os.path.join(APP_DIR, chosen_song)
+            mime = {
+                ".mp3": "audio/mpeg", ".wav": "audio/wav",
+                ".m4a": "audio/mp4", ".ogg": "audio/ogg",
+                ".aac": "audio/aac", ".flac": "audio/flac",
+            }.get(os.path.splitext(chosen_song)[1].lower(), "audio/mpeg")
+            st.audio(song_path, format=mime)
+    with logo_col:
+        if os.path.isfile(LOGO_PATH):
+            st.image(LOGO_PATH, use_container_width=True)
+else:
+    st.caption("🎵 เพิ่มไฟล์เพลง .mp3 / .wav / .m4a / .ogg ไว้ในโฟลเดอร์เดียวกับ app.py แล้วเมนูเพลงจะแสดงที่นี่")
+
 # Keep enough height for map + calculation panel on mobile/desktop.
-components.html(html, height=900, scrolling=True)
+components.html(html, height=820, scrolling=True)
 
 st.divider()
 st.subheader("🎵 เครื่องเล่นเพลง")
